@@ -1,0 +1,688 @@
+<!doctype html>
+    <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Mihomo YAML config builder that can convert config links, import existing YAML, or create a config from scratch."
+    />
+    <meta name="theme-color" content="#0a8f78" />
+    <meta name="application-name" content="Sub Elite" />
+    <meta name="apple-mobile-web-app-title" content="Sub Elite" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="sub-elite-api-base-url" content="%SUB_ELITE_API_BASE_URL%" />
+    <title>Mihomo YAML Builder</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/favicon.svg?v=20260511-sub-elite-teal" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/pwa-icon.svg" />
+    <link rel="stylesheet" href="/src/styles.css?v=20260511-modern-motion" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <nav class="view-tabs" aria-label="Main navigation">
+        <button type="button" class="active" data-view-target="convert">
+          <svg class="icon"><use href="/icons.svg#icon-input"></use></svg>
+          <span>Input</span>
+        </button>
+        <button type="button" data-view-target="yaml">
+          <svg class="icon"><use href="/icons.svg#icon-yaml"></use></svg>
+          <span>YAML</span>
+        </button>
+        <button type="button" data-view-target="edit">
+          <svg class="icon"><use href="/icons.svg#icon-edit"></use></svg>
+          <span>Editor</span>
+        </button>
+      </nav>
+
+      <section class="view-panel active" data-view="convert" aria-label="Input">
+        <div class="screen-head">
+          <div>
+            <p class="eyebrow">Step 1</p>
+            <h2>Import Config</h2>
+          </div>
+          <div class="quick-actions">
+            <label class="ghost-button file-button" for="file-input">Import File</label>
+            <input id="file-input" type="file" accept=".txt,.conf,.list,.log,.yaml,.yml,text/plain,text/yaml,application/yaml" hidden />
+            <button id="blank-config-button" type="button" class="ghost-button">Blank</button>
+            <button id="sample-button" type="button" class="ghost-button">Sample</button>
+          </div>
+        </div>
+
+        <div id="error-banner" class="notice error" hidden></div>
+
+        <label class="field-stack" for="converter-input">
+          <span>Paste config links or existing Mihomo YAML</span>
+          <textarea
+            id="converter-input"
+            class="input-area"
+            spellcheck="false"
+            placeholder="vmess://base64-json...&#10;vless://uuid@example.com:443?security=tls&type=ws&host=example.com&path=%2Fws#VLESS-WS&#10;trojan://password@example.com:443?type=grpc&serviceName=grpc-service&sni=example.com#Trojan-gRPC&#10;&#10;or paste Mihomo YAML config here"
+          ></textarea>
+        </label>
+
+        <section class="option-panel" aria-label="Output options">
+          <label>
+            <span>Template</span>
+            <select id="template-select">
+              <option value="full">Full Config</option>
+              <option value="proxies">Proxies Only</option>
+              <option value="provider">Proxy Provider</option>
+            </select>
+          </label>
+          <label>
+            <span>Rule Preset</span>
+            <select id="rules-select">
+              <option value="proxy">MATCH,PROXY</option>
+              <option value="lan-direct">LAN/private DIRECT</option>
+              <option value="direct">MATCH,DIRECT</option>
+            </select>
+          </label>
+          <label>
+            <span>File Name</span>
+            <input id="filename-input" type="text" value="config-1.yaml" placeholder="config-1.yaml" />
+          </label>
+          <label class="wide-field">
+            <span>Node Name Pattern</span>
+            <input id="name-pattern-input" type="text" placeholder="{nn} - {type} - {name}" />
+            <div class="token-row" data-token-target="name-pattern-input">
+              <button type="button" class="token-chip" data-token="{nn}">{nn}</button>
+              <button type="button" class="token-chip" data-token="{type}">{type}</button>
+              <button type="button" class="token-chip" data-token="{name}">{name}</button>
+              <button type="button" class="token-chip" data-token="{server}">{server}</button>
+              <button type="button" class="token-chip" data-token="{port}">{port}</button>
+            </div>
+            <small>Tokens: {name}, {type}, {server}, {port}, {n}, {nn}</small>
+          </label>
+        </section>
+
+        <div class="sticky-actions">
+          <button id="convert-button" type="button" class="primary-button" disabled>
+            <svg class="icon-small"><use href="/icons.svg#icon-fix"></use></svg>
+            <span>Convert</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="view-panel" data-view="yaml" aria-label="Output YAML">
+        <div class="screen-head">
+          <div>
+            <p class="eyebrow">Step 2</p>
+            <h2>Review Output</h2>
+          </div>
+          <div class="quick-actions">
+            <button id="copy-button" type="button" class="ghost-button" disabled>
+              <svg class="icon-small"><use href="/icons.svg#icon-copy"></use></svg>
+              <span>Copy</span>
+            </button>
+            <button id="download-button" type="button" class="ghost-button" disabled>
+              <svg class="icon-small"><use href="/icons.svg#icon-download"></use></svg>
+              <span>Download</span>
+            </button>
+            <select id="export-format-select" class="compact-select" aria-label="Export format">
+              <option value="full">Full</option>
+              <option value="proxies">Proxies</option>
+              <option value="groups-rules">Groups + Rules</option>
+              <option value="provider">Provider</option>
+              <option value="dns">DNS</option>
+              <option value="tun">TUN</option>
+              <option value="sniffer">Sniffer</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="stats" aria-label="Conversion statistics">
+          <div><span id="stat-total">0</span><small>Total</small></div>
+          <div><span id="stat-converted">0</span><small>Converted</small></div>
+          <div><span id="stat-skipped">0</span><small>Skipped</small></div>
+        </div>
+
+        <div id="validation-banner" class="validation-banner" hidden></div>
+        <section id="validation-details" class="validation-details" hidden>
+          <h3>Validation Details</h3>
+          <ul id="validation-issues-list"></ul>
+        </section>
+        <section id="warnings" class="warnings" hidden>
+          <h3>Warnings</h3>
+          <ul id="warnings-list"></ul>
+        </section>
+
+        <section class="section-preview" aria-label="Preview section YAML">
+          <div class="section-preview-head">
+            <div>
+              <h3>YAML Section Preview</h3>
+              <p>Inspect one config section without scrolling the full YAML.</p>
+            </div>
+            <select id="yaml-section-select" class="compact-select">
+              <option value="full">Full config</option>
+              <option value="proxies">Proxies</option>
+              <option value="proxy-groups">Proxy groups</option>
+              <option value="rules">Rules</option>
+              <option value="dns">DNS</option>
+              <option value="tun">TUN</option>
+              <option value="sniffer">Sniffer</option>
+              <option value="providers">Providers</option>
+            </select>
+          </div>
+          <pre id="yaml-section-preview" class="section-preview-code">No YAML yet.</pre>
+        </section>
+
+        <textarea
+          id="yaml-editor"
+          class="yaml-preview"
+          spellcheck="false"
+          disabled
+        >Converted YAML will appear here.</textarea>
+
+        <section class="subscription-panel" aria-label="Subscription URL">
+          <div class="subscription-head">
+            <div>
+              <h3>Subscription URL</h3>
+              <p>Generate a secret URL for Mihomo/Clash subscription.</p>
+            </div>
+            <label>
+              <span>Expire</span>
+              <select id="subscription-expiry-select" class="compact-select">
+                <option value="30d">30 days</option>
+                <option value="7d">7 days</option>
+                <option value="never">Never</option>
+              </select>
+            </label>
+          </div>
+          <div class="subscription-actions">
+            <button id="create-subscription-button" type="button" class="primary-button" disabled>Create URL</button>
+            <button id="copy-subscription-button" type="button" class="ghost-button" disabled>Copy URL</button>
+            <a id="open-subscription-link" class="ghost-link disabled" href="#" target="_blank" rel="noopener">Open</a>
+          </div>
+          <input id="subscription-url-input" type="text" readonly placeholder="https://domain.pages.dev/sub/secret/config.yaml" />
+          <small id="subscription-status">Checking subscription API...</small>
+        </section>
+
+        <div class="sticky-actions action-grid yaml-tool-actions">
+          <button id="format-yaml-button" type="button" class="ghost-button" disabled>
+            <svg class="icon-small"><use href="/icons.svg#icon-format"></use></svg>
+            <span>Format</span>
+          </button>
+          <button id="validate-yaml-button" type="button" class="ghost-button" disabled>
+            <svg class="icon-small"><use href="/icons.svg#icon-validate"></use></svg>
+            <span>Validate</span>
+          </button>
+          <button id="auto-fix-button" type="button" class="ghost-button" disabled>
+            <svg class="icon-small"><use href="/icons.svg#icon-fix"></use></svg>
+            <span>Auto-fix</span>
+          </button>
+          <button id="toggle-diff-button" type="button" class="ghost-button" disabled>
+            <svg class="icon-small" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 3v18m12-18v18M9 7h6m-6 5h6m-6 5h6" />
+            </svg>
+            <span>Diff</span>
+          </button>
+          <button id="reset-yaml-button" type="button" class="ghost-button" disabled>
+            <svg class="icon-small" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12a9 9 0 1 0 3-6.7M3 4v6h6" />
+            </svg>
+            <span>Reset</span>
+          </button>
+        </div>
+
+        <section id="diff-panel" class="diff-panel" hidden>
+          <div class="panel-title">
+            <h3>Diff YAML</h3>
+            <p id="diff-summary">No changes yet.</p>
+          </div>
+          <pre id="diff-viewer" class="diff-viewer"></pre>
+        </section>
+      </section>
+
+      <section class="view-panel" data-view="edit" aria-label="Config editor">
+        <div class="screen-head">
+          <div>
+            <p class="eyebrow">Editor</p>
+            <h2>Config Editor</h2>
+          </div>
+        </div>
+
+        <label class="editor-section-select" for="editor-section-select">
+          <span>Editor Section</span>
+          <select id="editor-section-select" aria-label="Editor section">
+            <option value="general">General</option>
+            <option value="nodes">Node</option>
+            <option value="proxyProviders">Proxy Provider</option>
+            <option value="groups">Group</option>
+            <option value="providers">Rule Provider</option>
+            <option value="rules">Rule</option>
+            <option value="sniffer">Sniffer</option>
+            <option value="tun">TUN</option>
+            <option value="geo">Geo</option>
+          </select>
+        </label>
+
+        <nav class="edit-nav" aria-label="Editor navigation">
+          <button type="button" class="active" data-edit-target="general">
+            <svg class="icon-small"><use href="/icons.svg#icon-settings"></use></svg> General
+          </button>
+          <button type="button" data-edit-target="nodes">
+            <svg class="icon-small"><use href="/icons.svg#icon-node"></use></svg> Node
+          </button>
+          <button type="button" data-edit-target="proxyProviders">
+            <svg class="icon-small"><use href="/icons.svg#icon-provider"></use></svg> Proxy Provider
+          </button>
+          <button type="button" data-edit-target="groups">
+            <svg class="icon-small"><use href="/icons.svg#icon-group"></use></svg> Group
+          </button>
+          <button type="button" data-edit-target="providers">
+            <svg class="icon-small"><use href="/icons.svg#icon-provider"></use></svg> Rule Provider
+          </button>
+          <button type="button" data-edit-target="rules">
+            <svg class="icon-small"><use href="/icons.svg#icon-rule"></use></svg> Rule
+          </button>
+          <button type="button" data-edit-target="sniffer">
+            <svg class="icon-small"><use href="/icons.svg#icon-network"></use></svg> Sniffer
+          </button>
+          <button type="button" data-edit-target="tun">
+            <svg class="icon-small"><use href="/icons.svg#icon-network"></use></svg> TUN
+          </button>
+          <button type="button" data-edit-target="geo">
+            <svg class="icon-small"><use href="/icons.svg#icon-globe"></use></svg> Geo
+          </button>
+        </nav>
+
+        <div class="edit-stage">
+          <section class="edit-panel" data-edit-panel="nodes" hidden>
+            <div class="panel-title panel-title-row">
+              <div>
+                <h3><svg class="icon-small"><use href="/icons.svg#icon-node"></use></svg> Node Editor</h3>
+                <p>Enable, rename, sort, or correct node fields.</p>
+              </div>
+              <button id="open-node-tools-button" type="button" class="ghost-button panel-action">Node Tools</button>
+            </div>
+            <div class="inline-form node-filter-bar">
+              <input id="node-filter-query" type="text" placeholder="Search name, server, or type" />
+              <select id="node-filter-type">
+                <option value="">All Protocols</option>
+              </select>
+              <select id="node-filter-status">
+                <option value="">All Status</option>
+                <option value="enabled">Enabled</option>
+                <option value="disabled">Disabled</option>
+              </select>
+            </div>
+            <div class="inline-form advanced-inline manual-node-form">
+              <div class="form-card-title wide-field">
+                <strong>Manual Node</strong>
+              </div>
+              <input id="manual-node-name" type="text" placeholder="SG VLESS WS" />
+              <select id="manual-node-type">
+                <option value="vless">VLESS</option>
+                <option value="vmess">VMess</option>
+                <option value="trojan">Trojan</option>
+                <option value="ss">Shadowsocks / Libev</option>
+                <option value="ssr">ShadowsocksR</option>
+                <option value="snell">Snell</option>
+                <option value="anytls">AnyTLS</option>
+                <option value="mieru">Mieru</option>
+                <option value="sudoku">Sudoku</option>
+                <option value="hysteria">Hysteria</option>
+                <option value="hysteria2">Hysteria2</option>
+                <option value="tuic">TUIC</option>
+                <option value="masque">MASQUE</option>
+                <option value="trusttunnel">TrustTunnel</option>
+                <option value="socks5">SOCKS5</option>
+                <option value="http">HTTP</option>
+                <option value="wireguard">WireGuard</option>
+                <option value="ssh">SSH</option>
+                <option value="direct">DIRECT</option>
+                <option value="dns">DNS</option>
+              </select>
+              <div id="manual-node-fields" class="manual-node-fields wide-field"></div>
+              <button id="add-manual-node-button" type="button" class="ghost-button">Add Node</button>
+            </div>
+            <div id="node-list" class="item-list empty-state">No nodes yet. Convert config links first.</div>
+          </section>
+
+          <section class="edit-panel" data-edit-panel="groups" hidden>
+            <div class="panel-title">
+              <h3><svg class="icon-small"><use href="/icons.svg#icon-group"></use></svg> Proxy Group</h3>
+              <p>Configure select, url-test, fallback, load-balance, or relay groups.</p>
+            </div>
+            <details class="editor-field-section group-create-section wide-field" open>
+              <summary><span>Add Proxy Group</span><small>Create a select, url-test, fallback, load-balance, or relay group</small></summary>
+              <div class="form-grid section-grid group-create-grid">
+                <label><span>Name</span><input id="group-name-input" type="text" placeholder="PROXY" /></label>
+                <label><span>Type</span><select id="group-type-input">
+                  <option value="select">select</option>
+                  <option value="url-test">url-test</option>
+                  <option value="fallback">fallback</option>
+                  <option value="load-balance">load-balance</option>
+                  <option value="relay">relay</option>
+                </select></label>
+                <button id="add-group-button" type="button" class="ghost-button wide-field">Add Group</button>
+              </div>
+            </details>
+            <div id="group-list" class="item-list empty-state">No proxy groups yet.</div>
+          </section>
+
+          <section class="edit-panel" data-edit-panel="rules" hidden>
+            <div class="panel-title">
+              <h3><svg class="icon-small"><use href="/icons.svg#icon-rule"></use></svg> Rule Editor</h3>
+              <p>One rule per line.</p>
+            </div>
+            <div class="inline-form advanced-inline rule-builder">
+              <select id="rule-builder-type">
+                <option value="DOMAIN-SUFFIX">DOMAIN-SUFFIX</option>
+                <option value="DOMAIN-KEYWORD">DOMAIN-KEYWORD</option>
+                <option value="DOMAIN">DOMAIN</option>
+                <option value="IP-CIDR">IP-CIDR</option>
+                <option value="GEOIP">GEOIP</option>
+                <option value="GEOSITE">GEOSITE</option>
+                <option value="RULE-SET">RULE-SET</option>
+                <option value="MATCH">MATCH</option>
+              </select>
+              <input id="rule-builder-value" type="text" placeholder="example.com" />
+              <select id="rule-builder-target">
+                <option value="PROXY">PROXY</option>
+                <option value="DIRECT">DIRECT</option>
+                <option value="REJECT">REJECT</option>
+              </select>
+              <button id="add-rule-button" type="button" class="ghost-button">Add Rule</button>
+            </div>
+            <textarea id="rules-editor" class="compact-editor" spellcheck="false" placeholder="DOMAIN-SUFFIX,example.com,PROXY&#10;IP-CIDR,1.1.1.0/24,DIRECT&#10;MATCH,PROXY"></textarea>
+          </section>
+
+          <section class="edit-panel" data-edit-panel="proxyProviders" hidden>
+            <div class="panel-title">
+              <h3><svg class="icon-small"><use href="/icons.svg#icon-provider"></use></svg> Proxy Provider</h3>
+              <p>Add HTTP, file, or inline proxy providers for larger configs.</p>
+            </div>
+            <details class="editor-field-section provider-create-section wide-field" open>
+              <summary><span>Add Proxy Provider</span><small>Create an HTTP, file, or inline provider entry</small></summary>
+              <div class="form-grid section-grid provider-create-grid">
+                <label><span>Name</span><input id="proxy-provider-name" type="text" placeholder="provider-main" /></label>
+                <label><span>Type</span><select id="proxy-provider-type">
+                  <option value="http">http</option>
+                  <option value="file">file</option>
+                  <option value="inline">inline</option>
+                </select></label>
+                <label class="wide-field"><span>URL</span><input id="proxy-provider-url" type="text" placeholder="https://example.com/provider.yaml" /></label>
+                <button id="add-proxy-provider-button" type="button" class="ghost-button wide-field">Add Provider</button>
+              </div>
+            </details>
+            <div id="proxy-provider-list" class="item-list empty-state">No proxy providers yet.</div>
+          </section>
+
+          <section class="edit-panel active" data-edit-panel="general">
+            <div class="panel-title">
+              <h3><svg class="icon-small"><use href="/icons.svg#icon-settings"></use></svg> General & DNS</h3>
+              <p>Configure ports, mode, profile, controller, and DNS resolver options.</p>
+            </div>
+            <div class="form-grid general-dns-grid">
+              <details class="editor-field-section wide-field" open>
+                <summary><span>General Core</span><small>Ports, mode, LAN, and process behavior</small></summary>
+                <div class="form-grid section-grid">
+                  <label><span>Mixed Port</span><input id="general-mixed-port" type="text" value="7890" /></label>
+                  <label><span>Mode</span><select id="general-mode"><option value="rule">rule</option><option value="global">global</option><option value="direct">direct</option></select></label>
+                  <label><span>Log Level</span><select id="general-log-level"><option value="info">info</option><option value="warning">warning</option><option value="error">error</option><option value="debug">debug</option><option value="silent">silent</option></select></label>
+                  <label><span>Bind Address</span><input id="general-bind-address" type="text" value="*" /></label>
+                  <label><span>HTTP Port</span><input id="general-port" type="text" /></label>
+                  <label><span>SOCKS Port</span><input id="general-socks-port" type="text" /></label>
+                  <label><span>Redirect Port</span><input id="general-redir-port" type="text" /></label>
+                  <label><span>TProxy Port</span><input id="general-tproxy-port" type="text" /></label>
+                  <label><span>Interface</span><input id="general-interface-name" type="text" /></label>
+                  <label><span>Routing Mark</span><input id="general-routing-mark" type="text" /></label>
+                  <label><span>Find Process Mode</span><select id="general-find-process-mode"><option value="">default</option><option value="always">always</option><option value="strict">strict</option><option value="off">off</option></select></label>
+                  <label class="check-row"><input id="general-allow-lan" type="checkbox" /> Allow LAN</label>
+                  <label class="check-row"><input id="general-ipv6" type="checkbox" /> IPv6</label>
+                  <label class="check-row"><input id="general-unified-delay" type="checkbox" /> Unified Delay</label>
+                  <label class="check-row"><input id="general-tcp-concurrent" type="checkbox" /> TCP Concurrency</label>
+                </div>
+              </details>
+
+              <details class="editor-field-section wide-field">
+                <summary><span>Connection & Access</span><small>Keep alive, authentication, and LAN allowlists</small></summary>
+                <div class="form-grid section-grid">
+                  <label><span>Keep Alive Idle</span><input id="general-keep-alive-idle" type="text" /></label>
+                  <label><span>Keep Alive Interval</span><input id="general-keep-alive-interval" type="text" /></label>
+                  <label class="check-row"><input id="general-disable-keep-alive" type="checkbox" /> Disable Keep Alive</label>
+                  <label class="check-row"><input id="general-etag-support" type="checkbox" /> ETag Support</label>
+                  <label><span>LAN Allowed IPs</span><textarea id="general-lan-allowed-ips" class="mini-editor"></textarea></label>
+                  <label><span>LAN Disallowed IPs</span><textarea id="general-lan-disallowed-ips" class="mini-editor"></textarea></label>
+                  <label><span>Authentication</span><textarea id="general-authentication" class="mini-editor" placeholder="user:pass"></textarea></label>
+                  <label><span>Skip Auth Prefixes</span><textarea id="general-skip-auth-prefixes" class="mini-editor" placeholder="127.0.0.1/8"></textarea></label>
+                </div>
+              </details>
+
+              <details class="editor-field-section wide-field">
+                <summary><span>Controller & UI</span><small>External controller, dashboard, secret, and TLS certs</small></summary>
+                <div class="form-grid section-grid">
+                  <label><span>External Controller</span><input id="general-controller" type="text" /></label>
+                  <label><span>External Controller TLS</span><input id="general-controller-tls" type="text" /></label>
+                  <label><span>External Controller Unix</span><input id="general-controller-unix" type="text" /></label>
+                  <label><span>External Controller Pipe</span><input id="general-controller-pipe" type="text" /></label>
+                  <label><span>External Controller CORS</span><input id="general-controller-cors" type="text" placeholder="*" /></label>
+                  <label><span>Secret</span><input id="general-secret" type="text" /></label>
+                  <label><span>External UI</span><input id="general-ui" type="text" /></label>
+                  <label><span>External UI Name</span><input id="general-ui-name" type="text" /></label>
+                  <label><span>External UI URL</span><input id="general-ui-url" type="text" /></label>
+                  <label><span>Global Client Fingerprint</span><input id="general-client-fingerprint" type="text" /></label>
+                  <label><span>Global UA</span><input id="general-ua" type="text" /></label>
+                  <label><span>TLS Certificate</span><textarea id="general-tls-certificate" class="mini-editor"></textarea></label>
+                  <label><span>TLS Private Key</span><textarea id="general-tls-private-key" class="mini-editor"></textarea></label>
+                </div>
+              </details>
+
+              <details class="editor-field-section wide-field">
+                <summary><span>Profile</span><small>Persistent selected node and fake-ip cache</small></summary>
+                <div class="form-grid section-grid compact-check-grid">
+                  <label class="check-row"><input id="profile-store-selected" type="checkbox" /> Store Selected</label>
+                  <label class="check-row"><input id="profile-store-fake-ip" type="checkbox" /> Store Fake IP</label>
+                </div>
+              </details>
+
+              <details class="editor-field-section wide-field" open>
+                <summary><span>DNS Basic</span><small>Resolver enablement, listen address, and host behavior</small></summary>
+                <div class="form-grid section-grid">
+                  <label class="check-row"><input id="dns-enable" type="checkbox" checked /> DNS Enable</label>
+                  <label><span>DNS Listen</span><input id="dns-listen" type="text" value="0.0.0.0:1053" /></label>
+                  <label><span>Enhanced Mode</span><select id="dns-enhanced-mode"><option value="redir-host">redir-host</option><option value="fake-ip">fake-ip</option></select></label>
+                  <label><span>Cache Algorithm</span><select id="dns-cache-algorithm"><option value="">default</option><option value="lru">lru</option><option value="arc">arc</option></select></label>
+                  <label class="check-row"><input id="dns-prefer-h3" type="checkbox" /> Prefer H3</label>
+                  <label class="check-row"><input id="dns-use-hosts" type="checkbox" /> Use Hosts</label>
+                  <label class="check-row"><input id="dns-use-system-hosts" type="checkbox" /> Use System Hosts</label>
+                  <label class="check-row"><input id="dns-respect-rules" type="checkbox" /> Respect Rules</label>
+                </div>
+              </details>
+
+              <details class="editor-field-section wide-field">
+                <summary><span>DNS Fake IP</span><small>Fake IP range, TTL, mode, and filter rules</small></summary>
+                <div class="form-grid section-grid">
+                  <label><span>Fake IP Range</span><input id="dns-fake-ip-range" type="text" value="198.18.0.1/16" /></label>
+                  <label><span>Fake IP Range v6</span><input id="dns-fake-ip-range6" type="text" /></label>
+                  <label><span>Fake IP Filter Mode</span><select id="dns-fake-ip-filter-mode"><option value="">default</option><option value="blacklist">blacklist</option><option value="whitelist">whitelist</option><option value="rule">rule</option></select></label>
+                  <label><span>Fake IP TTL</span><input id="dns-fake-ip-ttl" type="text" /></label>
+                  <label class="wide-field"><span>Fake IP Filter</span><textarea id="dns-fake-ip-filter" class="mini-editor"></textarea></label>
+                </div>
+              </details>
+
+              <details class="editor-field-section wide-field">
+                <summary><span>DNS Nameserver</span><small>Default, proxy, direct, fallback, and policy resolvers</small></summary>
+                <div class="form-grid section-grid">
+                  <label><span>Default Nameserver</span><textarea id="dns-default" class="mini-editor"></textarea></label>
+                  <label><span>Nameserver</span><textarea id="dns-nameservers" class="mini-editor"></textarea></label>
+                  <label><span>Fallback</span><textarea id="dns-fallback" class="mini-editor"></textarea></label>
+                  <label><span>Fallback Filter</span><textarea id="dns-fallback-filter" class="mini-editor" placeholder="geoip=true&#10;geoip-code=CN"></textarea></label>
+                  <label><span>Direct Nameserver</span><textarea id="dns-direct-nameserver" class="mini-editor"></textarea></label>
+                  <label class="check-row"><input id="dns-direct-follow-policy" type="checkbox" /> Direct Nameserver Follow Policy</label>
+                  <label><span>Proxy Server Nameserver</span><textarea id="dns-proxy-server" class="mini-editor"></textarea></label>
+                  <label><span>Proxy Server Nameserver Policy</span><textarea id="dns-proxy-policy" class="mini-editor" placeholder="www.node.com=1.1.1.1"></textarea></label>
+                  <label class="wide-field"><span>Nameserver Policy</span><textarea id="dns-policy" class="mini-editor" placeholder="geosite:cn=https://doh.pub/dns-query"></textarea></label>
+                </div>
+              </details>
+            </div>
+          </section>
+
+          <section class="edit-panel" data-edit-panel="sniffer" hidden>
+            <div class="panel-title">
+              <h3><svg class="icon-small"><use href="/icons.svg#icon-network"></use></svg> Sniffer</h3>
+              <p>Configure protocol sniffing and destination override options.</p>
+            </div>
+            <div class="form-grid">
+              <label class="check-row"><input id="sniffer-enable" type="checkbox" /> Sniffer Enable</label>
+              <label class="check-row"><input id="sniffer-override" type="checkbox" checked /> Override Destination</label>
+              <label class="check-row"><input id="sniffer-parse-ip" type="checkbox" /> Parse Pure IP</label>
+              <label class="check-row"><input id="sniffer-force-dns-mapping" type="checkbox" /> Force DNS Mapping</label>
+              <label><span>Sniff Protocols</span><textarea id="sniffer-sniff" class="mini-editor"></textarea></label>
+              <label><span>Force Domain</span><textarea id="sniffer-force" class="mini-editor"></textarea></label>
+              <label><span>Skip Domain</span><textarea id="sniffer-skip" class="mini-editor"></textarea></label>
+              <label><span>Skip Src Address</span><textarea id="sniffer-skip-src" class="mini-editor"></textarea></label>
+              <label><span>Skip Dst Address</span><textarea id="sniffer-skip-dst" class="mini-editor"></textarea></label>
+            </div>
+          </section>
+
+          <section class="edit-panel" data-edit-panel="tun" hidden>
+            <div class="panel-title">
+              <h3><svg class="icon-small"><use href="/icons.svg#icon-network"></use></svg> TUN</h3>
+              <p>Configure Mihomo TUN routing options.</p>
+            </div>
+            <div class="form-grid">
+              <label class="check-row"><input id="tun-enable" type="checkbox" /> TUN Enable</label>
+              <label><span>Stack</span><select id="tun-stack"><option value="mixed">mixed</option><option value="system">system</option><option value="gvisor">gvisor</option></select></label>
+              <label><span>Device</span><input id="tun-device" type="text" /></label>
+              <label><span>MTU</span><input id="tun-mtu" type="text" /></label>
+              <label><span>GSO Max Size</span><input id="tun-gso-max-size" type="text" /></label>
+              <label><span>UDP Timeout</span><input id="tun-udp-timeout" type="text" /></label>
+              <label><span>IPRoute2 Table Index</span><input id="tun-iproute2-table-index" type="text" /></label>
+              <label><span>IPRoute2 Rule Index</span><input id="tun-iproute2-rule-index" type="text" /></label>
+              <label class="check-row"><input id="tun-auto-route" type="checkbox" checked /> Auto Route</label>
+              <label class="check-row"><input id="tun-auto-redirect" type="checkbox" /> Auto Redirect</label>
+              <label class="check-row"><input id="tun-auto-detect" type="checkbox" checked /> Auto Detect Interface</label>
+              <label class="check-row"><input id="tun-strict-route" type="checkbox" /> Strict Route</label>
+              <label class="check-row"><input id="tun-gso" type="checkbox" /> GSO</label>
+              <label class="check-row"><input id="tun-endpoint-independent-nat" type="checkbox" /> Endpoint Independent NAT</label>
+              <label class="wide-field"><span>DNS Hijack</span><textarea id="tun-dns-hijack" class="mini-editor"></textarea></label>
+              <label><span>Route Address Set</span><textarea id="tun-route-address-set" class="mini-editor"></textarea></label>
+              <label><span>Route Exclude Address Set</span><textarea id="tun-route-exclude-address-set" class="mini-editor"></textarea></label>
+              <label><span>Route Address</span><textarea id="tun-route-address" class="mini-editor"></textarea></label>
+              <label><span>Route Exclude Address</span><textarea id="tun-route-exclude-address" class="mini-editor"></textarea></label>
+              <label><span>Include Interface</span><textarea id="tun-include-interface" class="mini-editor"></textarea></label>
+              <label><span>Exclude Interface</span><textarea id="tun-exclude-interface" class="mini-editor"></textarea></label>
+              <label><span>Include UID</span><textarea id="tun-include-uid" class="mini-editor"></textarea></label>
+              <label><span>Include UID Range</span><textarea id="tun-include-uid-range" class="mini-editor"></textarea></label>
+              <label><span>Exclude UID</span><textarea id="tun-exclude-uid" class="mini-editor"></textarea></label>
+              <label><span>Exclude UID Range</span><textarea id="tun-exclude-uid-range" class="mini-editor"></textarea></label>
+              <label><span>Include Android User</span><textarea id="tun-include-android-user" class="mini-editor"></textarea></label>
+              <label><span>Include Package</span><textarea id="tun-include-package" class="mini-editor"></textarea></label>
+              <label><span>Exclude Package</span><textarea id="tun-exclude-package" class="mini-editor"></textarea></label>
+            </div>
+          </section>
+
+          <section class="edit-panel" data-edit-panel="geo" hidden>
+            <div class="panel-title">
+              <h3><svg class="icon-small"><use href="/icons.svg#icon-globe"></use></svg> Geo Data</h3>
+              <p>Configure geosite, geoip, MMDB, and ASN data sources.</p>
+            </div>
+            <div class="form-grid">
+              <label class="check-row"><input id="geo-geodata-mode" type="checkbox" /> Geodata Mode</label>
+              <label class="check-row"><input id="geo-auto-update" type="checkbox" /> Geo Auto Update</label>
+              <label><span>Geo Update Interval</span><input id="geo-update-interval" type="text" value="24" /></label>
+              <label><span>GEOIP URL</span><input id="geo-url-geoip" type="text" /></label>
+              <label><span>GEOSITE URL</span><input id="geo-url-geosite" type="text" /></label>
+              <label><span>MMDB URL</span><input id="geo-url-mmdb" type="text" /></label>
+              <label><span>ASN URL</span><input id="geo-url-asn" type="text" /></label>
+            </div>
+          </section>
+
+          <section class="edit-panel" data-edit-panel="providers" hidden>
+            <div class="panel-title">
+              <h3><svg class="icon-small"><use href="/icons.svg#icon-provider"></use></svg> Rule Provider</h3>
+              <p>Add custom rule providers or quick rule-provider entries.</p>
+            </div>
+            <div class="preset-actions">
+              <button id="add-ads-provider-button" type="button" class="ghost-button">Ad Block</button>
+              <button id="apply-lan-rules-button" type="button" class="ghost-button">LAN DIRECT</button>
+            </div>
+            <details class="editor-field-section provider-create-section wide-field" open>
+              <summary><span>Add Rule Provider</span><small>Create provider and RULE-SET entry together</small></summary>
+              <div class="form-grid section-grid provider-create-grid">
+                <label><span>Name</span><input id="rule-provider-name" type="text" placeholder="reject-ads" /></label>
+                <label><span>Behavior</span><select id="rule-provider-behavior">
+                  <option value="classical">classical</option>
+                  <option value="domain">domain</option>
+                  <option value="ipcidr">ipcidr</option>
+                </select></label>
+                <label class="wide-field"><span>URL</span><input id="rule-provider-url" type="text" placeholder="https://example.com/rules.yaml" /></label>
+                <label><span>Target</span><select id="rule-provider-target">
+                  <option value="PROXY">PROXY</option>
+                  <option value="DIRECT">DIRECT</option>
+                  <option value="REJECT">REJECT</option>
+                </select></label>
+                <label><span>Format</span><select id="rule-provider-format">
+                  <option value="">default</option>
+                  <option value="yaml">yaml</option>
+                  <option value="text">text</option>
+                  <option value="mrs">mrs</option>
+                </select></label>
+                <button id="add-rule-provider-button" type="button" class="ghost-button wide-field">Add Rule Provider</button>
+              </div>
+            </details>
+            <div id="rule-provider-list" class="item-list empty-state">No custom rule providers yet.</div>
+          </section>
+
+        </div>
+      </section>
+
+      <div class="fab-container" aria-label="Quick actions">
+        <button id="fab-copy" type="button" class="fab-button" aria-label="Copy YAML">
+          <svg class="icon"><use href="/icons.svg#icon-copy"></use></svg>
+        </button>
+        <button id="fab-download" type="button" class="fab-button" aria-label="Download YAML">
+          <svg class="icon"><use href="/icons.svg#icon-download"></use></svg>
+        </button>
+      </div>
+
+      <section id="node-tools-sheet" class="bottom-sheet" hidden aria-label="Node tools">
+        <div class="sheet-backdrop" data-sheet-close></div>
+        <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="node-tools-title">
+          <div class="sheet-head">
+            <h3 id="node-tools-title">Node Tools</h3>
+            <button id="close-node-tools-button" type="button" class="ghost-button">Close</button>
+          </div>
+          <div class="sheet-grid">
+            <label class="wide-field">
+              <span>Bulk Rename Pattern</span>
+              <input id="bulk-rename-pattern" type="text" value="{nn} - {type} - {name}" />
+              <div class="token-row" data-token-target="bulk-rename-pattern">
+                <button type="button" class="token-chip" data-token="{nn}">{nn}</button>
+                <button type="button" class="token-chip" data-token="{type}">{type}</button>
+                <button type="button" class="token-chip" data-token="{name}">{name}</button>
+                <button type="button" class="token-chip" data-token="{server}">{server}</button>
+                <button type="button" class="token-chip" data-token="{port}">{port}</button>
+              </div>
+              <small>Tokens: {name}, {type}, {server}, {port}, {n}, {nn}</small>
+            </label>
+            <button id="apply-bulk-rename-button" type="button" class="ghost-button">Apply Rename</button>
+            <label>
+              <span>Sort Nodes</span>
+              <select id="node-sort-field">
+                <option value="name">Name</option>
+                <option value="type">Type</option>
+                <option value="server">Server</option>
+              </select>
+            </label>
+            <button id="sort-nodes-button" type="button" class="ghost-button">Sort</button>
+            <button id="delete-duplicate-nodes-button" type="button" class="ghost-button">Remove Duplicates</button>
+            <label class="wide-field">
+              <span>Keyword</span>
+              <input id="node-keyword-input" type="text" placeholder="server, type, or node name" />
+            </label>
+            <button id="enable-keyword-nodes-button" type="button" class="ghost-button">Enable Matches</button>
+            <button id="disable-keyword-nodes-button" type="button" class="ghost-button">Disable Matches</button>
+          </div>
+        </div>
+      </section>
+
+      <div id="toast" class="toast hidden"></div>
+    </main>
+    <script type="module" src="/src/app.js?v=20260510-client-convert"></script>
+  </body>
+</html>

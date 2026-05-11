@@ -1,0 +1,29 @@
+{
+  "name": "sub-elite",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "npm run build && node --experimental-strip-types server/index.ts",
+    "server": "node --experimental-strip-types server/index.ts",
+    "build": "node scripts/build-static.mjs",
+    "lint": "node ./node_modules/eslint/bin/eslint.js .",
+    "archive:cloudflare": "npm run build && node scripts/make-zip.mjs dist sub-elite-cloudflare-pages.zip",
+    "pages:dev": "npm run build && wrangler pages dev dist",
+    "preview": "npm run build && node --experimental-strip-types server/index.ts",
+    "test": "node --experimental-strip-types --test server/converter.test.js"
+  },
+  "dependencies": {
+    "yaml": "^2.8.4"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.12.2",
+    "eslint": "^10.2.1",
+    "globals": "^17.5.0",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.58.2",
+    "webpack": "^5.106.2",
+    "webpack-cli": "^7.0.2"
+  }
+}
