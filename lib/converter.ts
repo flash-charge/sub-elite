@@ -1018,7 +1018,9 @@ function buildGeo(geo) {
 }
 
 function buildDns(dns) {
+  const extra = omitKeys(dns, dnsFieldKeys)
   return compact({
+    ...extra,
     enable: dns.enable,
     'cache-algorithm': dns.cacheAlgorithm || undefined,
     'prefer-h3': dns.preferH3 || undefined,
@@ -1493,7 +1495,9 @@ function normalizeModel(model) {
 function normalizeDns(dns: ProxyNode = {}) {
   const defaults = createConfigModel([]).dns
   const enhancedMode = dns.enhancedMode ?? dns['enhanced-mode']
+  const extra = omitKeys(dns, dnsFieldKeys)
   return {
+    ...extra,
     enable: dns.enable !== false,
     listen: String(dns.listen || '0.0.0.0:1053').trim(),
     ipv6: Boolean(dns.ipv6),
@@ -1519,6 +1523,50 @@ function normalizeDns(dns: ProxyNode = {}) {
     nameserverPolicy: normalizePolicy(dns.nameserverPolicy || dns['nameserver-policy']),
   }
 }
+
+const dnsFieldKeys = [
+  'enable',
+  'listen',
+  'ipv6',
+  'cacheAlgorithm',
+  'cache-algorithm',
+  'preferH3',
+  'prefer-h3',
+  'useHosts',
+  'use-hosts',
+  'useSystemHosts',
+  'use-system-hosts',
+  'respectRules',
+  'respect-rules',
+  'enhancedMode',
+  'enhanced-mode',
+  'fakeIpRange',
+  'fake-ip-range',
+  'fakeIpRange6',
+  'fake-ip-range6',
+  'fakeIpFilterMode',
+  'fake-ip-filter-mode',
+  'fakeIpTtl',
+  'fake-ip-ttl',
+  'fakeIpFilter',
+  'fake-ip-filter',
+  'defaultNameserver',
+  'default-nameserver',
+  'nameserver',
+  'fallback',
+  'fallbackFilter',
+  'fallback-filter',
+  'directNameserver',
+  'direct-nameserver',
+  'directNameserverFollowPolicy',
+  'direct-nameserver-follow-policy',
+  'proxyServerNameserver',
+  'proxy-server-nameserver',
+  'proxyServerNameserverPolicy',
+  'proxy-server-nameserver-policy',
+  'nameserverPolicy',
+  'nameserver-policy',
+]
 
 function normalizeGeneral(general: ProxyNode = {}) {
   const defaults = createGeneral()

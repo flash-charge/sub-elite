@@ -818,6 +818,27 @@ test('dns kebab aliases are normalized from yaml-shaped models', () => {
   assert.match(yaml, /fake-ip-filter:\n\s+- "\*\.lan"\n\s+- "\+\.example\.com"/)
 })
 
+test('dns extra fields are preserved from editor models', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    dns: {
+      nameserver: ['https://dns.google/dns-query'],
+      hosts: {
+        'example.com': '1.1.1.1',
+      },
+      'fake-ip-filter': ['legacy.example'],
+      fakeIpFilter: ['current.example'],
+    },
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.match(yaml, /hosts:\n\s+"example\.com": "1\.1\.1\.1"/)
+  assert.match(yaml, /nameserver:\n\s+- "https:\/\/dns\.google\/dns-query"/)
+  assert.doesNotMatch(yaml, /legacy\.example/)
+})
+
 test('provider extra fields are preserved from editor models', () => {
   const yaml = buildYamlFromModel({
     template: 'full',

@@ -3093,7 +3093,9 @@ function updateRulesFromEditor() {
 function updateDnsFromEditor() {
   if (!state.model) return
   clearRawSection('dns')
+  const extra = omitKeys(state.model.dns, dnsFieldKeys)
   state.model.dns = {
+    ...extra,
     enable: dnsEnable.checked,
     listen: dnsListen.value.trim(),
     ipv6: Boolean(state.model.dns.ipv6),
@@ -3991,6 +3993,11 @@ function normalizeProxyProviderPayload(value) {
   return []
 }
 
+function omitKeys(value = {}, keys = []) {
+  const omitted = new Set(keys)
+  return Object.fromEntries(Object.entries(value || {}).filter(([key]) => !omitted.has(key)))
+}
+
 function normalizeClientRuleProvider(provider) {
   const rest = { ...provider }
   delete rest['size-limit']
@@ -4136,7 +4143,9 @@ function normalizeClientGeneral(general = {}) {
 }
 
 function normalizeClientDns(dns = {}) {
+  const extra = omitKeys(dns, dnsFieldKeys)
   return {
+    ...extra,
     enable: dns.enable !== false,
     listen: dns.listen || '0.0.0.0:1053',
     ipv6: Boolean(dns.ipv6),
@@ -4162,6 +4171,50 @@ function normalizeClientDns(dns = {}) {
     nameserverPolicy: isPlainObject(dns.nameserverPolicy) ? dns.nameserverPolicy : isPlainObject(dns['nameserver-policy']) ? dns['nameserver-policy'] : {},
   }
 }
+
+const dnsFieldKeys = [
+  'enable',
+  'listen',
+  'ipv6',
+  'cacheAlgorithm',
+  'cache-algorithm',
+  'preferH3',
+  'prefer-h3',
+  'useHosts',
+  'use-hosts',
+  'useSystemHosts',
+  'use-system-hosts',
+  'respectRules',
+  'respect-rules',
+  'enhancedMode',
+  'enhanced-mode',
+  'fakeIpRange',
+  'fake-ip-range',
+  'fakeIpRange6',
+  'fake-ip-range6',
+  'fakeIpFilterMode',
+  'fake-ip-filter-mode',
+  'fakeIpTtl',
+  'fake-ip-ttl',
+  'fakeIpFilter',
+  'fake-ip-filter',
+  'defaultNameserver',
+  'default-nameserver',
+  'nameserver',
+  'fallback',
+  'fallbackFilter',
+  'fallback-filter',
+  'directNameserver',
+  'direct-nameserver',
+  'directNameserverFollowPolicy',
+  'direct-nameserver-follow-policy',
+  'proxyServerNameserver',
+  'proxy-server-nameserver',
+  'proxyServerNameserverPolicy',
+  'proxy-server-nameserver-policy',
+  'nameserverPolicy',
+  'nameserver-policy',
+]
 
 function normalizeClientSniffer(sniffer = {}) {
   return {
