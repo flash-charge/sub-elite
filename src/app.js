@@ -3795,6 +3795,7 @@ function yamlGeneralToModel(raw) {
 
 function yamlDnsToModel(dns) {
   return {
+    ...omitKeys(dns, dnsFieldKeys),
     enable: dns.enable,
     listen: dns.listen,
     ipv6: dns.ipv6,
@@ -3823,6 +3824,7 @@ function yamlDnsToModel(dns) {
 
 function yamlSnifferToModel(sniffer) {
   return {
+    ...omitKeys(sniffer, snifferFieldKeys),
     enable: sniffer.enable,
     overrideDestination: sniffer['override-destination'],
     parsePureIp: sniffer['parse-pure-ip'],
@@ -3837,6 +3839,7 @@ function yamlSnifferToModel(sniffer) {
 
 function yamlTunToModel(tun) {
   return {
+    ...omitKeys(tun, tunFieldKeys),
     enable: tun.enable,
     stack: tun.stack,
     device: tun.device,
