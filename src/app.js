@@ -1566,9 +1566,13 @@ function handleNodeInput(event, index) {
       const parsed = JSON.parse(event.target.value)
       if (!isPlainObject(parsed)) throw new Error('Node Raw JSON must be an object.')
       state.model.proxies[index] = { ...parsed, enabled: proxy.enabled !== false }
-      replaceGroupProxyName(previousName, state.model.proxies[index].name)
-      replacePolicyTargetName(previousName, state.model.proxies[index].name)
+      const nextName = state.model.proxies[index].name
+      if (nextName) replaceGroupProxyName(previousName, nextName)
+      else removeGroupProxyName(previousName)
+      replacePolicyTargetName(previousName, nextName || fallbackPolicyTarget())
       clearValidation()
+      renderGroups()
+      renderRuleTargetOptions()
       updateYamlFromModel(false)
     } catch {
       showValidation('Node Raw JSON is invalid.', 'error')
