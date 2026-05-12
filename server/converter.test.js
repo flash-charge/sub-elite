@@ -866,6 +866,23 @@ test('proxy group extra fields are preserved from editor models', () => {
   assert.doesNotMatch(yaml, /include-all: true/)
 })
 
+test('sniffer string entries preserve comma-separated port lists', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    sniffer: {
+      enable: true,
+      sniff: 'TLS:443,8443\nHTTP:80,8080-8880',
+    },
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.match(yaml, /TLS:\n\s+ports:\n\s+- 443\n\s+- 8443/)
+  assert.match(yaml, /HTTP:\n\s+ports:\n\s+- 80\n\s+- "8080-8880"/)
+  assert.doesNotMatch(yaml, /\n\s+8443:\n/)
+})
+
 test('buildYamlFromModel supports advanced mihomo sections', () => {
   const yaml = buildYamlFromModel({
     template: 'full',

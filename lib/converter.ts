@@ -1222,7 +1222,7 @@ function buildTunnels(tunnels) {
 
 function parseSniffList(items) {
   return Object.fromEntries(
-    normalizeList(items, []).map((item) => {
+    normalizeLineList(items, []).map((item) => {
       const [protocol, ports = ''] = item.split(':')
       return [protocol, normalizeSniffProtocol({ ports })]
     }).filter(([protocol, config]) => protocol && (config as any).ports?.length),

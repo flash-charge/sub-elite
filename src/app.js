@@ -3178,7 +3178,7 @@ function updateSnifferFromEditor() {
     overrideDestination: snifferOverride.checked,
     parsePureIp: snifferParseIp.checked,
     forceDnsMapping: snifferForceDnsMapping.checked,
-    sniff: splitLinesOrComma(snifferSniff.value),
+    sniff: splitLines(snifferSniff.value),
     forceDomain: splitLinesOrComma(snifferForce.value),
     skipDomain: splitLinesOrComma(snifferSkip.value),
     skipSrcAddress: splitLinesOrComma(snifferSkipSrc.value),
@@ -4222,7 +4222,7 @@ function normalizeClientNtp(ntp = {}) {
 
 function normalizeSniffForText(value, fallback) {
   if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean)
-  if (typeof value === 'string') return splitLinesOrComma(value)
+  if (typeof value === 'string') return splitLines(value)
   if (!isPlainObject(value)) return fallback
 
   const items = Object.entries(value)
