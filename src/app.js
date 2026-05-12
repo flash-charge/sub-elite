@@ -1215,7 +1215,7 @@ function groupProxyOptions(group) {
     .filter(Boolean)
   const groupNames = (state.model?.groups || [])
     .map((item) => item.name)
-    .filter((name) => name && name !== group.name)
+    .filter((name) => name && name !== group.name && !groupReferenceCreatesCycle(group.name, name))
   const selectable = new Set(['DIRECT', 'REJECT', ...proxyNames, ...groupNames])
   const selected = (Array.isArray(group.proxies) ? group.proxies : []).filter((name) => selectable.has(name))
 
@@ -1235,6 +1235,11 @@ function hasDuplicateName(items, name) {
 function hasDuplicateNameExcept(items, name, index) {
   const normalizedName = String(name || '').trim()
   return Boolean(normalizedName) && items.some((item, itemIndex) => itemIndex !== index && String(item?.name || '').trim() === normalizedName)
+}
+
+function hasNameInCollection(items, name) {
+  const normalizedName = String(name || '').trim()
+  return Boolean(normalizedName) && items.some((item) => String(item?.name || '').trim() === normalizedName)
 }
 
 function rejectEmptyNameInput(target, previousName, label) {
@@ -1632,6 +1637,10 @@ function handleNodeInput(event, index) {
         showValidation(`Node "${String(parsed.name || '').trim()}" already exists.`, 'error')
         return
       }
+      if (hasNameInCollection(state.model.groups, parsed.name)) {
+        showValidation(`Node name "${String(parsed.name || '').trim()}" conflicts with a group name.`, 'error')
+        return
+      }
       state.model.proxies[index] = { ...parsed, enabled: proxy.enabled !== false }
       const nextName = state.model.proxies[index].name
       if (nextName) replaceGroupProxyName(previousName, nextName)
@@ -1653,6 +1662,12 @@ function handleNodeInput(event, index) {
     const attemptedName = String(event.target.value || '').trim()
     event.target.value = previousName || ''
     showValidation(`Node "${attemptedName}" already exists.`, 'error')
+    return
+  }
+  if (field === 'name' && hasNameInCollection(state.model.groups, event.target.value)) {
+    const attemptedName = String(event.target.value || '').trim()
+    event.target.value = previousName || ''
+    showValidation(`Node name "${attemptedName}" conflicts with a group name.`, 'error')
     return
   }
 
@@ -1759,6 +1774,12 @@ function handleGroupInput(event, index) {
     const attemptedName = String(event.target.value || '').trim()
     event.target.value = previousName || ''
     showValidation(`Group "${attemptedName}" already exists.`, 'error')
+    return
+  }
+  if (field === 'name' && hasNameInCollection(state.model.proxies, event.target.value)) {
+    const attemptedName = String(event.target.value || '').trim()
+    event.target.value = previousName || ''
+    showValidation(`Group name "${attemptedName}" conflicts with a node name.`, 'error')
     return
   }
   if (field === 'group-proxy-option') group.proxies = readGroupProxySelection(event.currentTarget)
@@ -2040,12 +2061,32 @@ function replaceRemovedPolicyTargets(removedNames, nextName) {
 }
 
 function replaceRuleTargetName(rule, previousName, nextName) {
-  const parts = String(rule).split(',').map((part) => part.trim())
+  const parts = splitRuleParts(rule)
+  if (parts[0] === 'SUB-RULE') return rule
   const candidateIndexes = parts[0] === 'MATCH' ? [1] : [2, parts.length - 1]
   for (const index of [...new Set(candidateIndexes)]) {
     if (parts[index] === previousName) parts[index] = nextName
   }
   return parts.join(',')
+}
+
+function splitRuleParts(rule) {
+  const parts = []
+  let current = ''
+  let depth = 0
+  for (const char of String(rule)) {
+    if (char === '(') depth += 1
+    else if (char === ')' && depth > 0) depth -= 1
+
+    if (char === ',' && depth === 0) {
+      parts.push(current.trim())
+      current = ''
+    } else {
+      current += char
+    }
+  }
+  parts.push(current.trim())
+  return parts
 }
 
 function fallbackPolicyTarget() {
@@ -2227,6 +2268,10 @@ function addGroup() {
   }
   if (hasDuplicateName(state.model.groups, name)) {
     showValidation(`Group "${name}" already exists.`, 'error')
+    return
+  }
+  if (hasNameInCollection(state.model.proxies, name)) {
+    showValidation(`Group name "${name}" conflicts with a node name.`, 'error')
     return
   }
   const enabledNames = state.model.proxies.filter((proxy) => proxy.enabled !== false).map((proxy) => proxy.name)
@@ -2859,6 +2904,10 @@ function addManualNode() {
   }
   if (hasDuplicateName(state.model.proxies, name)) {
     showValidation(`Node "${name}" already exists.`, 'error')
+    return
+  }
+  if (hasNameInCollection(state.model.groups, name)) {
+    showValidation(`Node name "${name}" conflicts with a group name.`, 'error')
     return
   }
   const issue = validateManualNodeValues(type, values)
@@ -4934,9 +4983,37 @@ function pruneGroupProxyRefs(keptNames) {
   if (!state.model) return
   const groupNames = new Set(state.model.groups.map((group) => group.name))
   for (const group of state.model.groups) {
-    group.proxies = group.proxies.filter((name) => keptNames.has(name) || groupNames.has(name) || ['DIRECT', 'REJECT'].includes(name))
+    group.proxies = group.proxies.filter((name) => {
+      if (name === group.name || groupReferenceCreatesCycle(group.name, name)) return false
+      return keptNames.has(name) || groupNames.has(name) || ['DIRECT', 'REJECT'].includes(name)
+    })
     if (!group.proxies.length) group.proxies = keptNames.size ? [...keptNames] : ['DIRECT']
   }
+}
+
+function groupReferenceCreatesCycle(sourceName, targetName, groups = state.model?.groups || []) {
+  if (!sourceName || !targetName) return false
+  if (sourceName === targetName) return true
+
+  const groupNames = new Set(groups.map((group) => group.name).filter(Boolean))
+  if (!groupNames.has(targetName)) return false
+
+  const graph = new Map(groups.map((group) => [
+    group.name,
+    (Array.isArray(group.proxies) ? group.proxies : []).filter((name) => groupNames.has(name)),
+  ]))
+  graph.set(sourceName, uniqueList([...(graph.get(sourceName) || []), targetName]))
+
+  const seen = new Set()
+  const stack = [targetName]
+  while (stack.length) {
+    const name = stack.pop()
+    if (name === sourceName) return true
+    if (seen.has(name)) continue
+    seen.add(name)
+    stack.push(...(graph.get(name) || []))
+  }
+  return false
 }
 
 function formatNodeName(proxy, index, pattern) {

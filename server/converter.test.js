@@ -513,6 +513,91 @@ test('validateConfigModel reports Mihomo structure mistakes more precisely', () 
   assert.ok(result.issues.some((issue) => issue.code === 'match-not-last'))
 })
 
+test('validateConfigModel parses SUB-RULE rules without treating inner commas as targets', () => {
+  const result = validateConfigModel({
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
+    subRules: { directOnly: ['DOMAIN-SUFFIX,example.com,DIRECT', 'MATCH,DIRECT'] },
+    rules: ['SUB-RULE,(DOMAIN,example.com),directOnly', 'MATCH,PROXY'],
+  })
+
+  assert.equal(result.issues.some((issue) => issue.code === 'missing-rule-target'), false)
+  assert.equal(result.issues.some((issue) => issue.code === 'missing-sub-rule'), false)
+})
+
+test('validateConfigModel accepts direct node names as rule targets', () => {
+  const result = validateConfigModel({
+    template: 'full',
+    proxies: [{ name: 'Node A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['Node A'] }],
+    rules: ['DOMAIN,example.com,Node A', 'MATCH,PROXY'],
+  })
+
+  assert.equal(result.issues.some((issue) => issue.code === 'missing-rule-target'), false)
+})
+
+test('validateConfigModel rejects node and group name collisions', () => {
+  const result = validateConfigModel({
+    template: 'full',
+    proxies: [{ name: 'Same', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'Same', type: 'select', proxies: ['Same'] }],
+    rules: ['MATCH,Same'],
+  })
+
+  assert.equal(result.issues.some((issue) => issue.code === 'proxy-group-name-collision'), true)
+})
+
+test('group self references are reported and removed from generated yaml', () => {
+  const model = {
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['PROXY', 'A'] }],
+    rules: ['MATCH,PROXY'],
+  }
+
+  const result = validateConfigModel(model)
+  const yaml = buildYamlFromModel(model)
+
+  assert.equal(result.issues.some((issue) => issue.code === 'self-group-reference'), true)
+  assert.doesNotMatch(yaml, /proxies:\n\s+- "PROXY"\n\s+- "A"/)
+  assert.match(yaml, /proxies:\n\s+- "A"/)
+})
+
+test('cyclic group references are reported and removed from generated yaml', () => {
+  const model = {
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [
+      { name: 'Group A', type: 'select', proxies: ['Group B', 'A'] },
+      { name: 'Group B', type: 'select', proxies: ['Group A'] },
+    ],
+    rules: ['MATCH,Group A'],
+  }
+
+  const result = validateConfigModel(model)
+  const yaml = buildYamlFromModel(model)
+
+  assert.equal(result.issues.some((issue) => issue.code === 'cyclic-group-reference'), true)
+  assert.doesNotMatch(yaml, /- "Group B"/)
+  assert.doesNotMatch(yaml, /- "Group A"/)
+  assert.match(yaml, /- "A"/)
+  assert.doesNotMatch(yaml, /proxies:\n\s+- "DIRECT"/)
+})
+
+test('validateConfigModel reports missing provider proxy references', () => {
+  const result = validateConfigModel({
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
+    ruleProviders: [{ name: 'rules', type: 'http', behavior: 'domain', path: './rules/rules.yaml', url: 'https://example.com/rules.yaml', proxy: 'Missing' }],
+    proxyProviders: [{ name: 'nodes', type: 'http', path: './proxy_providers/nodes.yaml', url: 'https://example.com/nodes.yaml', proxy: 'Missing' }],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.equal(result.issues.filter((issue) => issue.code === 'missing-provider-proxy').length, 2)
+})
+
 test('autoFixConfigModel applies safe fixes without removing user config', () => {
   const model = {
     template: 'full',
@@ -521,7 +606,8 @@ test('autoFixConfigModel applies safe fixes without removing user config', () =>
       { name: 'Same', type: 'trojan', server: 'b.example', port: 'bad', password: 'x', enabled: true },
     ],
     groups: [],
-    ruleProviders: [{ name: 'ads', behavior: 'domain', path: '', url: 'https://example.com/ads.yaml' }],
+    ruleProviders: [{ name: 'ads', behavior: 'domain', path: '', url: 'https://example.com/ads.yaml', proxy: 'Missing' }],
+    proxyProviders: [{ name: 'remote', type: 'http', path: '', url: 'https://example.com/sub.yaml', proxy: 'Missing' }],
     rules: [],
   }
 
@@ -532,6 +618,8 @@ test('autoFixConfigModel applies safe fixes without removing user config', () =>
   assert.equal(result.model.proxies[1].port, 443)
   assert.equal(result.model.groups.length > 0, true)
   assert.equal(result.model.ruleProviders[0].path, './rules/ads.yaml')
+  assert.equal(result.model.ruleProviders[0].proxy, '')
+  assert.equal(result.model.proxyProviders[0].proxy, '')
   assert.match(yaml, /MATCH,PROXY/)
 })
 

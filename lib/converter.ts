@@ -202,10 +202,13 @@ export function validateConfigModel(model) {
   const groupNames = new Set(normalizedModel.groups.map((group) => group.name).filter(Boolean))
   const groupNameList = normalizedModel.groups.map((group) => group.name).filter(Boolean)
   const duplicateGroups = groupNameList.filter((name, index) => groupNameList.indexOf(name) !== index)
+  const proxyGroupNameCollisions = names.filter((name) => groupNames.has(name))
   const providerNames = normalizedModel.ruleProviders.map((provider) => provider.name).filter(Boolean)
   const proxyProviderNames = normalizedModel.proxyProviders.map((provider) => provider.name).filter(Boolean)
   const duplicateProviders = providerNames.filter((name, index) => providerNames.indexOf(name) !== index)
   const duplicateProxyProviders = proxyProviderNames.filter((name, index) => proxyProviderNames.indexOf(name) !== index)
+  const subRuleNames = new Set(Object.keys(normalizedModel.subRules || {}))
+  const validProviderProxies = new Set([...names, ...groupNameList, 'DIRECT', 'REJECT', 'GLOBAL'])
   const errors: string[] = []
   const warnings: string[] = []
   const issues: ProxyNode[] = []
@@ -219,6 +222,9 @@ export function validateConfigModel(model) {
   if (enabledProxies.length === 0) addIssue('warning', 'Nodes', 'No active nodes yet. YAML can still be generated and nodes can be added manually.', 'no-enabled-proxy')
   if (duplicateNames.length) addIssue('error', 'Nodes', `Duplicate node names: ${[...new Set(duplicateNames)].join(', ')}`, 'duplicate-proxy-name')
   if (duplicateGroups.length) addIssue('error', 'Groups', `Duplicate group names: ${[...new Set(duplicateGroups)].join(', ')}`, 'duplicate-group-name')
+  if (proxyGroupNameCollisions.length) {
+    addIssue('error', 'Names', `Node and group names must be unique: ${[...new Set(proxyGroupNameCollisions)].join(', ')}`, 'proxy-group-name-collision')
+  }
   if (normalizedModel.template === 'full' && normalizedModel.groups.length === 0) addIssue('error', 'Groups', 'At least one proxy group is required.', 'no-group')
   if (normalizedModel.template === 'full' && normalizedModel.rules.length === 0) addIssue('warning', 'Rules', 'Rules are empty; MATCH,PROXY will be used as fallback.', 'empty-rules')
   if (!normalizedModel.dns.listen) addIssue('warning', 'DNS', 'DNS listen is empty.', 'empty-dns-listen')
@@ -256,6 +262,14 @@ export function validateConfigModel(model) {
     if (!groupTypes.includes(group.type)) addIssue('error', `Group ${group.name || index + 1}`, `Group type "${group.type}" is invalid.`, 'invalid-group-type')
     if (!group.proxies.length) addIssue('warning', `Group ${group.name || index + 1}`, 'Proxy list is empty.', 'empty-group-proxies')
     group.proxies.forEach((name) => {
+      if (name === group.name) {
+        addIssue('error', `Group ${group.name || index + 1}`, 'Group cannot reference itself.', 'self-group-reference')
+        return
+      }
+      if (groupReferenceCreatesCycle(group.name, name, normalizedModel.groups)) {
+        addIssue('error', `Group ${group.name || index + 1}`, `Group reference "${name}" creates a cycle.`, 'cyclic-group-reference')
+        return
+      }
       if (!proxyNames.has(name) && !groupNames.has(name) && !['DIRECT', 'REJECT'].includes(name)) {
         addIssue('warning', `Group ${group.name || index + 1}`, `Proxy/group reference "${name}" was not found.`, 'missing-group-reference')
       }
@@ -275,6 +289,9 @@ export function validateConfigModel(model) {
     if (!['classical', 'domain', 'ipcidr'].includes(provider.behavior)) {
       addIssue('warning', location, `Behavior "${provider.behavior}" is uncommon for Mihomo.`, 'invalid-provider-behavior')
     }
+    if (provider.proxy && !validProviderProxies.has(provider.proxy)) {
+      addIssue('warning', location, `Provider proxy "${provider.proxy}" was not found.`, 'missing-provider-proxy')
+    }
   })
 
   if (duplicateProviders.length) {
@@ -286,6 +303,9 @@ export function validateConfigModel(model) {
     if (!provider.name) addIssue('error', location, 'Proxy provider name is empty.', 'empty-proxy-provider-name')
     if (provider.type === 'http' && !provider.url) addIssue('warning', location, 'Proxy provider URL is empty.', 'empty-proxy-provider-url')
     if (!provider.path) addIssue('warning', location, 'Proxy provider path is empty.', 'empty-proxy-provider-path')
+    if (provider.proxy && !validProviderProxies.has(provider.proxy)) {
+      addIssue('warning', location, `Proxy provider proxy "${provider.proxy}" was not found.`, 'missing-provider-proxy')
+    }
   })
 
   if (duplicateProxyProviders.length) {
@@ -293,14 +313,18 @@ export function validateConfigModel(model) {
   }
 
   normalizedModel.rules.forEach((rule, index) => {
-    const [type, name, target] = String(rule).split(',').map((part) => part.trim())
+    const [type, name, target] = splitRuleParts(rule)
     if (type === 'MATCH' && index !== normalizedModel.rules.length - 1) {
       addIssue('warning', `Rule ${index + 1}`, 'MATCH should be the last rule so later rules remain reachable.', 'match-not-last')
     }
     if (type === 'RULE-SET' && name && !providerNames.includes(name)) {
       addIssue('warning', `Rule ${index + 1}`, `RULE-SET "${name}" has no rule provider.`, 'missing-rule-provider')
     }
-    if (target && !groupNames.has(target) && !['DIRECT', 'REJECT', 'GLOBAL'].includes(target)) {
+    if (type === 'SUB-RULE' && target && !subRuleNames.has(target)) {
+      addIssue('warning', `Rule ${index + 1}`, `SUB-RULE "${target}" was not found.`, 'missing-sub-rule')
+    }
+    if (type === 'SUB-RULE') return
+    if (target && !groupNames.has(target) && !proxyNames.has(target) && !['DIRECT', 'REJECT', 'GLOBAL'].includes(target)) {
       addIssue('warning', `Rule ${index + 1}`, `Target policy "${target}" was not found.`, 'missing-rule-target')
     }
   })
@@ -343,7 +367,9 @@ export function autoFixConfigModel(model) {
   const groupNames = () => fixed.groups.map((group) => group.name).filter(Boolean)
   fixed.groups.forEach((group) => {
     group.proxies = group.proxies.filter((name) =>
-      enabledProxyNames.includes(name) || groupNames().includes(name) || ['DIRECT', 'REJECT'].includes(name),
+      name !== group.name
+        && !groupReferenceCreatesCycle(group.name, name, fixed.groups)
+        && (enabledProxyNames.includes(name) || groupNames().includes(name) || ['DIRECT', 'REJECT'].includes(name)),
     )
     if (!group.proxies.length) {
       group.proxies = enabledProxyNames.length ? [...enabledProxyNames] : ['DIRECT']
@@ -361,6 +387,10 @@ export function autoFixConfigModel(model) {
       provider.path = `./rules/${provider.name}.yaml`
       fixes.push(`Provider path ${provider.name} was generated automatically.`)
     }
+    if (provider.proxy && !validProviderProxyName(provider.proxy, fixed)) {
+      provider.proxy = ''
+      fixes.push(`Provider proxy ${provider.name || 'rule provider'} was cleared because it was not found.`)
+    }
   })
   makeUniqueProviderNames(fixed.ruleProviders)
 
@@ -368,6 +398,10 @@ export function autoFixConfigModel(model) {
     if (!provider.path && provider.name) {
       provider.path = `./proxy_providers/${provider.name}.yaml`
       fixes.push(`Proxy provider path ${provider.name} was generated automatically.`)
+    }
+    if (provider.proxy && !validProviderProxyName(provider.proxy, fixed)) {
+      provider.proxy = ''
+      fixes.push(`Proxy provider proxy ${provider.name || 'proxy provider'} was cleared because it was not found.`)
     }
   })
   makeUniqueProviderNames(fixed.proxyProviders, './proxy_providers')
@@ -1200,16 +1234,20 @@ function normalizePorts(value) {
 function buildProxyGroups(model, proxies) {
   const proxyNames = proxies.map((proxy) => proxy.name)
   const groupNames = model.groups.map((group) => group.name)
-  const specialNames = ['DIRECT', 'REJECT', ...groupNames]
 
   return model.groups.map((group) => {
     const type = groupTypes.includes(group.type) ? group.type : 'select'
+    const specialNames = ['DIRECT', 'REJECT', ...groupNames.filter((name) => name !== group.name)]
     const names = Array.isArray(group.proxies) && group.proxies.length > 0 ? group.proxies : proxyNames
-    const filteredNames = names.filter((name) => proxyNames.includes(name) || specialNames.includes(name) || name === 'AUTO')
+    const filteredNames = names.filter((name) => {
+      if (groupReferenceCreatesCycle(group.name, name, model.groups)) return false
+      return proxyNames.includes(name) || specialNames.includes(name) || name === 'AUTO'
+    })
+    const fallbackNames = proxyNames.length ? proxyNames : ['DIRECT']
     const normalizedGroup: ProxyNode = {
       name: group.name || 'PROXY',
       type,
-      proxies: filteredNames.length ? filteredNames : ['DIRECT'],
+      proxies: filteredNames.length ? filteredNames : fallbackNames,
       use: group.use.length ? group.use : undefined,
       'include-all': group.includeAll || undefined,
       'include-all-proxies': group.includeAllProxies || undefined,
@@ -1667,6 +1705,56 @@ function normalizeLineList(value, fallback) {
   if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean)
   if (typeof value === 'string') return value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean)
   return fallback
+}
+
+function splitRuleParts(rule) {
+  const parts: string[] = []
+  let current = ''
+  let depth = 0
+  for (const char of String(rule)) {
+    if (char === '(') depth += 1
+    else if (char === ')' && depth > 0) depth -= 1
+
+    if (char === ',' && depth === 0) {
+      parts.push(current.trim())
+      current = ''
+    } else {
+      current += char
+    }
+  }
+  parts.push(current.trim())
+  return parts
+}
+
+function groupReferenceCreatesCycle(sourceName, targetName, groups) {
+  if (!sourceName || !targetName) return false
+  if (sourceName === targetName) return true
+
+  const groupNames = new Set(groups.map((group) => group.name).filter(Boolean))
+  if (!groupNames.has(targetName)) return false
+
+  const graph = new Map(groups.map((group) => [
+    group.name,
+    (Array.isArray(group.proxies) ? group.proxies : []).filter((name) => groupNames.has(name)),
+  ]))
+  graph.set(sourceName, [...new Set([...(graph.get(sourceName) || []), targetName])])
+
+  const seen = new Set()
+  const stack = [targetName]
+  while (stack.length) {
+    const name = stack.pop()
+    if (name === sourceName) return true
+    if (seen.has(name)) continue
+    seen.add(name)
+    stack.push(...(graph.get(name) || []))
+  }
+  return false
+}
+
+function validProviderProxyName(name, model) {
+  const enabledProxyNames = model.proxies.filter((proxy) => proxy.enabled !== false).map((proxy) => proxy.name).filter(Boolean)
+  const groupNames = model.groups.map((group) => group.name).filter(Boolean)
+  return [...enabledProxyNames, ...groupNames, 'DIRECT', 'REJECT', 'GLOBAL'].includes(name)
 }
 
 function normalizePolicy(value = {}) {
