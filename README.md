@@ -136,6 +136,8 @@ Cloudflare Dashboard > Workers & Pages > Pages > Create project > Upload assets
 
 Important limitation: static upload does not include Pages Functions in the same way Git/Wrangler Pages deployment does. For the normal production flow with `/api`, `/healthz`, and `/sub` proxy routes, use **Deploy via Wrangler** or **Connect GitHub**.
 
+If you use upload-only static hosting, the browser must call the Worker directly by building with `SUB_ELITE_API_BASE_URL`. Do not use this mode with a private `SUB_ELITE_PROXY_SECRET`, because the static frontend intentionally does not expose that secret to the browser.
+
 ## Deploy via Wrangler
 
 Login and verify account:
@@ -247,6 +249,6 @@ Anyone with this URL can read the YAML, so treat it like a secret.
 ## Notes
 
 - `wrangler.toml` defines Pages metadata only.
-- Source-code defaults are fallback values. Cloudflare Pages settings should define the active backend origin and proxy secret.
+- Cloudflare Pages settings must define the active backend origin. The source code does not include a default backend.
 - Static security headers are defined in `public/_headers`. Pages Functions add equivalent headers for proxied API responses.
 - Generated YAML remains editable before it is copied, downloaded, or saved as a subscription URL.
