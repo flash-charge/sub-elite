@@ -1166,7 +1166,7 @@ function renderGroups() {
         return
       }
       if (action === 'clear-group-proxies') {
-        group.proxies = []
+        group.proxies = ['DIRECT']
         updateYamlFromModel()
         return
       }
@@ -1601,8 +1601,8 @@ function handleNodeClick(event, index) {
     renderNodes()
     return
   }
-  if (action === 'up') moveNode(index, index - 1)
-  if (action === 'down') moveNode(index, index + 1)
+  if (action === 'up') moveNodeByVisibleOffset(index, -1)
+  if (action === 'down') moveNodeByVisibleOffset(index, 1)
   if (action === 'delete') {
     const previousName = proxy?.name
     if (proxy) state.expandedNodeKeys.delete(nodeExpansionKey(proxy))
@@ -1973,9 +1973,12 @@ function rulePlaceholderForType(type) {
 
 function syncProviderRule(name, target) {
   if (!name) return
-  const prefix = `RULE-SET,${name},`
+  const ruleMatchesProvider = (rule) => {
+    const [type, providerName] = splitRuleParts(rule)
+    return type === 'RULE-SET' && providerName === name
+  }
   const ruleTarget = validPolicyTarget(target)
-  const index = state.model.rules.findIndex((rule) => rule.startsWith(prefix))
+  const index = state.model.rules.findIndex(ruleMatchesProvider)
   if (index >= 0) state.model.rules[index] = `RULE-SET,${name},${ruleTarget}`
   else ensureRule(`RULE-SET,${name},${ruleTarget}`, true)
   renderRules()
@@ -1984,7 +1987,7 @@ function syncProviderRule(name, target) {
 function replaceProviderRuleName(previousName, nextName) {
   if (!previousName || !nextName || previousName === nextName) return
   state.model.rules = state.model.rules.map((rule) => {
-    const parts = rule.split(',').map((part) => part.trim())
+    const parts = splitRuleParts(rule)
     if (parts[0] === 'RULE-SET' && parts[1] === previousName) {
       parts[1] = nextName
       return parts.join(',')
@@ -1997,7 +2000,7 @@ function replaceProviderRuleName(previousName, nextName) {
 function removeRuleProviderRules(name) {
   if (!name || !state.model) return
   state.model.rules = state.model.rules.filter((rule) => {
-    const parts = rule.split(',').map((part) => part.trim())
+    const parts = splitRuleParts(rule)
     return !(parts[0] === 'RULE-SET' && parts[1] === name)
   })
   renderRules()
@@ -2150,6 +2153,14 @@ function moveNode(from, to) {
   updateYamlFromModel()
 }
 
+function moveNodeByVisibleOffset(index, offset) {
+  const visibleIndexes = filteredNodeEntries().map((entry) => entry.index)
+  const visibleIndex = visibleIndexes.indexOf(index)
+  const targetIndex = visibleIndexes[visibleIndex + offset]
+  if (targetIndex === undefined) return
+  moveNode(index, targetIndex)
+}
+
 function openNodeTools() {
   if (!state.model) return
   nodeToolsSheet.hidden = false
@@ -2221,7 +2232,7 @@ function deleteDuplicateNodes() {
       return false
     }
     seen.add(key)
-    keptNames.add(proxy.name)
+    if (proxy.enabled !== false) keptNames.add(proxy.name)
     return true
   })
   pruneGroupProxyRefs(keptNames)
@@ -2739,6 +2750,7 @@ function validateManualNodeValues(type, values) {
     if (!values[field.key]) return `${field.label} is required for ${type}.`
   }
   if (needsManualEndpoint(type) && (!values.server || !values.port)) return `Server and Port are required for ${type}.`
+  if (needsManualEndpoint(type) && !isValidPortValue(values.port)) return `Port must be a number between 1 and 65535 for ${type}.`
   if (values.network === 'xhttp' && parseJsonObjectInput(values['xhttp.download-settings'], 'xhttp-opts.download-settings') === invalidEditorInput) {
     return 'xhttp-opts.download-settings must be a valid JSON object.'
   }
@@ -2758,6 +2770,11 @@ function parseManualNumber(value) {
   if (!text) return ''
   const number = Number(text)
   return Number.isFinite(number) ? number : ''
+}
+
+function isValidPortValue(value) {
+  const port = Number(String(value || '').trim())
+  return Number.isInteger(port) && port >= 1 && port <= 65535
 }
 
 function parseBooleanSelect(value) {
@@ -3079,6 +3096,7 @@ function updateDnsFromEditor() {
   state.model.dns = {
     enable: dnsEnable.checked,
     listen: dnsListen.value.trim(),
+    ipv6: Boolean(state.model.dns.ipv6),
     cacheAlgorithm: dnsCacheAlgorithm.value,
     preferH3: dnsPreferH3.checked,
     useHosts: dnsUseHosts.checked,
@@ -3137,6 +3155,7 @@ function updateGeneralFromEditor() {
     globalUa: generalUa.value.trim(),
     tlsCertificate: generalTlsCertificate.value.trim(),
     tlsPrivateKey: generalTlsPrivateKey.value.trim(),
+    tlsCustom: isPlainObject(state.model.general.tlsCustom) ? state.model.general.tlsCustom : {},
     allowLan: generalAllowLan.checked,
     ipv6: generalIpv6.checked,
     disableKeepAlive: generalDisableKeepAlive.checked,
@@ -3953,6 +3972,254 @@ function normalizeLineList(value, fallback) {
   return fallback
 }
 
+function normalizeSubRuleMap(value) {
+  if (!isPlainObject(value)) return {}
+  return Object.fromEntries(
+    Object.entries(value)
+      .map(([key, rules]) => [String(key).trim(), normalizeLineList(rules, [])])
+      .filter(([key, rules]) => key && rules.length),
+  )
+}
+
+function normalizeProxyProviderPayload(value) {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => (isPlainObject(item) ? { ...item } : String(item).trim()))
+      .filter((item) => isPlainObject(item) || item)
+  }
+  if (typeof value === 'string') return splitLines(value)
+  return []
+}
+
+function normalizeClientRuleProvider(provider) {
+  const rest = { ...provider }
+  delete rest['size-limit']
+  return {
+    ...rest,
+    name: String(provider.name || '').trim(),
+    type: String(provider.type || 'http').trim(),
+    behavior: String(provider.behavior || 'classical').trim(),
+    path: String(provider.path || '').trim(),
+    url: String(provider.url || '').trim(),
+    target: String(provider.target || 'PROXY').trim(),
+    interval: Number(provider.interval) || 86400,
+    proxy: String(provider.proxy || '').trim(),
+    format: ['yaml', 'text', 'mrs'].includes(provider.format) ? provider.format : '',
+    sizeLimit: Number(provider.sizeLimit || provider['size-limit']) || 0,
+    header: isPlainObject(provider.header) ? provider.header : {},
+    payload: normalizeLineList(provider.payload, []),
+  }
+}
+
+function normalizeClientProxyProvider(provider) {
+  const healthCheck = isPlainObject(provider.healthCheck) ? provider.healthCheck : {}
+  const rawHealthCheck = isPlainObject(provider['health-check']) ? provider['health-check'] : {}
+  const rest = { ...provider }
+  delete rest['health-check']
+  delete rest['size-limit']
+  delete rest['exclude-filter']
+  delete rest['exclude-type']
+  return {
+    ...rest,
+    name: String(provider.name || '').trim(),
+    type: ['http', 'file', 'inline'].includes(provider.type) ? provider.type : 'http',
+    url: String(provider.url || '').trim(),
+    path: String(provider.path || '').trim(),
+    interval: Number(provider.interval) || 3600,
+    proxy: String(provider.proxy || '').trim(),
+    sizeLimit: Number(provider.sizeLimit || provider['size-limit']) || 0,
+    header: isPlainObject(provider.header) ? provider.header : {},
+    healthCheck: {
+      enable: Boolean(healthCheck.enable ?? rawHealthCheck.enable),
+      url: String(healthCheck.url || rawHealthCheck.url || 'https://www.gstatic.com/generate_204').trim(),
+      interval: Number(healthCheck.interval || rawHealthCheck.interval) || 300,
+      timeout: Number(healthCheck.timeout || rawHealthCheck.timeout) || 5000,
+      lazy: healthCheck.lazy ?? rawHealthCheck.lazy ?? true,
+      expectedStatus: String(healthCheck.expectedStatus || rawHealthCheck['expected-status'] || '').trim(),
+    },
+    override: isPlainObject(provider.override) ? provider.override : {},
+    filter: String(provider.filter || '').trim(),
+    excludeFilter: String(provider.excludeFilter || provider['exclude-filter'] || '').trim(),
+    excludeType: String(provider.excludeType || provider['exclude-type'] || '').trim(),
+    payload: normalizeProxyProviderPayload(provider.payload),
+  }
+}
+
+function normalizeClientGroup(group) {
+  const rest = { ...group }
+  delete rest['include-all']
+  delete rest['include-all-proxies']
+  delete rest['include-all-providers']
+  delete rest['max-failed-times']
+  delete rest['disable-udp']
+  delete rest['interface-name']
+  delete rest['routing-mark']
+  delete rest['exclude-filter']
+  delete rest['exclude-type']
+  delete rest['expected-status']
+  return {
+    ...rest,
+    proxies: normalizeTextList(group.proxies, []),
+    use: normalizeTextList(group.use, []),
+    includeAll: Boolean(group.includeAll ?? group['include-all']),
+    includeAllProxies: Boolean(group.includeAllProxies ?? group['include-all-proxies']),
+    includeAllProviders: Boolean(group.includeAllProviders ?? group['include-all-providers']),
+    maxFailedTimes: Number(group.maxFailedTimes ?? group['max-failed-times']) || 0,
+    disableUdp: Boolean(group.disableUdp ?? group['disable-udp']),
+    interfaceName: String(group.interfaceName ?? group['interface-name'] ?? '').trim(),
+    routingMark: Number(group.routingMark ?? group['routing-mark']) || 0,
+    excludeFilter: String(group.excludeFilter ?? group['exclude-filter'] ?? '').trim(),
+    excludeType: String(group.excludeType ?? group['exclude-type'] ?? '').trim(),
+    expectedStatus: String(group.expectedStatus ?? group['expected-status'] ?? '').trim(),
+  }
+}
+
+function normalizeClientGeo(geo = {}) {
+  const geoxUrl = isPlainObject(geo.geoxUrl) ? geo.geoxUrl : isPlainObject(geo['geox-url']) ? geo['geox-url'] : {}
+  return {
+    geodataMode: Boolean(geo.geodataMode ?? geo['geodata-mode']),
+    geoAutoUpdate: Boolean(geo.geoAutoUpdate ?? geo['geo-auto-update']),
+    geoUpdateInterval: geo.geoUpdateInterval ?? geo['geo-update-interval'] ?? 24,
+    geoxUrl: {
+      geoip: geoxUrl.geoip || 'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat',
+      geosite: geoxUrl.geosite || 'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat',
+      mmdb: geoxUrl.mmdb || 'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb',
+      asn: geoxUrl.asn || 'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb',
+    },
+  }
+}
+
+function normalizeClientGeneral(general = {}) {
+  const tls = isPlainObject(general.tls) ? general.tls : {}
+  const tlsCustom = isPlainObject(general.tlsCustom)
+    ? general.tlsCustom
+    : Object.fromEntries(Object.entries(tls).filter(([key]) => !['certificate', 'private-key'].includes(key)))
+  return {
+    port: general.port || 0,
+    socksPort: general.socksPort ?? general['socks-port'] ?? 0,
+    redirPort: general.redirPort ?? general['redir-port'] ?? 0,
+    tproxyPort: general.tproxyPort ?? general['tproxy-port'] ?? 0,
+    mixedPort: general.mixedPort ?? general['mixed-port'] ?? 7890,
+    allowLan: Boolean(general.allowLan ?? general['allow-lan']),
+    bindAddress: general.bindAddress ?? general['bind-address'] ?? '*',
+    lanAllowedIps: normalizeTextList(general.lanAllowedIps ?? general['lan-allowed-ips'], []),
+    lanDisallowedIps: normalizeTextList(general.lanDisallowedIps ?? general['lan-disallowed-ips'], []),
+    authentication: normalizeTextList(general.authentication, []),
+    skipAuthPrefixes: normalizeTextList(general.skipAuthPrefixes ?? general['skip-auth-prefixes'], []),
+    interfaceName: general.interfaceName ?? general['interface-name'] ?? '',
+    routingMark: general.routingMark ?? general['routing-mark'] ?? 0,
+    mode: general.mode || 'rule',
+    logLevel: general.logLevel ?? general['log-level'] ?? 'info',
+    ipv6: Boolean(general.ipv6),
+    keepAliveIdle: general.keepAliveIdle ?? general['keep-alive-idle'] ?? 0,
+    keepAliveInterval: general.keepAliveInterval ?? general['keep-alive-interval'] ?? 0,
+    disableKeepAlive: Boolean(general.disableKeepAlive ?? general['disable-keep-alive']),
+    findProcessMode: general.findProcessMode ?? general['find-process-mode'] ?? '',
+    unifiedDelay: Boolean(general.unifiedDelay ?? general['unified-delay']),
+    tcpConcurrent: Boolean(general.tcpConcurrent ?? general['tcp-concurrent']),
+    externalController: general.externalController ?? general['external-controller'] ?? '',
+    externalControllerTls: general.externalControllerTls ?? general['external-controller-tls'] ?? '',
+    externalControllerUnix: general.externalControllerUnix ?? general['external-controller-unix'] ?? '',
+    externalControllerPipe: general.externalControllerPipe ?? general['external-controller-pipe'] ?? '',
+    externalControllerCors: general.externalControllerCors ?? general['external-controller-cors'] ?? '',
+    externalUi: general.externalUi ?? general['external-ui'] ?? '',
+    externalUiName: general.externalUiName ?? general['external-ui-name'] ?? '',
+    externalUiUrl: general.externalUiUrl ?? general['external-ui-url'] ?? '',
+    secret: general.secret || '',
+    globalClientFingerprint: general.globalClientFingerprint ?? general['global-client-fingerprint'] ?? '',
+    globalUa: general.globalUa ?? general['global-ua'] ?? '',
+    etagSupport: Boolean(general.etagSupport ?? general['etag-support']),
+    tlsCertificate: general.tlsCertificate ?? tls.certificate ?? '',
+    tlsPrivateKey: general.tlsPrivateKey ?? tls['private-key'] ?? '',
+    tlsCustom,
+  }
+}
+
+function normalizeClientDns(dns = {}) {
+  return {
+    enable: dns.enable !== false,
+    listen: dns.listen || '0.0.0.0:1053',
+    ipv6: Boolean(dns.ipv6),
+    cacheAlgorithm: dns.cacheAlgorithm ?? dns['cache-algorithm'] ?? '',
+    preferH3: Boolean(dns.preferH3 ?? dns['prefer-h3']),
+    useHosts: Boolean(dns.useHosts ?? dns['use-hosts']),
+    useSystemHosts: Boolean(dns.useSystemHosts ?? dns['use-system-hosts']),
+    respectRules: Boolean(dns.respectRules ?? dns['respect-rules']),
+    enhancedMode: dns.enhancedMode ?? dns['enhanced-mode'] ?? 'redir-host',
+    fakeIpRange: dns.fakeIpRange ?? dns['fake-ip-range'] ?? '198.18.0.1/16',
+    fakeIpRange6: dns.fakeIpRange6 ?? dns['fake-ip-range6'] ?? '',
+    fakeIpFilterMode: dns.fakeIpFilterMode ?? dns['fake-ip-filter-mode'] ?? '',
+    fakeIpTtl: dns.fakeIpTtl ?? dns['fake-ip-ttl'] ?? 0,
+    fakeIpFilter: normalizeTextList(dns.fakeIpFilter ?? dns['fake-ip-filter'], ['*.lan', '*.local']),
+    defaultNameserver: normalizeTextList(dns.defaultNameserver ?? dns['default-nameserver'], ['1.1.1.1', '8.8.8.8']),
+    nameserver: normalizeTextList(dns.nameserver, ['https://dns.google/dns-query', 'https://cloudflare-dns.com/dns-query']),
+    fallback: normalizeTextList(dns.fallback, []),
+    fallbackFilter: isPlainObject(dns.fallbackFilter) ? dns.fallbackFilter : isPlainObject(dns['fallback-filter']) ? dns['fallback-filter'] : {},
+    directNameserver: normalizeTextList(dns.directNameserver ?? dns['direct-nameserver'], []),
+    directNameserverFollowPolicy: Boolean(dns.directNameserverFollowPolicy ?? dns['direct-nameserver-follow-policy']),
+    proxyServerNameserver: normalizeTextList(dns.proxyServerNameserver ?? dns['proxy-server-nameserver'], []),
+    proxyServerNameserverPolicy: isPlainObject(dns.proxyServerNameserverPolicy) ? dns.proxyServerNameserverPolicy : isPlainObject(dns['proxy-server-nameserver-policy']) ? dns['proxy-server-nameserver-policy'] : {},
+    nameserverPolicy: isPlainObject(dns.nameserverPolicy) ? dns.nameserverPolicy : isPlainObject(dns['nameserver-policy']) ? dns['nameserver-policy'] : {},
+  }
+}
+
+function normalizeClientSniffer(sniffer = {}) {
+  return {
+    enable: Boolean(sniffer.enable),
+    overrideDestination: sniffer.overrideDestination ?? sniffer['override-destination'] ?? true,
+    parsePureIp: Boolean(sniffer.parsePureIp ?? sniffer['parse-pure-ip']),
+    forceDnsMapping: Boolean(sniffer.forceDnsMapping ?? sniffer['force-dns-mapping']),
+    sniff: normalizeSniffForText(sniffer.sniff, ['TLS:443,8443', 'HTTP:80,8080-8880', 'QUIC:443,8443']),
+    forceDomain: normalizeTextList(sniffer.forceDomain ?? sniffer['force-domain'], ['+.netflix.com', '+.youtube.com']),
+    skipDomain: normalizeTextList(sniffer.skipDomain ?? sniffer['skip-domain'], ['+.apple.com']),
+    skipSrcAddress: normalizeTextList(sniffer.skipSrcAddress ?? sniffer['skip-src-address'], []),
+    skipDstAddress: normalizeTextList(sniffer.skipDstAddress ?? sniffer['skip-dst-address'], []),
+  }
+}
+
+function normalizeClientTun(tun = {}) {
+  return {
+    enable: Boolean(tun.enable),
+    stack: tun.stack || 'mixed',
+    device: tun.device || '',
+    autoRoute: tun.autoRoute ?? tun['auto-route'] ?? true,
+    autoRedirect: Boolean(tun.autoRedirect ?? tun['auto-redirect']),
+    autoDetectInterface: tun.autoDetectInterface ?? tun['auto-detect-interface'] ?? true,
+    strictRoute: Boolean(tun.strictRoute ?? tun['strict-route']),
+    dnsHijack: normalizeTextList(tun.dnsHijack ?? tun['dns-hijack'], ['any:53']),
+    mtu: tun.mtu || 0,
+    gso: Boolean(tun.gso),
+    gsoMaxSize: tun.gsoMaxSize ?? tun['gso-max-size'] ?? 0,
+    udpTimeout: tun.udpTimeout ?? tun['udp-timeout'] ?? 0,
+    iproute2TableIndex: tun.iproute2TableIndex ?? tun['iproute2-table-index'] ?? 0,
+    iproute2RuleIndex: tun.iproute2RuleIndex ?? tun['iproute2-rule-index'] ?? 0,
+    endpointIndependentNat: Boolean(tun.endpointIndependentNat ?? tun['endpoint-independent-nat']),
+    routeAddressSet: normalizeTextList(tun.routeAddressSet ?? tun['route-address-set'], []),
+    routeExcludeAddressSet: normalizeTextList(tun.routeExcludeAddressSet ?? tun['route-exclude-address-set'], []),
+    routeAddress: normalizeTextList(tun.routeAddress ?? tun['route-address'], []),
+    routeExcludeAddress: normalizeTextList(tun.routeExcludeAddress ?? tun['route-exclude-address'], []),
+    includeInterface: normalizeTextList(tun.includeInterface ?? tun['include-interface'], []),
+    excludeInterface: normalizeTextList(tun.excludeInterface ?? tun['exclude-interface'], []),
+    includeUid: normalizeTextList(tun.includeUid ?? tun['include-uid'], []),
+    includeUidRange: normalizeTextList(tun.includeUidRange ?? tun['include-uid-range'], []),
+    excludeUid: normalizeTextList(tun.excludeUid ?? tun['exclude-uid'], []),
+    excludeUidRange: normalizeTextList(tun.excludeUidRange ?? tun['exclude-uid-range'], []),
+    includeAndroidUser: normalizeTextList(tun.includeAndroidUser ?? tun['include-android-user'], []),
+    includePackage: normalizeTextList(tun.includePackage ?? tun['include-package'], []),
+    excludePackage: normalizeTextList(tun.excludePackage ?? tun['exclude-package'], []),
+  }
+}
+
+function normalizeClientNtp(ntp = {}) {
+  return {
+    enable: Boolean(ntp.enable),
+    writeToSystem: Boolean(ntp.writeToSystem ?? ntp['write-to-system']),
+    server: ntp.server || 'time.apple.com',
+    port: ntp.port || 123,
+    interval: ntp.interval || 30,
+  }
+}
+
 function normalizeSniffForText(value, fallback) {
   if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean)
   if (typeof value === 'string') return splitLinesOrComma(value)
@@ -3973,144 +4240,28 @@ function normalizeClientModel(model) {
   return {
     template: model?.template || 'full',
     rulesPreset: model?.rulesPreset || 'proxy',
-    general: {
-      port: model?.general?.port || 0,
-      socksPort: model?.general?.socksPort || 0,
-      redirPort: model?.general?.redirPort || 0,
-      tproxyPort: model?.general?.tproxyPort || 0,
-      mixedPort: model?.general?.mixedPort || 7890,
-      allowLan: Boolean(model?.general?.allowLan),
-      bindAddress: model?.general?.bindAddress || '*',
-      lanAllowedIps: normalizeTextList(model?.general?.lanAllowedIps, []),
-      lanDisallowedIps: normalizeTextList(model?.general?.lanDisallowedIps, []),
-      authentication: normalizeTextList(model?.general?.authentication, []),
-      skipAuthPrefixes: normalizeTextList(model?.general?.skipAuthPrefixes, []),
-      interfaceName: model?.general?.interfaceName || '',
-      routingMark: model?.general?.routingMark || 0,
-      mode: model?.general?.mode || 'rule',
-      logLevel: model?.general?.logLevel || 'info',
-      ipv6: Boolean(model?.general?.ipv6),
-      keepAliveIdle: model?.general?.keepAliveIdle || 0,
-      keepAliveInterval: model?.general?.keepAliveInterval || 0,
-      disableKeepAlive: Boolean(model?.general?.disableKeepAlive),
-      findProcessMode: model?.general?.findProcessMode || '',
-      unifiedDelay: Boolean(model?.general?.unifiedDelay),
-      tcpConcurrent: Boolean(model?.general?.tcpConcurrent),
-      externalController: model?.general?.externalController || '',
-      externalControllerTls: model?.general?.externalControllerTls || '',
-      externalControllerUnix: model?.general?.externalControllerUnix || '',
-      externalControllerPipe: model?.general?.externalControllerPipe || '',
-      externalControllerCors: model?.general?.externalControllerCors || '',
-      externalUi: model?.general?.externalUi || '',
-      externalUiName: model?.general?.externalUiName || '',
-      externalUiUrl: model?.general?.externalUiUrl || '',
-      secret: model?.general?.secret || '',
-      globalClientFingerprint: model?.general?.globalClientFingerprint || '',
-      globalUa: model?.general?.globalUa || '',
-      etagSupport: Boolean(model?.general?.etagSupport),
-      tlsCertificate: model?.general?.tlsCertificate || '',
-      tlsPrivateKey: model?.general?.tlsPrivateKey || '',
-      tlsCustom: isPlainObject(model?.general?.tlsCustom) ? model.general.tlsCustom : {},
-    },
+    general: normalizeClientGeneral(model?.general),
     profile: {
       storeSelected: Boolean(model?.profile?.storeSelected ?? model?.profile?.['store-selected']),
       storeFakeIp: Boolean(model?.profile?.storeFakeIp ?? model?.profile?.['store-fake-ip']),
     },
-    dns: {
-      enable: model?.dns?.enable !== false,
-      listen: model?.dns?.listen || '0.0.0.0:1053',
-      cacheAlgorithm: model?.dns?.cacheAlgorithm || '',
-      preferH3: Boolean(model?.dns?.preferH3),
-      useHosts: Boolean(model?.dns?.useHosts),
-      useSystemHosts: Boolean(model?.dns?.useSystemHosts),
-      respectRules: Boolean(model?.dns?.respectRules),
-      enhancedMode: model?.dns?.enhancedMode || 'redir-host',
-      fakeIpRange: model?.dns?.fakeIpRange || '198.18.0.1/16',
-      fakeIpRange6: model?.dns?.fakeIpRange6 || '',
-      fakeIpFilterMode: model?.dns?.fakeIpFilterMode || '',
-      fakeIpTtl: model?.dns?.fakeIpTtl || 0,
-      fakeIpFilter: normalizeTextList(model?.dns?.fakeIpFilter, ['*.lan', '*.local']),
-      defaultNameserver: normalizeTextList(model?.dns?.defaultNameserver, ['1.1.1.1', '8.8.8.8']),
-      nameserver: normalizeTextList(model?.dns?.nameserver, ['https://dns.google/dns-query', 'https://cloudflare-dns.com/dns-query']),
-      fallback: normalizeTextList(model?.dns?.fallback, []),
-      fallbackFilter: isPlainObject(model?.dns?.fallbackFilter) ? model.dns.fallbackFilter : {},
-      directNameserver: normalizeTextList(model?.dns?.directNameserver, []),
-      directNameserverFollowPolicy: Boolean(model?.dns?.directNameserverFollowPolicy),
-      proxyServerNameserver: normalizeTextList(model?.dns?.proxyServerNameserver, []),
-      proxyServerNameserverPolicy: isPlainObject(model?.dns?.proxyServerNameserverPolicy) ? model.dns.proxyServerNameserverPolicy : {},
-      nameserverPolicy: isPlainObject(model?.dns?.nameserverPolicy) ? model.dns.nameserverPolicy : {},
-    },
-    sniffer: {
-      enable: Boolean(model?.sniffer?.enable),
-      overrideDestination: model?.sniffer?.overrideDestination !== false,
-      parsePureIp: Boolean(model?.sniffer?.parsePureIp),
-      forceDnsMapping: Boolean(model?.sniffer?.forceDnsMapping),
-      sniff: normalizeSniffForText(model?.sniffer?.sniff, ['TLS:443,8443', 'HTTP:80,8080-8880', 'QUIC:443,8443']),
-      forceDomain: normalizeTextList(model?.sniffer?.forceDomain, ['+.netflix.com', '+.youtube.com']),
-      skipDomain: normalizeTextList(model?.sniffer?.skipDomain, ['+.apple.com']),
-      skipSrcAddress: normalizeTextList(model?.sniffer?.skipSrcAddress, []),
-      skipDstAddress: normalizeTextList(model?.sniffer?.skipDstAddress, []),
-    },
-    tun: {
-      enable: Boolean(model?.tun?.enable),
-      stack: model?.tun?.stack || 'mixed',
-      device: model?.tun?.device || '',
-      autoRoute: model?.tun?.autoRoute !== false,
-      autoRedirect: Boolean(model?.tun?.autoRedirect),
-      autoDetectInterface: model?.tun?.autoDetectInterface !== false,
-      strictRoute: Boolean(model?.tun?.strictRoute),
-      dnsHijack: normalizeTextList(model?.tun?.dnsHijack, ['any:53']),
-      mtu: model?.tun?.mtu || 0,
-      gso: Boolean(model?.tun?.gso),
-      gsoMaxSize: model?.tun?.gsoMaxSize || 0,
-      udpTimeout: model?.tun?.udpTimeout || 0,
-      iproute2TableIndex: model?.tun?.iproute2TableIndex || 0,
-      iproute2RuleIndex: model?.tun?.iproute2RuleIndex || 0,
-      endpointIndependentNat: Boolean(model?.tun?.endpointIndependentNat),
-      routeAddressSet: normalizeTextList(model?.tun?.routeAddressSet, []),
-      routeExcludeAddressSet: normalizeTextList(model?.tun?.routeExcludeAddressSet, []),
-      routeAddress: normalizeTextList(model?.tun?.routeAddress, []),
-      routeExcludeAddress: normalizeTextList(model?.tun?.routeExcludeAddress, []),
-      includeInterface: normalizeTextList(model?.tun?.includeInterface, []),
-      excludeInterface: normalizeTextList(model?.tun?.excludeInterface, []),
-      includeUid: normalizeTextList(model?.tun?.includeUid, []),
-      includeUidRange: normalizeTextList(model?.tun?.includeUidRange, []),
-      excludeUid: normalizeTextList(model?.tun?.excludeUid, []),
-      excludeUidRange: normalizeTextList(model?.tun?.excludeUidRange, []),
-      includeAndroidUser: normalizeTextList(model?.tun?.includeAndroidUser, []),
-      includePackage: normalizeTextList(model?.tun?.includePackage, []),
-      excludePackage: normalizeTextList(model?.tun?.excludePackage, []),
-    },
-    ntp: {
-      enable: Boolean(model?.ntp?.enable),
-      writeToSystem: Boolean(model?.ntp?.writeToSystem ?? model?.ntp?.['write-to-system']),
-      server: model?.ntp?.server || 'time.apple.com',
-      port: model?.ntp?.port || 123,
-      interval: model?.ntp?.interval || 30,
-    },
-    geo: {
-      geodataMode: Boolean(model?.geo?.geodataMode),
-      geoAutoUpdate: Boolean(model?.geo?.geoAutoUpdate),
-      geoUpdateInterval: model?.geo?.geoUpdateInterval || 24,
-      geoxUrl: {
-        geoip: model?.geo?.geoxUrl?.geoip || 'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat',
-        geosite: model?.geo?.geoxUrl?.geosite || 'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat',
-        mmdb: model?.geo?.geoxUrl?.mmdb || 'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb',
-        asn: model?.geo?.geoxUrl?.asn || 'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb',
-      },
-    },
+    dns: normalizeClientDns(model?.dns),
+    sniffer: normalizeClientSniffer(model?.sniffer),
+    tun: normalizeClientTun(model?.tun),
+    ntp: normalizeClientNtp(model?.ntp),
+    geo: normalizeClientGeo(model?.geo),
     ruleProviders: Array.isArray(model?.ruleProviders)
       ? model.ruleProviders
         .filter(isPlainObject)
-        .map((provider) => ({ ...provider, payload: normalizeLineList(provider.payload, []), target: provider.target || 'PROXY' }))
+        .map(normalizeClientRuleProvider)
       : [],
     proxyProviders: Array.isArray(model?.proxyProviders)
       ? model.proxyProviders
         .filter(isPlainObject)
-        .map((provider) => ({ ...provider, payload: normalizeTextList(provider.payload, []) }))
+        .map(normalizeClientProxyProvider)
       : [],
     listeners: Array.isArray(model?.listeners) ? model.listeners.filter((listener) => isPlainObject(listener)) : [],
-    subRules: isPlainObject(model?.subRules) ? model.subRules : {},
+    subRules: normalizeSubRuleMap(model?.subRules),
     tunnels: Array.isArray(model?.tunnels) ? model.tunnels.filter(isPlainObject) : [],
     extraTopLevel: model?.extraTopLevel && typeof model.extraTopLevel === 'object' && !Array.isArray(model.extraTopLevel) ? model.extraTopLevel : {},
     rawSections: isPlainObject(model?.rawSections)
@@ -4120,7 +4271,7 @@ function normalizeClientModel(model) {
     groups: Array.isArray(model?.groups)
       ? model.groups
         .filter(isPlainObject)
-        .map((group) => ({ ...group, proxies: normalizeTextList(group.proxies, []), use: normalizeTextList(group.use, []) }))
+        .map(normalizeClientGroup)
       : [],
     rules: normalizeLineList(model?.rules, ['MATCH,PROXY']),
   }
@@ -4912,7 +5063,7 @@ function parseJsonOrLines(value) {
     const parsed = JSON.parse(text)
     return Array.isArray(parsed) ? parsed : []
   } catch {
-    return splitLinesOrComma(text)
+    return splitLines(text)
   }
 }
 

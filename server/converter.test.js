@@ -685,6 +685,166 @@ test('rule provider inline payload preserves comma rules', () => {
   assert.doesNotMatch(yaml, /- "DOMAIN-SUFFIX"\n\s+- "example\.com"/)
 })
 
+test('sub-rules preserve comma rules from string values', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
+    subRules: { directOnly: 'DOMAIN-SUFFIX,example.com,DIRECT\nMATCH,DIRECT' },
+    rules: ['SUB-RULE,(DOMAIN,example.com),directOnly', 'MATCH,PROXY'],
+  })
+
+  assert.match(yaml, /- "DOMAIN-SUFFIX,example\.com,DIRECT"/)
+  assert.match(yaml, /- "MATCH,DIRECT"/)
+  assert.doesNotMatch(yaml, /- "DOMAIN-SUFFIX"\n\s+- "example\.com"\n\s+- "DIRECT"/)
+})
+
+test('proxy provider inline payload preserves node objects', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    proxyProviders: [{
+      name: 'inline-nodes',
+      type: 'inline',
+      payload: [{ name: 'Inline A', type: 'trojan', server: 'inline.example', port: 443, password: 'secret' }],
+    }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'], use: ['inline-nodes'] }],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.match(yaml, /proxy-providers:/)
+  assert.match(yaml, /payload:\n\s+-\n\s+name: "Inline A"/)
+  assert.match(yaml, /server: "inline\.example"/)
+  assert.doesNotMatch(yaml, /\[object Object\]/)
+})
+
+test('proxy provider camelCase health check overrides imported kebab alias', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    proxyProviders: [{
+      name: 'remote',
+      type: 'http',
+      url: 'https://example.com/sub.yaml',
+      path: './proxy_providers/remote.yaml',
+      healthCheck: { enable: false },
+      'health-check': { enable: true, url: 'https://www.gstatic.com/generate_204' },
+    }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'], use: ['remote'] }],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.doesNotMatch(yaml, /health-check:/)
+})
+
+test('group camelCase booleans override imported kebab aliases', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{
+      name: 'PROXY',
+      type: 'select',
+      proxies: ['A'],
+      includeAll: false,
+      'include-all': true,
+      disableUdp: false,
+      'disable-udp': true,
+    }],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.doesNotMatch(yaml, /include-all: true/)
+  assert.doesNotMatch(yaml, /disable-udp: true/)
+})
+
+test('geo kebab aliases are normalized from yaml-shaped models', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    geo: {
+      'geodata-mode': true,
+      'geo-auto-update': true,
+      'geo-update-interval': 12,
+      'geox-url': {
+        geoip: 'https://example.com/geoip.dat',
+        geosite: 'https://example.com/geosite.dat',
+      },
+    },
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.match(yaml, /geodata-mode: true/)
+  assert.match(yaml, /geo-auto-update: true/)
+  assert.match(yaml, /geo-update-interval: 12/)
+  assert.match(yaml, /geoip: "https:\/\/example\.com\/geoip\.dat"/)
+})
+
+test('general tls custom fields are preserved from yaml-shaped models', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    general: {
+      tls: {
+        certificate: 'cert.pem',
+        'private-key': 'key.pem',
+        custom: 'value',
+      },
+    },
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.match(yaml, /tls:\n\s+certificate: "cert\.pem"\n\s+private-key: "key\.pem"\n\s+custom: "value"/)
+})
+
+test('dns kebab aliases are normalized from yaml-shaped models', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    dns: {
+      ipv6: true,
+      'enhanced-mode': 'fake-ip',
+      'fake-ip-range': '198.18.0.1/16',
+      'fake-ip-filter': ['*.lan', '+.example.com'],
+    },
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.match(yaml, /dns:\n\s+enable: true\n\s+listen: "0\.0\.0\.0:1053"\n\s+ipv6: true/)
+  assert.match(yaml, /enhanced-mode: "fake-ip"/)
+  assert.match(yaml, /fake-ip-range: "198\.18\.0\.1\/16"/)
+  assert.match(yaml, /fake-ip-filter:\n\s+- "\*\.lan"\n\s+- "\+\.example\.com"/)
+})
+
+test('provider extra fields are preserved from editor models', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    ruleProviders: [{
+      name: 'custom-rules',
+      behavior: 'classical',
+      url: 'https://example.com/rules.yaml',
+      target: 'REJECT',
+      strategy: 'domain',
+    }],
+    proxyProviders: [{
+      name: 'custom-proxies',
+      type: 'http',
+      url: 'https://example.com/sub.yaml',
+      path: './proxy_providers/custom-proxies.yaml',
+      'dialer-proxy': 'DIRECT',
+    }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'], use: ['custom-proxies'] }],
+    rules: ['RULE-SET,custom-rules,REJECT', 'MATCH,PROXY'],
+  })
+
+  assert.match(yaml, /custom-rules:\n\s+strategy: "domain"/)
+  assert.doesNotMatch(yaml, /target: "REJECT"/)
+  assert.match(yaml, /custom-proxies:\n\s+dialer-proxy: "DIRECT"/)
+})
+
 test('buildYamlFromModel supports advanced mihomo sections', () => {
   const yaml = buildYamlFromModel({
     template: 'full',

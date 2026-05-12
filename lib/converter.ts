@@ -1120,21 +1120,38 @@ function buildRuleProviders(ruleProviders) {
   const providers = Object.fromEntries(
     ruleProviders
       .filter((provider) => provider.name)
-      .map((provider) => [
-        provider.name,
-        compact({
-          type: provider.type,
-          behavior: provider.behavior,
-          path: provider.path,
-          url: provider.url,
-          interval: provider.interval,
-          proxy: provider.proxy || undefined,
-          format: provider.format || undefined,
-          'size-limit': provider.sizeLimit || undefined,
-          header: provider.header,
-          payload: provider.payload,
-        }),
-      ]),
+      .map((provider) => {
+        const extra = omitKeys(provider, [
+          'name',
+          'type',
+          'behavior',
+          'path',
+          'url',
+          'target',
+          'interval',
+          'proxy',
+          'format',
+          'sizeLimit',
+          'header',
+          'payload',
+        ])
+        return [
+          provider.name,
+          compact({
+            ...extra,
+            type: provider.type,
+            behavior: provider.behavior,
+            path: provider.path,
+            url: provider.url,
+            interval: provider.interval,
+            proxy: provider.proxy || undefined,
+            format: provider.format || undefined,
+            'size-limit': provider.sizeLimit || undefined,
+            header: provider.header,
+            payload: provider.payload,
+          }),
+        ]
+      }),
   )
   return Object.keys(providers).length ? { 'rule-providers': providers } : {}
 }
@@ -1143,31 +1160,50 @@ function buildProxyProviders(proxyProviders) {
   const providers = Object.fromEntries(
     proxyProviders
       .filter((provider) => provider.name)
-      .map((provider) => [
-        provider.name,
-        compact({
-          type: provider.type,
-          url: provider.url,
-          path: provider.path,
-          interval: provider.interval,
-          proxy: provider.proxy || undefined,
-          'size-limit': provider.sizeLimit || undefined,
-          header: provider.header,
-          'health-check': provider.healthCheck.enable ? compact({
-            enable: true,
-            url: provider.healthCheck.url,
-            interval: provider.healthCheck.interval,
-            timeout: provider.healthCheck.timeout,
-            lazy: provider.healthCheck.lazy,
-            'expected-status': provider.healthCheck.expectedStatus || undefined,
-          }) : undefined,
-          override: provider.override,
-          filter: provider.filter || undefined,
-          'exclude-filter': provider.excludeFilter || undefined,
-          'exclude-type': provider.excludeType || undefined,
-          payload: provider.payload,
-        }),
-      ]),
+      .map((provider) => {
+        const extra = omitKeys(provider, [
+          'name',
+          'type',
+          'url',
+          'path',
+          'interval',
+          'proxy',
+          'sizeLimit',
+          'header',
+          'healthCheck',
+          'override',
+          'filter',
+          'excludeFilter',
+          'excludeType',
+          'payload',
+        ])
+        return [
+          provider.name,
+          compact({
+            ...extra,
+            type: provider.type,
+            url: provider.url,
+            path: provider.path,
+            interval: provider.interval,
+            proxy: provider.proxy || undefined,
+            'size-limit': provider.sizeLimit || undefined,
+            header: provider.header,
+            'health-check': provider.healthCheck.enable ? compact({
+              enable: true,
+              url: provider.healthCheck.url,
+              interval: provider.healthCheck.interval,
+              timeout: provider.healthCheck.timeout,
+              lazy: provider.healthCheck.lazy,
+              'expected-status': provider.healthCheck.expectedStatus || undefined,
+            }) : undefined,
+            override: provider.override,
+            filter: provider.filter || undefined,
+            'exclude-filter': provider.excludeFilter || undefined,
+            'exclude-type': provider.excludeType || undefined,
+            payload: provider.payload,
+          }),
+        ]
+      }),
   )
   return Object.keys(providers).length ? { 'proxy-providers': providers } : {}
 }
@@ -1422,6 +1458,7 @@ function normalizeModel(model) {
 
 function normalizeDns(dns: ProxyNode = {}) {
   const defaults = createConfigModel([]).dns
+  const enhancedMode = dns.enhancedMode ?? dns['enhanced-mode']
   return {
     enable: dns.enable !== false,
     listen: String(dns.listen || '0.0.0.0:1053').trim(),
@@ -1431,12 +1468,12 @@ function normalizeDns(dns: ProxyNode = {}) {
     useHosts: Boolean(dns.useHosts ?? dns['use-hosts']),
     useSystemHosts: Boolean(dns.useSystemHosts ?? dns['use-system-hosts']),
     respectRules: Boolean(dns.respectRules ?? dns['respect-rules']),
-    enhancedMode: ['fake-ip', 'redir-host'].includes(dns.enhancedMode) ? dns.enhancedMode : 'redir-host',
-    fakeIpRange: String(dns.fakeIpRange || '198.18.0.1/16').trim(),
+    enhancedMode: ['fake-ip', 'redir-host'].includes(enhancedMode) ? enhancedMode : 'redir-host',
+    fakeIpRange: String(dns.fakeIpRange || dns['fake-ip-range'] || '198.18.0.1/16').trim(),
     fakeIpRange6: String(dns.fakeIpRange6 || dns['fake-ip-range6'] || '').trim(),
     fakeIpFilterMode: ['blacklist', 'whitelist', 'rule'].includes(dns.fakeIpFilterMode || dns['fake-ip-filter-mode']) ? dns.fakeIpFilterMode || dns['fake-ip-filter-mode'] : '',
     fakeIpTtl: Number(dns.fakeIpTtl || dns['fake-ip-ttl']) || 0,
-    fakeIpFilter: normalizeList(dns.fakeIpFilter, defaults.fakeIpFilter),
+    fakeIpFilter: normalizeList(dns.fakeIpFilter || dns['fake-ip-filter'], defaults.fakeIpFilter),
     defaultNameserver: normalizeList(dns.defaultNameserver || dns['default-nameserver'], ['1.1.1.1', '8.8.8.8']),
     nameserver: normalizeList(dns.nameserver, ['https://dns.google/dns-query', 'https://cloudflare-dns.com/dns-query']),
     fallback: normalizeList(dns.fallback, []),
@@ -1451,6 +1488,11 @@ function normalizeDns(dns: ProxyNode = {}) {
 
 function normalizeGeneral(general: ProxyNode = {}) {
   const defaults = createGeneral()
+  const tls = normalizeObject(general.tls)
+  const normalizedTlsCustom = normalizeObject(general.tlsCustom)
+  const tlsCustom = Object.keys(normalizedTlsCustom).length
+    ? normalizedTlsCustom
+    : Object.fromEntries(Object.entries(tls).filter(([key]) => !['certificate', 'private-key'].includes(key)))
   return {
     ...defaults,
     ...general,
@@ -1490,7 +1532,7 @@ function normalizeGeneral(general: ProxyNode = {}) {
     etagSupport: Boolean(general.etagSupport ?? general['etag-support']),
     tlsCertificate: String(general.tlsCertificate || general.tls?.certificate || '').trim(),
     tlsPrivateKey: String(general.tlsPrivateKey || general.tls?.['private-key'] || '').trim(),
-    tlsCustom: normalizeObject(general.tlsCustom || {}),
+    tlsCustom,
   }
 }
 
@@ -1591,7 +1633,7 @@ function normalizeGeo(geo: ProxyNode = {}) {
     ...geo,
     geodataMode: Boolean(geo.geodataMode ?? geo['geodata-mode'] ?? createGeo().geodataMode),
     geoAutoUpdate: Boolean(geo.geoAutoUpdate ?? geo['geo-auto-update'] ?? createGeo().geoAutoUpdate),
-    geoUpdateInterval: Number(geo.geoUpdateInterval || geo['geo-update-interval']) || 24,
+    geoUpdateInterval: Number(geo.geoUpdateInterval ?? geo['geo-update-interval']) || 24,
     geoxUrl: {
       ...createGeo().geoxUrl,
       ...(geo.geoxUrl || geo['geox-url'] || {}),
@@ -1600,7 +1642,23 @@ function normalizeGeo(geo: ProxyNode = {}) {
 }
 
 function normalizeRuleProvider(provider: ProxyNode = {}) {
+  const extra = omitKeys(provider, [
+    'name',
+    'type',
+    'behavior',
+    'path',
+    'url',
+    'target',
+    'interval',
+    'proxy',
+    'format',
+    'sizeLimit',
+    'size-limit',
+    'header',
+    'payload',
+  ])
   return {
+    ...extra,
     name: String(provider.name || '').trim(),
     type: String(provider.type || 'http').trim(),
     behavior: String(provider.behavior || 'classical').trim(),
@@ -1617,7 +1675,28 @@ function normalizeRuleProvider(provider: ProxyNode = {}) {
 }
 
 function normalizeProxyProvider(provider: ProxyNode = {}) {
+  const extra = omitKeys(provider, [
+    'name',
+    'type',
+    'url',
+    'path',
+    'interval',
+    'proxy',
+    'sizeLimit',
+    'size-limit',
+    'header',
+    'healthCheck',
+    'health-check',
+    'override',
+    'filter',
+    'excludeFilter',
+    'exclude-filter',
+    'excludeType',
+    'exclude-type',
+    'payload',
+  ])
   return {
+    ...extra,
     name: String(provider.name || '').trim(),
     type: ['http', 'file', 'inline'].includes(provider.type) ? provider.type : 'http',
     url: String(provider.url || '').trim(),
@@ -1627,7 +1706,7 @@ function normalizeProxyProvider(provider: ProxyNode = {}) {
     sizeLimit: Number(provider.sizeLimit || provider['size-limit']) || 0,
     header: normalizePolicy(provider.header),
     healthCheck: {
-      enable: Boolean(provider.healthCheck?.enable || provider['health-check']?.enable),
+      enable: Boolean(provider.healthCheck?.enable ?? provider['health-check']?.enable),
       url: String(provider.healthCheck?.url || provider['health-check']?.url || 'https://www.gstatic.com/generate_204').trim(),
       interval: Number(provider.healthCheck?.interval || provider['health-check']?.interval) || 300,
       timeout: Number(provider.healthCheck?.timeout || provider['health-check']?.timeout) || 5000,
@@ -1650,13 +1729,13 @@ function normalizeGroup(group: ProxyNode = {}) {
     use: normalizeList(group.use, []),
     url: String(group.url || '').trim(),
     interval: Number(group.interval) || 300,
-    includeAll: Boolean(group.includeAll || group['include-all']),
-    includeAllProxies: Boolean(group.includeAllProxies || group['include-all-proxies']),
-    includeAllProviders: Boolean(group.includeAllProviders || group['include-all-providers']),
+    includeAll: Boolean(group.includeAll ?? group['include-all']),
+    includeAllProxies: Boolean(group.includeAllProxies ?? group['include-all-proxies']),
+    includeAllProviders: Boolean(group.includeAllProviders ?? group['include-all-providers']),
     lazy: group.lazy === undefined ? undefined : Boolean(group.lazy),
     timeout: Number(group.timeout) || 0,
     maxFailedTimes: Number(group.maxFailedTimes || group['max-failed-times']) || 0,
-    disableUdp: Boolean(group.disableUdp || group['disable-udp']),
+    disableUdp: Boolean(group.disableUdp ?? group['disable-udp']),
     interfaceName: String(group.interfaceName || group['interface-name'] || '').trim(),
     routingMark: Number(group.routingMark || group['routing-mark']) || 0,
     filter: String(group.filter || '').trim(),
@@ -1677,11 +1756,16 @@ function normalizeTunnel(tunnel: ProxyNode = {}) {
   })
 }
 
+function omitKeys(value: ProxyNode = {}, keys: string[]) {
+  const omitted = new Set(keys)
+  return Object.fromEntries(Object.entries(value).filter(([key]) => !omitted.has(key)))
+}
+
 function normalizeSubRules(value = {}) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
   return Object.fromEntries(
     Object.entries(value)
-      .map(([key, rules]) => [String(key).trim(), normalizeList(rules, [])])
+      .map(([key, rules]) => [String(key).trim(), normalizeLineList(rules, [])])
       .filter(([key, rules]) => key && rules.length),
   )
 }
