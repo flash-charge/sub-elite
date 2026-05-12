@@ -1,6 +1,6 @@
 import { createServer } from 'node:http'
 import { readFile } from 'node:fs/promises'
-import { extname, join, normalize } from 'node:path'
+import { extname, join, normalize, sep, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { randomBytes } from 'node:crypto'
 import { convertToClashMeta } from '../lib/converter.ts'
@@ -21,19 +21,22 @@ const distDir = join(rootDir, 'dist')
 
 const server = createServer(async (request, response) => {
   try {
-    if (request.method === 'GET' && request.url === '/healthz') {
+    const url = new URL(request.url || '/', 'http://localhost')
+    const pathname = url.pathname
+
+    if (request.method === 'GET' && pathname === '/healthz') {
       return sendJson(response, 200, { ok: true })
     }
 
-    if (request.method === 'POST' && request.url === '/api/convert') {
+    if (request.method === 'POST' && pathname === '/api/convert') {
       return handleConvert(request, response)
     }
 
-    if (request.method === 'POST' && request.url === '/api/subscriptions') {
+    if (request.method === 'POST' && pathname === '/api/subscriptions') {
       return handleCreateSubscription(request, response)
     }
 
-    if (request.method === 'GET' && /^\/sub\/[A-Za-z0-9_-]+\/config\.yaml$/.test(request.url || '')) {
+    if (request.method === 'GET' && /^\/sub\/[A-Za-z0-9_-]+\/config\.yaml$/.test(pathname)) {
       return handleSubscription(request, response)
     }
 
@@ -143,8 +146,11 @@ async function serveStatic(request, response) {
   const url = new URL(request.url || '/', 'http://localhost')
   const requested = url.pathname === '/' ? '/index.html' : url.pathname
   const baseDir = await hasDistBuild()
-  const filePath = normalize(join(baseDir, requested))
-  if (!filePath.startsWith(baseDir)) return sendJson(response, 403, { error: 'Forbidden' })
+  const basePath = resolve(baseDir)
+  const filePath = resolve(basePath, requested.replace(/^\/+/u, ''))
+  if (filePath !== basePath && !filePath.startsWith(`${basePath}${sep}`)) {
+    return sendJson(response, 403, { error: 'Forbidden' })
+  }
 
   try {
     const content = await readFile(filePath)
