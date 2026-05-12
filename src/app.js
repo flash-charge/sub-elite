@@ -3395,7 +3395,7 @@ function yamlSnifferToModel(sniffer) {
     overrideDestination: sniffer['override-destination'],
     parsePureIp: sniffer['parse-pure-ip'],
     forceDnsMapping: sniffer['force-dns-mapping'],
-    sniff: sniffer.sniff ? Object.entries(sniffer.sniff).map(([protocol, value]) => `${protocol}:${normalizePortsForText(value?.ports).join(',')}`) : undefined,
+    sniff: normalizeSniffForText(sniffer.sniff),
     forceDomain: sniffer['force-domain'],
     skipDomain: sniffer['skip-domain'],
     skipSrcAddress: sniffer['skip-src-address'],
@@ -3537,6 +3537,28 @@ function normalizePortsForText(value) {
   return [String(value)]
 }
 
+function normalizeTextList(value, fallback) {
+  if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean)
+  if (typeof value === 'string') return splitLinesOrComma(value)
+  return fallback
+}
+
+function normalizeSniffForText(value, fallback) {
+  if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean)
+  if (typeof value === 'string') return splitLinesOrComma(value)
+  if (!isPlainObject(value)) return fallback
+
+  const items = Object.entries(value)
+    .map(([protocol, options]) => {
+      const ports = normalizePortsForText(isPlainObject(options) ? options.ports : options).join(',')
+      const name = String(protocol).trim()
+      return name ? `${name}${ports ? `:${ports}` : ''}` : ''
+    })
+    .filter(Boolean)
+
+  return items.length ? items : fallback
+}
+
 function normalizeClientModel(model) {
   return {
     template: model?.template || 'full',
@@ -3613,11 +3635,11 @@ function normalizeClientModel(model) {
       overrideDestination: model?.sniffer?.overrideDestination !== false,
       parsePureIp: Boolean(model?.sniffer?.parsePureIp),
       forceDnsMapping: Boolean(model?.sniffer?.forceDnsMapping),
-      sniff: model?.sniffer?.sniff || ['TLS:443,8443', 'HTTP:80,8080-8880', 'QUIC:443,8443'],
-      forceDomain: model?.sniffer?.forceDomain || ['+.netflix.com', '+.youtube.com'],
-      skipDomain: model?.sniffer?.skipDomain || ['+.apple.com'],
-      skipSrcAddress: model?.sniffer?.skipSrcAddress || [],
-      skipDstAddress: model?.sniffer?.skipDstAddress || [],
+      sniff: normalizeSniffForText(model?.sniffer?.sniff, ['TLS:443,8443', 'HTTP:80,8080-8880', 'QUIC:443,8443']),
+      forceDomain: normalizeTextList(model?.sniffer?.forceDomain, ['+.netflix.com', '+.youtube.com']),
+      skipDomain: normalizeTextList(model?.sniffer?.skipDomain, ['+.apple.com']),
+      skipSrcAddress: normalizeTextList(model?.sniffer?.skipSrcAddress, []),
+      skipDstAddress: normalizeTextList(model?.sniffer?.skipDstAddress, []),
     },
     tun: {
       enable: Boolean(model?.tun?.enable),

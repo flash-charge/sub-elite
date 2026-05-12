@@ -1452,7 +1452,7 @@ function normalizeSniffer(sniffer = {}) {
     overrideDestination: sniffer.overrideDestination ?? sniffer['override-destination'] ?? defaults.overrideDestination,
     parsePureIp: Boolean(sniffer.parsePureIp ?? sniffer['parse-pure-ip']),
     forceDnsMapping: Boolean(sniffer.forceDnsMapping ?? sniffer['force-dns-mapping']),
-    sniff: normalizeList(sniffer.sniff, defaults.sniff),
+    sniff: normalizeSniffList(sniffer.sniff, defaults.sniff),
     forceDomain: normalizeList(sniffer.forceDomain || sniffer['force-domain'], defaults.forceDomain),
     skipDomain: normalizeList(sniffer.skipDomain || sniffer['skip-domain'], defaults.skipDomain),
     skipSrcAddress: normalizeList(sniffer.skipSrcAddress || sniffer['skip-src-address'], []),
@@ -1630,6 +1630,21 @@ function normalizeList(value, fallback) {
   if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean)
   if (typeof value === 'string') return value.split(/\r?\n|,/).map((item) => item.trim()).filter(Boolean)
   return fallback
+}
+
+function normalizeSniffList(value, fallback) {
+  if (Array.isArray(value) || typeof value === 'string') return normalizeList(value, fallback)
+  if (!value || typeof value !== 'object') return fallback
+
+  const items = Object.entries(value)
+    .map(([protocol, options]) => {
+      const ports = normalizeList(options && typeof options === 'object' && !Array.isArray(options) ? options.ports : options, [])
+      const name = String(protocol).trim()
+      return name ? `${name}${ports.length ? `:${ports.join(',')}` : ''}` : ''
+    })
+    .filter(Boolean)
+
+  return items.length ? items : fallback
 }
 
 function normalizePolicy(value = {}) {
