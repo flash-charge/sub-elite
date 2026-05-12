@@ -2071,6 +2071,10 @@ function normalizeEditorModel() {
   const options = policyTargetOptions()
   state.model.ruleProviders.forEach((provider) => {
     provider.target = validPolicyTarget(provider.target || 'PROXY', options)
+    if (provider.proxy && !options.includes(provider.proxy)) provider.proxy = ''
+  })
+  state.model.proxyProviders.forEach((provider) => {
+    if (provider.proxy && !options.includes(provider.proxy)) provider.proxy = ''
   })
   const enabledProxyNames = new Set(state.model.proxies.filter((proxy) => proxy.enabled !== false).map((proxy) => proxy.name).filter(Boolean))
   pruneGroupProxyRefs(enabledProxyNames)
