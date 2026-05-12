@@ -89,7 +89,7 @@ Production should rely on Cloudflare settings, not only source-code defaults.
 Set these in **Cloudflare Pages > sub-elite > Settings > Environment variables** for production:
 
 ```text
-SUB_ELITE_BACKEND_ORIGIN=https://sub-elite-api.arbalest.workers.dev
+SUB_ELITE_BACKEND_ORIGIN=https://<your-worker-subdomain>.workers.dev
 SUB_ELITE_PROXY_SECRET=<same-random-secret-as-worker>
 ```
 
@@ -108,7 +108,7 @@ After changing Pages environment variables or secrets, redeploy Pages.
 Deploy the backend first, then the frontend.
 
 1. Deploy `sub-elite-api` Worker.
-2. Confirm `https://sub-elite-api.arbalest.workers.dev/healthz` returns `{"ok":true}`.
+2. Confirm `https://<your-worker-subdomain>.workers.dev/healthz` returns `{"ok":true}`.
 3. Set `SUB_ELITE_BACKEND_ORIGIN` and `SUB_ELITE_PROXY_SECRET` in Pages.
 4. Deploy this frontend.
 5. Test `/healthz`, `/api/convert`, and `/api/subscriptions` from the Pages domain.
@@ -165,7 +165,7 @@ Set or rotate Pages secrets:
 printf '%s' '<same-random-secret-as-worker>' \
   | npx wrangler pages secret put SUB_ELITE_PROXY_SECRET --project-name sub-elite
 
-printf '%s' 'https://sub-elite-api.arbalest.workers.dev' \
+printf '%s' 'https://<your-worker-subdomain>.workers.dev' \
   | npx wrangler pages secret put SUB_ELITE_BACKEND_ORIGIN --project-name sub-elite
 ```
 
@@ -198,7 +198,7 @@ Root directory: /
 Set production environment variables/secrets in the Pages project:
 
 ```text
-SUB_ELITE_BACKEND_ORIGIN=https://sub-elite-api.arbalest.workers.dev
+SUB_ELITE_BACKEND_ORIGIN=https://<your-worker-subdomain>.workers.dev
 SUB_ELITE_PROXY_SECRET=<same-random-secret-as-worker>
 ```
 

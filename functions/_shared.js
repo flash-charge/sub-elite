@@ -1,8 +1,32 @@
-export const DEFAULT_BACKEND_ORIGIN = 'https://sub-elite-api.arbalest.workers.dev'
 export const PROXY_SECRET_HEADER = 'x-sub-elite-proxy-secret'
 
 export function backendOrigin(env) {
-  return String(env.SUB_ELITE_BACKEND_ORIGIN || DEFAULT_BACKEND_ORIGIN).replace(/\/+$/u, '')
+  return String(env.SUB_ELITE_BACKEND_ORIGIN || '').trim().replace(/\/+$/u, '')
+}
+
+export function backendUrl(path, env) {
+  const origin = backendOrigin(env)
+  if (!origin) return null
+
+  try {
+    return new URL(path, origin)
+  } catch {
+    return null
+  }
+}
+
+export function backendConfigErrorResponse(request, env, methods = 'GET,POST,OPTIONS', contentType = 'application/json') {
+  const headers = new Headers(corsHeaders(methods, request, env))
+  const message = 'SUB_ELITE_BACKEND_ORIGIN is not configured or is invalid.'
+
+  if (contentType === 'text/yaml') {
+    headers.set('content-type', 'text/yaml; charset=utf-8')
+    headers.set('cache-control', 'no-store')
+    return new Response(`${message}\n`, { status: 503, headers })
+  }
+
+  headers.set('content-type', 'application/json; charset=utf-8')
+  return new Response(JSON.stringify({ error: message }), { status: 503, headers })
 }
 
 export function cleanProxyHeaders(source, env, origin = '') {
@@ -49,4 +73,14 @@ function setSecurityHeaders(headers) {
   headers.set('strict-transport-security', 'max-age=31536000; includeSubDomains; preload')
   headers.set('x-content-type-options', 'nosniff')
   headers.set('x-frame-options', 'DENY')
+}
+
+function corsHeaders(methods = 'GET,POST,OPTIONS', request) {
+  const headers = new Headers()
+  headers.set('access-control-allow-origin', request?.headers?.get('origin') || '*')
+  headers.set('access-control-allow-methods', methods)
+  headers.set('access-control-allow-headers', `content-type, ${PROXY_SECRET_HEADER}`)
+  headers.set('vary', 'Origin')
+  setSecurityHeaders(headers)
+  return headers
 }

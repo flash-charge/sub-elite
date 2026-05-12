@@ -1,5 +1,6 @@
 import {
-  backendOrigin,
+  backendConfigErrorResponse,
+  backendUrl,
   cleanProxyHeaders,
   jsonHeaders,
   withSecurityHeaders,
@@ -27,7 +28,9 @@ export async function onRequest(context) {
 
 async function proxyToBackend(context) {
   const requestUrl = new URL(context.request.url)
-  const backendUrl = new URL(`${requestUrl.pathname}${requestUrl.search}`, backendOrigin(context.env))
+  const backendUrl = backendUrlForRequest(requestUrl, context.env)
+  if (!backendUrl) return backendConfigErrorResponse(context.request, context.env, 'POST,OPTIONS')
+
   const headers = cleanProxyHeaders(context.request.headers, context.env, requestUrl.origin)
   const init = {
     method: context.request.method,
@@ -37,6 +40,10 @@ async function proxyToBackend(context) {
   }
 
   return fetch(backendUrl, init)
+}
+
+function backendUrlForRequest(requestUrl, env) {
+  return backendUrl(`${requestUrl.pathname}${requestUrl.search}`, env)
 }
 
 function isJsonResponse(response) {
