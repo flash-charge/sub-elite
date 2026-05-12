@@ -141,7 +141,8 @@ async function readBody(request, maxBytes = MAX_INPUT_BYTES) {
 }
 
 async function serveStatic(request, response) {
-  if (request.method !== 'GET') return sendJson(response, 404, { error: 'Not found' })
+  if (!['GET', 'HEAD'].includes(request.method || '')) return sendJson(response, 404, { error: 'Not found' })
+  const headOnly = request.method === 'HEAD'
 
   const url = new URL(request.url || '/', 'http://localhost')
   const requested = url.pathname === '/' ? '/index.html' : url.pathname
@@ -157,13 +158,13 @@ async function serveStatic(request, response) {
     response.writeHead(200, {
       'content-type': contentType(filePath),
     })
-    return response.end(content)
+    return response.end(headOnly ? undefined : content)
   } catch {
     if (!extname(requested)) {
       try {
         const content = await readFile(join(baseDir, 'index.html'))
         response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
-        return response.end(content)
+        return response.end(headOnly ? undefined : content)
       } catch {
         return sendJson(response, 404, { error: 'Frontend build is not available yet. Run npm run build.' })
       }
@@ -195,6 +196,8 @@ function contentType(filePath) {
   if (ext === '.js') return 'text/javascript; charset=utf-8'
   if (ext === '.css') return 'text/css; charset=utf-8'
   if (ext === '.svg') return 'image/svg+xml'
+  if (ext === '.png') return 'image/png'
+  if (ext === '.webmanifest') return 'application/manifest+json; charset=utf-8'
   return 'application/octet-stream'
 }
 
