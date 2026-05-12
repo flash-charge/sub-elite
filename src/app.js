@@ -2023,12 +2023,19 @@ function setNodesByKeyword(enabled) {
     return
   }
   let changed = 0
+  const disabledNames = new Set()
   for (const proxy of state.model.proxies) {
     const haystack = [proxy.name, proxy.type, proxy.server].join(' ').toLowerCase()
     if (haystack.includes(keyword)) {
+      if (!enabled && proxy.enabled !== false && proxy.name) disabledNames.add(proxy.name)
       proxy.enabled = enabled
       changed += 1
     }
+  }
+  if (disabledNames.size) {
+    const keptNames = new Set(state.model.proxies.filter((proxy) => proxy.enabled !== false).map((proxy) => proxy.name))
+    pruneGroupProxyRefs(keptNames)
+    replaceRemovedPolicyTargets(disabledNames, fallbackPolicyTarget())
   }
   updateYamlFromModel()
   showToast(`${changed} nodes updated.`)
