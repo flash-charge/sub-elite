@@ -1420,7 +1420,7 @@ function renderRuleProviders() {
         <small>${escapeHtml(provider.url || provider.path || 'No source configured')}</small>
       </summary>
       <div class="form-grid section-grid provider-edit-grid">
-        <label><span>Name</span><input type="text" data-field="name" value="${escapeAttr(provider.name)}"></label>
+        <label><span>Name</span><input type="text" data-field="name" value="${escapeAttr(valueOrEmpty(provider.name))}"></label>
         <label><span>Behavior</span><select data-field="behavior">
           ${['classical', 'domain', 'ipcidr'].map((type) => `<option value="${type}" ${type === provider.behavior ? 'selected' : ''}>${type}</option>`).join('')}
         </select></label>
@@ -1430,9 +1430,9 @@ function renderRuleProviders() {
         <label><span>Format</span><select data-field="format">
           ${['', 'yaml', 'text', 'mrs'].map((format) => `<option value="${format}" ${format === (provider.format || '') ? 'selected' : ''}>${format || 'default'}</option>`).join('')}
         </select></label>
-        <label class="wide-field"><span>URL</span><input type="text" data-field="url" value="${escapeAttr(provider.url)}"></label>
-        <label><span>Path</span><input type="text" data-field="path" value="${escapeAttr(provider.path)}"></label>
-        <label><span>Interval</span><input type="text" data-field="interval" value="${escapeAttr(provider.interval)}"></label>
+        <label class="wide-field"><span>URL</span><input type="text" data-field="url" value="${escapeAttr(valueOrEmpty(provider.url))}"></label>
+        <label><span>Path</span><input type="text" data-field="path" value="${escapeAttr(valueOrEmpty(provider.path))}"></label>
+        <label><span>Interval</span><input type="text" data-field="interval" value="${escapeAttr(valueOrEmpty(provider.interval))}"></label>
         <label><span>Proxy</span><input type="text" data-field="proxy" value="${escapeAttr(provider.proxy || '')}"></label>
       </div>
       <div class="form-grid section-grid provider-edit-grid provider-subsection">
@@ -1477,13 +1477,13 @@ function renderProxyProviders() {
         <small>${escapeHtml(provider.url || provider.path || 'No source configured')}</small>
       </summary>
       <div class="form-grid section-grid provider-edit-grid">
-        <label><span>Name</span><input type="text" data-field="name" value="${escapeAttr(provider.name)}"></label>
+        <label><span>Name</span><input type="text" data-field="name" value="${escapeAttr(valueOrEmpty(provider.name))}"></label>
         <label><span>Type</span><select data-field="type">
           ${['http', 'file', 'inline'].map((type) => `<option value="${type}" ${type === provider.type ? 'selected' : ''}>${type}</option>`).join('')}
         </select></label>
-        <label class="wide-field"><span>URL</span><input type="text" data-field="url" value="${escapeAttr(provider.url)}"></label>
-        <label><span>Path</span><input type="text" data-field="path" value="${escapeAttr(provider.path)}"></label>
-        <label><span>Interval</span><input type="text" data-field="interval" value="${escapeAttr(provider.interval)}"></label>
+        <label class="wide-field"><span>URL</span><input type="text" data-field="url" value="${escapeAttr(valueOrEmpty(provider.url))}"></label>
+        <label><span>Path</span><input type="text" data-field="path" value="${escapeAttr(valueOrEmpty(provider.path))}"></label>
+        <label><span>Interval</span><input type="text" data-field="interval" value="${escapeAttr(valueOrEmpty(provider.interval))}"></label>
         <label><span>Proxy</span><input type="text" data-field="proxy" value="${escapeAttr(provider.proxy || '')}"></label>
         <label><span>Size Limit</span><input type="text" data-field="sizeLimit" value="${escapeAttr(provider.sizeLimit || '')}"></label>
       </div>
@@ -3294,7 +3294,7 @@ function modelFromYamlObject(raw) {
     'tunnels',
     'rules',
   ])
-  const groups = Array.isArray(raw['proxy-groups']) ? raw['proxy-groups'].map(yamlGroupToModel) : []
+  const groups = Array.isArray(raw['proxy-groups']) ? raw['proxy-groups'].filter(isPlainObject).map(yamlGroupToModel) : []
   return {
     template: templateSelect.value,
     rulesPreset: rulesSelect.value,
@@ -3308,12 +3308,12 @@ function modelFromYamlObject(raw) {
     geo: yamlGeoToModel(raw),
     ruleProviders: yamlNamedMapToList(raw['rule-providers']),
     proxyProviders: yamlNamedMapToList(raw['proxy-providers']),
-    listeners: Array.isArray(raw.listeners) ? raw.listeners : [],
-    subRules: raw['sub-rules'] || {},
-    tunnels: Array.isArray(raw.tunnels) ? raw.tunnels : [],
+    listeners: Array.isArray(raw.listeners) ? raw.listeners.filter(isPlainObject) : [],
+    subRules: isPlainObject(raw['sub-rules']) ? raw['sub-rules'] : {},
+    tunnels: Array.isArray(raw.tunnels) ? raw.tunnels.filter(isPlainObject) : [],
     extraTopLevel: Object.fromEntries(Object.entries(raw).filter(([key]) => !knownKeys.has(key))),
     rawSections: rawSectionsFromYaml(raw),
-    proxies: Array.isArray(raw.proxies) ? raw.proxies.map((proxy) => ({ ...proxy, enabled: true })) : [],
+    proxies: Array.isArray(raw.proxies) ? raw.proxies.filter(isPlainObject).map((proxy) => ({ ...proxy, enabled: true })) : [],
     groups: groups.length ? groups : [{ name: 'PROXY', type: 'select', proxies: ['DIRECT'], use: [] }],
     rules: Array.isArray(raw.rules) ? raw.rules : ['MATCH,PROXY'],
   }
@@ -3623,12 +3623,12 @@ function normalizeClientModel(model) {
       defaultNameserver: normalizeTextList(model?.dns?.defaultNameserver, ['1.1.1.1', '8.8.8.8']),
       nameserver: normalizeTextList(model?.dns?.nameserver, ['https://dns.google/dns-query', 'https://cloudflare-dns.com/dns-query']),
       fallback: normalizeTextList(model?.dns?.fallback, []),
-      fallbackFilter: model?.dns?.fallbackFilter || {},
+      fallbackFilter: isPlainObject(model?.dns?.fallbackFilter) ? model.dns.fallbackFilter : {},
       directNameserver: normalizeTextList(model?.dns?.directNameserver, []),
       directNameserverFollowPolicy: Boolean(model?.dns?.directNameserverFollowPolicy),
       proxyServerNameserver: normalizeTextList(model?.dns?.proxyServerNameserver, []),
-      proxyServerNameserverPolicy: model?.dns?.proxyServerNameserverPolicy || {},
-      nameserverPolicy: model?.dns?.nameserverPolicy || {},
+      proxyServerNameserverPolicy: isPlainObject(model?.dns?.proxyServerNameserverPolicy) ? model.dns.proxyServerNameserverPolicy : {},
+      nameserverPolicy: isPlainObject(model?.dns?.nameserverPolicy) ? model.dns.nameserverPolicy : {},
     },
     sniffer: {
       enable: Boolean(model?.sniffer?.enable),
@@ -3691,20 +3691,28 @@ function normalizeClientModel(model) {
       },
     },
     ruleProviders: Array.isArray(model?.ruleProviders)
-      ? model.ruleProviders.map((provider) => ({ ...provider, payload: normalizeTextList(provider.payload, []), target: provider.target || 'PROXY' }))
+      ? model.ruleProviders
+        .filter(isPlainObject)
+        .map((provider) => ({ ...provider, payload: normalizeTextList(provider.payload, []), target: provider.target || 'PROXY' }))
       : [],
     proxyProviders: Array.isArray(model?.proxyProviders)
-      ? model.proxyProviders.map((provider) => ({ ...provider, payload: normalizeTextList(provider.payload, []) }))
+      ? model.proxyProviders
+        .filter(isPlainObject)
+        .map((provider) => ({ ...provider, payload: normalizeTextList(provider.payload, []) }))
       : [],
     listeners: Array.isArray(model?.listeners) ? model.listeners.filter((listener) => isPlainObject(listener)) : [],
-    subRules: model?.subRules || {},
-    tunnels: Array.isArray(model?.tunnels) ? model.tunnels : [],
+    subRules: isPlainObject(model?.subRules) ? model.subRules : {},
+    tunnels: Array.isArray(model?.tunnels) ? model.tunnels.filter(isPlainObject) : [],
     extraTopLevel: model?.extraTopLevel && typeof model.extraTopLevel === 'object' && !Array.isArray(model.extraTopLevel) ? model.extraTopLevel : {},
     rawSections: isPlainObject(model?.rawSections)
       ? Object.fromEntries(Object.entries(model.rawSections).filter(([, value]) => isPlainObject(value)))
       : {},
-    proxies: Array.isArray(model?.proxies) ? model.proxies.map((proxy) => ({ ...proxy, enabled: proxy.enabled !== false })) : [],
-    groups: Array.isArray(model?.groups) ? model.groups.map((group) => ({ ...group, proxies: normalizeTextList(group.proxies, []), use: normalizeTextList(group.use, []) })) : [],
+    proxies: Array.isArray(model?.proxies) ? model.proxies.filter(isPlainObject).map((proxy) => ({ ...proxy, enabled: proxy.enabled !== false })) : [],
+    groups: Array.isArray(model?.groups)
+      ? model.groups
+        .filter(isPlainObject)
+        .map((group) => ({ ...group, proxies: normalizeTextList(group.proxies, []), use: normalizeTextList(group.use, []) }))
+      : [],
     rules: normalizeTextList(model?.rules, ['MATCH,PROXY']),
   }
 }
@@ -4439,6 +4447,7 @@ function textToPolicy(value) {
 }
 
 function policyToText(value = {}) {
+  if (!isPlainObject(value)) return ''
   return Object.entries(value)
     .map(([key, resolvers]) => `${key}=${Array.isArray(resolvers) ? resolvers.join(',') : resolvers}`)
     .join('\n')
