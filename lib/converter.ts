@@ -206,9 +206,9 @@ export function validateConfigModel(model) {
   const proxyProviderNames = normalizedModel.proxyProviders.map((provider) => provider.name).filter(Boolean)
   const duplicateProviders = providerNames.filter((name, index) => providerNames.indexOf(name) !== index)
   const duplicateProxyProviders = proxyProviderNames.filter((name, index) => proxyProviderNames.indexOf(name) !== index)
-  const errors = []
-  const warnings = []
-  const issues = []
+  const errors: string[] = []
+  const warnings: string[] = []
+  const issues: ProxyNode[] = []
 
   const addIssue = (severity, location, message, code) => {
     issues.push({ severity, location, message, code })
@@ -223,7 +223,7 @@ export function validateConfigModel(model) {
   if (normalizedModel.template === 'full' && normalizedModel.rules.length === 0) addIssue('warning', 'Rules', 'Rules are empty; MATCH,PROXY will be used as fallback.', 'empty-rules')
   if (!normalizedModel.dns.listen) addIssue('warning', 'DNS', 'DNS listen is empty.', 'empty-dns-listen')
   if (normalizedModel.tun.enable && !normalizedModel.tun.stack) addIssue('error', 'TUN', 'TUN stack is required when TUN is enabled.', 'empty-tun-stack')
-  if (normalizedModel.sniffer.enable && !normalizedModel.sniffer.sniff.length) addIssue('warning', 'Sniffer', 'Sniffer is enabled without sniff protocols.', 'empty-sniff')
+  if (normalizedModel.sniffer.enable && !hasSniffProtocols(normalizedModel.sniffer.sniff)) addIssue('warning', 'Sniffer', 'Sniffer is enabled without sniff protocols.', 'empty-sniff')
 
   enabledProxies.forEach((proxy, index) => {
     if (['direct', 'dns'].includes(proxy.type)) return
@@ -319,7 +319,7 @@ export function validateConfigModel(model) {
 
 export function autoFixConfigModel(model) {
   const fixed = normalizeModel(model)
-  const fixes = []
+  const fixes: string[] = []
 
   fixed.proxies.forEach((proxy) => {
     const port = Number(proxy.port)
@@ -385,6 +385,7 @@ export function extractLinks(input) {
 
   for (const candidate of candidates) {
     const links = candidate
+      .replace(/,(?=(?:vmess|vless|trojan|ss|ssr|socks|socks5|hysteria|hysteria2|hy2|tuic|wireguard):\/\/)/gi, '\n')
       .split(/\r?\n/)
       .map((line) => line.trim())
       .filter((line) => line && !line.startsWith('#') && !line.startsWith('//'))
@@ -855,7 +856,11 @@ function createSniffer() {
     overrideDestination: true,
     parsePureIp: false,
     forceDnsMapping: false,
-    sniff: ['TLS:443,8443', 'HTTP:80,8080-8880', 'QUIC:443,8443'],
+    sniff: {
+      TLS: { ports: [443, 8443] },
+      HTTP: { ports: [80, '8080-8880'] },
+      QUIC: { ports: [443, 8443] },
+    },
     forceDomain: ['+.netflix.com', '+.youtube.com'],
     skipDomain: ['+.apple.com'],
     skipSrcAddress: [],
@@ -1018,7 +1023,7 @@ function buildSniffer(sniffer, rawSniffer) {
       'override-destination': sniffer.overrideDestination,
       'parse-pure-ip': sniffer.parsePureIp,
       'force-dns-mapping': sniffer.forceDnsMapping,
-      sniff: parseSniffList(sniffer.sniff),
+      sniff: normalizeSniffConfig(sniffer.sniff),
       'force-domain': sniffer.forceDomain,
       'skip-domain': sniffer.skipDomain,
       'skip-src-address': sniffer.skipSrcAddress,
@@ -1157,15 +1162,37 @@ function parseSniffList(items) {
   return Object.fromEntries(
     normalizeList(items, []).map((item) => {
       const [protocol, ports = ''] = item.split(':')
-      return [protocol, { ports: normalizePorts(ports) }]
-    }),
+      return [protocol, normalizeSniffProtocol({ ports })]
+    }).filter(([protocol, config]) => protocol && (config as any).ports?.length),
   )
 }
 
+function normalizeSniffConfig(value, fallback = {}) {
+  if (Array.isArray(value) || typeof value === 'string') return parseSniffList(value)
+  if (!value || typeof value !== 'object') return fallback
+  return Object.fromEntries(
+    Object.entries(value)
+      .map(([protocol, config]) => [String(protocol).toUpperCase(), normalizeSniffProtocol(config)])
+      .filter(([protocol, config]) => protocol && (config as any).ports?.length),
+  )
+}
+
+function normalizeSniffProtocol(value) {
+  const config = value && typeof value === 'object' && !Array.isArray(value) ? value : { ports: value }
+  return compact({
+    ports: normalizePorts(config.ports),
+    'override-destination': config.overrideDestination ?? config['override-destination'],
+  })
+}
+
+function hasSniffProtocols(value) {
+  return Object.keys(normalizeSniffConfig(value)).length > 0
+}
+
 function normalizePorts(value) {
-  return String(value || '')
-    .split(',')
-    .map((item) => item.trim())
+  const items = Array.isArray(value) ? value : String(value || '').split(',')
+  return items
+    .map((item) => String(item).trim())
     .filter(Boolean)
     .map((item) => (item.includes('-') ? item : Number(item) || item))
 }
@@ -1179,7 +1206,7 @@ function buildProxyGroups(model, proxies) {
     const type = groupTypes.includes(group.type) ? group.type : 'select'
     const names = Array.isArray(group.proxies) && group.proxies.length > 0 ? group.proxies : proxyNames
     const filteredNames = names.filter((name) => proxyNames.includes(name) || specialNames.includes(name) || name === 'AUTO')
-    const normalizedGroup = {
+    const normalizedGroup: ProxyNode = {
       name: group.name || 'PROXY',
       type,
       proxies: filteredNames.length ? filteredNames : ['DIRECT'],
@@ -1241,7 +1268,7 @@ function dumpYaml(value, indent = 0) {
 function spaceTopLevelSections(yaml) {
   const sectionKeys = new Set(['dns', 'sniffer', 'tun', 'ntp', 'experimental', 'proxies', 'proxy-providers', 'proxy-groups', 'listeners', 'rule-providers', 'sub-rules', 'tunnels', 'rules'])
   const lines = String(yaml).split('\n')
-  const spaced = []
+  const spaced: string[] = []
 
   lines.forEach((line, index) => {
     const key = line.match(/^([A-Za-z0-9_-]+):/)?.[1]
@@ -1364,7 +1391,7 @@ function normalizeModel(model) {
   }
 }
 
-function normalizeDns(dns = {}) {
+function normalizeDns(dns: ProxyNode = {}) {
   const defaults = createConfigModel([]).dns
   return {
     enable: dns.enable !== false,
@@ -1393,7 +1420,7 @@ function normalizeDns(dns = {}) {
   }
 }
 
-function normalizeGeneral(general = {}) {
+function normalizeGeneral(general: ProxyNode = {}) {
   const defaults = createGeneral()
   return {
     ...defaults,
@@ -1438,21 +1465,21 @@ function normalizeGeneral(general = {}) {
   }
 }
 
-function normalizeProfile(profile = {}) {
+function normalizeProfile(profile: ProxyNode = {}) {
   return {
     storeSelected: Boolean(profile.storeSelected ?? profile['store-selected'] ?? createProfile().storeSelected),
     storeFakeIp: Boolean(profile.storeFakeIp ?? profile['store-fake-ip'] ?? createProfile().storeFakeIp),
   }
 }
 
-function normalizeSniffer(sniffer = {}) {
+function normalizeSniffer(sniffer: ProxyNode = {}) {
   const defaults = createSniffer()
   return {
     enable: Boolean(sniffer.enable),
     overrideDestination: sniffer.overrideDestination ?? sniffer['override-destination'] ?? defaults.overrideDestination,
     parsePureIp: Boolean(sniffer.parsePureIp ?? sniffer['parse-pure-ip']),
     forceDnsMapping: Boolean(sniffer.forceDnsMapping ?? sniffer['force-dns-mapping']),
-    sniff: normalizeSniffList(sniffer.sniff, defaults.sniff),
+    sniff: normalizeSniffConfig(sniffer.sniff, defaults.sniff),
     forceDomain: normalizeList(sniffer.forceDomain || sniffer['force-domain'], defaults.forceDomain),
     skipDomain: normalizeList(sniffer.skipDomain || sniffer['skip-domain'], defaults.skipDomain),
     skipSrcAddress: normalizeList(sniffer.skipSrcAddress || sniffer['skip-src-address'], []),
@@ -1460,7 +1487,7 @@ function normalizeSniffer(sniffer = {}) {
   }
 }
 
-function normalizeTun(tun = {}) {
+function normalizeTun(tun: ProxyNode = {}) {
   const defaults = createTun()
   return {
     enable: Boolean(tun.enable),
@@ -1494,7 +1521,7 @@ function normalizeTun(tun = {}) {
   }
 }
 
-function normalizeNtp(ntp = {}) {
+function normalizeNtp(ntp: ProxyNode = {}) {
   const defaults = createNtp()
   return {
     enable: Boolean(ntp.enable),
@@ -1505,12 +1532,12 @@ function normalizeNtp(ntp = {}) {
   }
 }
 
-function normalizeObject(value = {}) {
+function normalizeObject(value: ProxyNode = {}) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
   return { ...value }
 }
 
-function normalizeRawSections(value = {}) {
+function normalizeRawSections(value: ProxyNode = {}) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
   return Object.fromEntries(
     Object.entries(value)
@@ -1525,7 +1552,7 @@ function normalizeRawSection(value) {
   return Object.keys(normalized).length ? normalized : undefined
 }
 
-function normalizeGeo(geo = {}) {
+function normalizeGeo(geo: ProxyNode = {}) {
   return {
     ...createGeo(),
     ...geo,
@@ -1539,7 +1566,7 @@ function normalizeGeo(geo = {}) {
   }
 }
 
-function normalizeRuleProvider(provider = {}) {
+function normalizeRuleProvider(provider: ProxyNode = {}) {
   return {
     name: String(provider.name || '').trim(),
     type: String(provider.type || 'http').trim(),
@@ -1556,7 +1583,7 @@ function normalizeRuleProvider(provider = {}) {
   }
 }
 
-function normalizeProxyProvider(provider = {}) {
+function normalizeProxyProvider(provider: ProxyNode = {}) {
   return {
     name: String(provider.name || '').trim(),
     type: ['http', 'file', 'inline'].includes(provider.type) ? provider.type : 'http',
@@ -1582,7 +1609,7 @@ function normalizeProxyProvider(provider = {}) {
   }
 }
 
-function normalizeGroup(group = {}) {
+function normalizeGroup(group: ProxyNode = {}) {
   return {
     name: String(group.name || 'PROXY').trim(),
     type: groupTypes.includes(group.type) ? group.type : 'select',
@@ -1608,7 +1635,7 @@ function normalizeGroup(group = {}) {
   }
 }
 
-function normalizeTunnel(tunnel = {}) {
+function normalizeTunnel(tunnel: ProxyNode = {}) {
   return compact({
     network: normalizeList(tunnel.network, ['tcp', 'udp']),
     address: String(tunnel.address || '').trim(),
@@ -1630,21 +1657,6 @@ function normalizeList(value, fallback) {
   if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean)
   if (typeof value === 'string') return value.split(/\r?\n|,/).map((item) => item.trim()).filter(Boolean)
   return fallback
-}
-
-function normalizeSniffList(value, fallback) {
-  if (Array.isArray(value) || typeof value === 'string') return normalizeList(value, fallback)
-  if (!value || typeof value !== 'object') return fallback
-
-  const items = Object.entries(value)
-    .map(([protocol, options]) => {
-      const ports = normalizeList(options && typeof options === 'object' && !Array.isArray(options) ? options.ports : options, [])
-      const name = String(protocol).trim()
-      return name ? `${name}${ports.length ? `:${ports.join(',')}` : ''}` : ''
-    })
-    .filter(Boolean)
-
-  return items.length ? items : fallback
 }
 
 function normalizePolicy(value = {}) {
