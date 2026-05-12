@@ -84,7 +84,7 @@ npm run lint
 
 ## Required Cloudflare Settings
 
-Production should rely on Cloudflare settings, not only source-code defaults.
+Production should rely on Cloudflare settings. The source code does not include a default backend.
 
 Set these in **Cloudflare Pages > sub-elite > Settings > Environment variables** for production:
 
