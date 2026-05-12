@@ -1869,6 +1869,22 @@ function replacePolicyTargetNames(renameMap) {
   refreshRenderedRuleProviderTargets()
 }
 
+function replaceRemovedPolicyTargets(removedNames, nextName) {
+  if (!state.model || !removedNames.size || !nextName) return
+  state.model.rules = state.model.rules.map((rule) => {
+    let nextRule = rule
+    for (const previousName of removedNames) {
+      nextRule = replaceRuleTargetName(nextRule, previousName, nextName)
+    }
+    return nextRule
+  })
+  state.model.ruleProviders.forEach((provider) => {
+    if (removedNames.has(provider.target)) provider.target = nextName
+  })
+  renderRules()
+  refreshRenderedRuleProviderTargets()
+}
+
 function replaceRuleTargetName(rule, previousName, nextName) {
   const parts = String(rule).split(',').map((part) => part.trim())
   const candidateIndexes = parts[0] === 'MATCH' ? [1] : [2, parts.length - 1]
@@ -1981,15 +1997,20 @@ function deleteDuplicateNodes() {
   if (!state.model) return
   const seen = new Set()
   const keptNames = new Set()
+  const removedNames = new Set()
   const before = state.model.proxies.length
   state.model.proxies = state.model.proxies.filter((proxy) => {
     const key = proxySignature(proxy)
-    if (seen.has(key)) return false
+    if (seen.has(key)) {
+      if (proxy.name) removedNames.add(proxy.name)
+      return false
+    }
     seen.add(key)
     keptNames.add(proxy.name)
     return true
   })
   pruneGroupProxyRefs(keptNames)
+  replaceRemovedPolicyTargets(removedNames, fallbackPolicyTarget())
   updateYamlFromModel()
   showToast(`${before - state.model.proxies.length} duplicate nodes removed.`)
 }
