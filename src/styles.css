@@ -1653,6 +1653,13 @@ summary {
     font-size: 19px;
   }
 
+  .toast {
+    top: calc(12px + env(safe-area-inset-top));
+    bottom: auto;
+    z-index: 80;
+    box-shadow: 0 16px 36px rgba(20, 33, 42, 0.22);
+  }
+
   .app-shell {
     padding-right: 9px;
     padding-left: 9px;
