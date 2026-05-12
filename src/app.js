@@ -1550,6 +1550,7 @@ function handleNodeInput(event, index) {
   if (field === 'rawJson') {
     try {
       const parsed = JSON.parse(event.target.value)
+      if (!isPlainObject(parsed)) throw new Error('Node Raw JSON must be an object.')
       state.model.proxies[index] = { ...parsed, enabled: proxy.enabled !== false }
       replaceGroupProxyName(previousName, state.model.proxies[index].name)
       clearValidation()
