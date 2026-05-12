@@ -24,6 +24,7 @@ await mkdir(buildTemp, { recursive: true })
 
 const apiBaseUrl = normalizeApiBaseUrl(process.env.SUB_ELITE_API_BASE_URL || process.env.API_BASE_URL || '')
 await cp(join(root, 'public'), dist, { recursive: true })
+await updateSecurityHeaders(apiBaseUrl)
 await writePwaIconPng(join(dist, 'pwa-icon-192.png'), 192)
 await writePwaIconPng(join(dist, 'pwa-icon-512.png'), 512)
 
@@ -120,6 +121,25 @@ function minifyCss(css) {
 
 function normalizeApiBaseUrl(value) {
   return String(value || '').trim().replace(/\/+$/u, '')
+}
+
+async function updateSecurityHeaders(apiBaseUrl) {
+  if (!apiBaseUrl) return
+
+  let apiOrigin = ''
+  try {
+    apiOrigin = new URL(apiBaseUrl).origin
+  } catch {
+    throw new Error('SUB_ELITE_API_BASE_URL must be a valid absolute URL.')
+  }
+
+  const headersPath = join(dist, '_headers')
+  const headers = await readFile(headersPath, 'utf8')
+  const updated = headers.replace(
+    /connect-src 'self'([^;]*);/u,
+    (match, extra = '') => match.includes(apiOrigin) ? match : `connect-src 'self'${extra} ${apiOrigin};`,
+  )
+  await writeFile(headersPath, updated)
 }
 
 function escapeHtmlAttr(value) {
