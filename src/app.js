@@ -266,6 +266,7 @@ const state = {
   toastTimer: null,
 }
 
+const invalidEditorInput = Symbol('invalid-editor-input')
 const nodeUiKeys = new WeakMap()
 const apiBaseUrl = readApiBaseUrl()
 
@@ -676,8 +677,9 @@ async function convertLinks() {
     const payload = await convertLinksViaApi()
 
     state.model = normalizeClientModel(payload.model)
-    state.originalModel = clone(state.model)
     state.yamlManualEdit = false
+    normalizeEditorModel()
+    state.originalModel = clone(state.model)
     renderModel()
     state.yaml = buildYamlFromModel(state.model)
     state.originalYaml = state.yaml
@@ -777,8 +779,9 @@ function importYamlText(text) {
 
 function loadModel(model, options = {}) {
   state.model = normalizeClientModel(model)
-  state.originalModel = clone(state.model)
   state.yamlManualEdit = false
+  normalizeEditorModel()
+  state.originalModel = clone(state.model)
   renderModel()
   state.yaml = buildYamlFromModel(state.model)
   state.originalYaml = options.originalYaml || state.yaml
@@ -916,6 +919,7 @@ function isSupportedImportFile(file) {
 
 function renderModel() {
   if (!state.model) return
+  normalizeEditorModel()
   templateSelect.value = state.model.template || 'full'
   rulesSelect.value = state.model.rulesPreset || 'proxy'
   updateRulesState()
@@ -1167,7 +1171,7 @@ function renderGroups() {
         return
       }
       if (action === 'select-all-group-providers') {
-        group.use = groupProviderOptions(group).map((option) => option.value)
+        group.use = groupProviderOptions().map((option) => option.value)
         updateYamlFromModel()
         return
       }
@@ -1205,13 +1209,15 @@ function groupSummaryText(group) {
 }
 
 function groupProxyOptions(group) {
-  const selected = Array.isArray(group.proxies) ? group.proxies : []
   const proxyNames = (state.model?.proxies || [])
+    .filter((proxy) => proxy.enabled !== false)
     .map((proxy) => proxy.name)
     .filter(Boolean)
   const groupNames = (state.model?.groups || [])
     .map((item) => item.name)
     .filter((name) => name && name !== group.name)
+  const selectable = new Set(['DIRECT', 'REJECT', ...proxyNames, ...groupNames])
+  const selected = (Array.isArray(group.proxies) ? group.proxies : []).filter((name) => selectable.has(name))
 
   return uniqueList(['DIRECT', 'REJECT', ...proxyNames, ...groupNames, ...selected])
     .map((value) => ({ value }))
@@ -1219,6 +1225,55 @@ function groupProxyOptions(group) {
 
 function uniqueList(items) {
   return [...new Set(items.map((item) => String(item || '').trim()).filter(Boolean))]
+}
+
+function hasDuplicateName(items, name) {
+  const normalizedName = String(name || '').trim()
+  return Boolean(normalizedName) && items.some((item) => String(item?.name || '').trim() === normalizedName)
+}
+
+function hasDuplicateNameExcept(items, name, index) {
+  const normalizedName = String(name || '').trim()
+  return Boolean(normalizedName) && items.some((item, itemIndex) => itemIndex !== index && String(item?.name || '').trim() === normalizedName)
+}
+
+function rejectEmptyNameInput(target, previousName, label) {
+  if (String(target.value || '').trim()) return false
+  target.value = previousName || ''
+  showValidation(`${label} name cannot be empty.`, 'error')
+  return true
+}
+
+function nameHasRuleSeparator(value) {
+  return String(value || '').includes(',')
+}
+
+function rejectRuleSeparatorNameInput(target, previousName, label) {
+  if (!nameHasRuleSeparator(target.value)) return false
+  target.value = previousName || ''
+  showValidation(`${label} name cannot contain commas.`, 'error')
+  return true
+}
+
+function validEditableName(name, label) {
+  if (!String(name || '').trim()) return `${label} name cannot be empty.`
+  if (nameHasRuleSeparator(name)) return `${label} name cannot contain commas.`
+  return ''
+}
+
+function generatedProviderPath(basePath, name) {
+  return `${basePath}/${name}.yaml`
+}
+
+function syncGeneratedProviderPath(provider, previousName, nextName, basePath) {
+  if (!provider || !previousName || !nextName || previousName === nextName) return
+  const previousPath = generatedProviderPath(basePath, previousName)
+  if (!provider.path || provider.path === previousPath) provider.path = generatedProviderPath(basePath, nextName)
+}
+
+function cleanupEmptyNestedSection(proxy, section, parents) {
+  pruneEmptyTransportParents(proxy[section], parents)
+  if (isEmptyTransportValue(proxy[section])) delete proxy[section]
 }
 
 function renderGroupProxyPicker(group) {
@@ -1243,18 +1298,17 @@ function renderGroupProxyPicker(group) {
   `
 }
 
-function groupProviderOptions(group) {
-  const selected = Array.isArray(group.use) ? group.use : []
+function groupProviderOptions() {
   const providerNames = (state.model?.proxyProviders || [])
     .map((provider) => provider.name)
     .filter(Boolean)
-  return uniqueList([...providerNames, ...selected])
+  return uniqueList(providerNames)
     .map((value) => ({ value }))
 }
 
 function renderGroupProviderPicker(group) {
   const selected = new Set(Array.isArray(group.use) ? group.use : [])
-  const options = groupProviderOptions(group)
+  const options = groupProviderOptions()
   return `
     <div class="group-provider-picker wide-field">
       <span>Use Provider</span>
@@ -1412,6 +1466,7 @@ function renderRuleProviders() {
 
   ruleProviderList.classList.remove('empty-state')
   state.model.ruleProviders.forEach((provider, index) => {
+    const target = validPolicyTarget(provider.target || 'PROXY')
     const row = document.createElement('details')
     row.className = 'editor-field-section provider-row'
     row.open = index === 0
@@ -1430,7 +1485,7 @@ function renderRuleProviders() {
           ${['classical', 'domain', 'ipcidr'].map((type) => `<option value="${type}" ${type === provider.behavior ? 'selected' : ''}>${type}</option>`).join('')}
         </select></label>
         <label><span>Target</span><select data-field="target">
-          ${renderSelectOptions(selectOptionsWithCurrent(policyTargetOptions(), provider.target || 'PROXY'), provider.target || 'PROXY')}
+          ${renderSelectOptions(policyTargetOptions(), target)}
         </select></label>
         <label><span>Format</span><select data-field="format">
           ${['', 'yaml', 'text', 'mrs'].map((format) => `<option value="${format}" ${format === (provider.format || '') ? 'selected' : ''}>${format || 'default'}</option>`).join('')}
@@ -1565,6 +1620,18 @@ function handleNodeInput(event, index) {
     try {
       const parsed = JSON.parse(event.target.value)
       if (!isPlainObject(parsed)) throw new Error('Node Raw JSON must be an object.')
+      if (!String(parsed.name || '').trim()) {
+        showValidation('Node Raw JSON must include a non-empty name.', 'error')
+        return
+      }
+      if (nameHasRuleSeparator(parsed.name)) {
+        showValidation('Node Raw JSON name cannot contain commas.', 'error')
+        return
+      }
+      if (hasDuplicateNameExcept(state.model.proxies, parsed.name, index)) {
+        showValidation(`Node "${String(parsed.name || '').trim()}" already exists.`, 'error')
+        return
+      }
       state.model.proxies[index] = { ...parsed, enabled: proxy.enabled !== false }
       const nextName = state.model.proxies[index].name
       if (nextName) replaceGroupProxyName(previousName, nextName)
@@ -1580,6 +1647,15 @@ function handleNodeInput(event, index) {
     return
   }
 
+  if (field === 'name' && rejectEmptyNameInput(event.target, previousName, 'Node')) return
+  if (field === 'name' && rejectRuleSeparatorNameInput(event.target, previousName, 'Node')) return
+  if (field === 'name' && hasDuplicateNameExcept(state.model.proxies, event.target.value, index)) {
+    const attemptedName = String(event.target.value || '').trim()
+    event.target.value = previousName || ''
+    showValidation(`Node "${attemptedName}" already exists.`, 'error')
+    return
+  }
+
   if (field === 'alpn-option') {
     updateAlpnSelection(proxy, event.target.value, event.target.checked)
     updateYamlFromModel()
@@ -1587,11 +1663,21 @@ function handleNodeInput(event, index) {
   }
 
   if (field.startsWith('nested:')) {
-    updateNestedProxyField(proxy, field, event.target)
+    if (updateNestedProxyField(proxy, field, event.target) === false) return
   } else if (field.startsWith('transport:')) {
-    updateTransportField(proxy, field, event.target)
+    if (updateTransportField(proxy, field, event.target) === false) return
   } else if (event.target.type === 'checkbox') {
     proxy[field] = event.target.checked
+    if (field === 'enabled') {
+      if (!event.target.checked && proxy.name) {
+        const keptNames = new Set(state.model.proxies.filter((item) => item.enabled !== false).map((item) => item.name))
+        pruneGroupProxyRefs(keptNames)
+        replacePolicyTargetName(proxy.name, fallbackPolicyTarget())
+      }
+      renderGroups()
+      renderRuleTargetOptions()
+      refreshRenderedRuleProviderTargets()
+    }
     if (field === 'tls') {
       if (!event.target.checked) cleanupDisabledTlsFields(proxy)
       toggleNodeTlsFields(event.target.closest('.tls-fields'), event.target.checked)
@@ -1610,7 +1696,8 @@ function handleNodeInput(event, index) {
     else delete proxy[key]
   } else if (field.endsWith(':json')) {
     const key = field.replace(/:json$/, '')
-    const value = parseJsonObject(event.target.value)
+    const value = parseJsonObjectInput(event.target.value, key)
+    if (value === invalidEditorInput) return
     if (Object.keys(value).length) proxy[key] = value
     else delete proxy[key]
   } else if (field === 'sni') {
@@ -1666,6 +1753,14 @@ function handleGroupInput(event, index) {
   if (!field || !state.model?.groups[index]) return
   const group = state.model.groups[index]
   const previousName = group.name
+  if (field === 'name' && rejectEmptyNameInput(event.target, previousName, 'Group')) return
+  if (field === 'name' && rejectRuleSeparatorNameInput(event.target, previousName, 'Group')) return
+  if (field === 'name' && hasDuplicateNameExcept(state.model.groups, event.target.value, index)) {
+    const attemptedName = String(event.target.value || '').trim()
+    event.target.value = previousName || ''
+    showValidation(`Group "${attemptedName}" already exists.`, 'error')
+    return
+  }
   if (field === 'group-proxy-option') group.proxies = readGroupProxySelection(event.currentTarget)
   else if (field === 'group-provider-option') group.use = readGroupProviderSelection(event.currentTarget)
   else if (field === 'proxies') group.proxies = splitLinesOrComma(event.target.value)
@@ -1706,13 +1801,28 @@ function handleRuleProviderInput(event, index) {
   if (!field || !state.model?.ruleProviders[index]) return
   const provider = state.model.ruleProviders[index]
   const previousName = provider.name
+  if (field === 'name' && rejectEmptyNameInput(event.target, previousName, 'Rule provider')) return
+  if (field === 'name' && rejectRuleSeparatorNameInput(event.target, previousName, 'Rule provider')) return
+  if (field === 'name' && hasDuplicateNameExcept(state.model.ruleProviders, event.target.value, index)) {
+    const attemptedName = String(event.target.value || '').trim()
+    event.target.value = previousName || ''
+    showValidation(`Rule provider "${attemptedName}" already exists.`, 'error')
+    return
+  }
   if (field === 'interval') provider.interval = Number(event.target.value) || 86400
   else if (field === 'sizeLimit') provider.sizeLimit = Number(event.target.value) || 0
   else if (field === 'header') provider.header = textToPolicy(event.target.value)
   else if (field === 'payload') provider.payload = splitLinesOrComma(event.target.value)
+  else if (field === 'target') {
+    provider.target = validPolicyTarget(event.target.value)
+    event.target.value = provider.target
+  }
   else provider[field] = event.target.value
   if (field === 'name') {
-    if (provider.name) replaceProviderRuleName(previousName, provider.name)
+    if (provider.name) {
+      syncGeneratedProviderPath(provider, previousName, provider.name, './rules')
+      replaceProviderRuleName(previousName, provider.name)
+    }
     else removeRuleProviderRules(previousName)
   }
   if (field === 'target') syncProviderRule(provider.name, provider.target)
@@ -1724,6 +1834,14 @@ function handleProxyProviderInput(event, index) {
   if (!field || !state.model?.proxyProviders[index]) return
   const provider = state.model.proxyProviders[index]
   const previousName = provider.name
+  if (field === 'name' && rejectEmptyNameInput(event.target, previousName, 'Proxy provider')) return
+  if (field === 'name' && rejectRuleSeparatorNameInput(event.target, previousName, 'Proxy provider')) return
+  if (field === 'name' && hasDuplicateNameExcept(state.model.proxyProviders, event.target.value, index)) {
+    const attemptedName = String(event.target.value || '').trim()
+    event.target.value = previousName || ''
+    showValidation(`Proxy provider "${attemptedName}" already exists.`, 'error')
+    return
+  }
   provider.healthCheck = provider.healthCheck || {}
   if (field === 'interval') provider.interval = Number(event.target.value) || 3600
   else if (field === 'sizeLimit') provider.sizeLimit = Number(event.target.value) || 0
@@ -1738,7 +1856,10 @@ function handleProxyProviderInput(event, index) {
   else if (field === 'healthCheckLazy') provider.healthCheck.lazy = event.target.checked
   else provider[field] = event.target.value
   if (field === 'name') {
-    if (provider.name) replaceGroupProviderName(previousName, provider.name)
+    if (provider.name) {
+      syncGeneratedProviderPath(provider, previousName, provider.name, './proxy_providers')
+      replaceGroupProviderName(previousName, provider.name)
+    }
     else removeGroupProviderName(previousName)
     renderGroups()
   }
@@ -1768,27 +1889,44 @@ function ensureMatchRule() {
 }
 
 function policyTargetOptions() {
-  const groupNames = (state.model?.groups || []).map((group) => group.name).filter(Boolean)
-  const proxyNames = (state.model?.proxies || []).map((proxy) => proxy.name).filter(Boolean)
+  const groupNames = (state.model?.groups || [])
+    .map((group) => group.name)
+    .filter((name) => name && !nameHasRuleSeparator(name))
+  const proxyNames = (state.model?.proxies || [])
+    .filter((proxy) => proxy.enabled !== false)
+    .map((proxy) => proxy.name)
+    .filter((name) => name && !nameHasRuleSeparator(name))
   return uniqueList(['PROXY', 'DIRECT', 'REJECT', ...groupNames, ...proxyNames])
 }
 
 function renderRuleTargetOptions() {
   const options = policyTargetOptions()
-  const ruleTarget = ruleBuilderTarget.value || 'PROXY'
-  const providerTarget = ruleProviderTarget.value || 'PROXY'
-  ruleBuilderTarget.innerHTML = renderSelectOptions(selectOptionsWithCurrent(options, ruleTarget), ruleTarget)
-  ruleProviderTarget.innerHTML = renderSelectOptions(selectOptionsWithCurrent(options, providerTarget), providerTarget)
+  const ruleTarget = validPolicyTarget(ruleBuilderTarget.value, options)
+  const providerTarget = validPolicyTarget(ruleProviderTarget.value, options)
+  ruleBuilderTarget.innerHTML = renderSelectOptions(options, ruleTarget)
+  ruleProviderTarget.innerHTML = renderSelectOptions(options, providerTarget)
   updateRuleBuilderState()
+}
+
+function validPolicyTarget(value, options = policyTargetOptions()) {
+  return options.includes(value) ? value : fallbackPolicyTarget()
 }
 
 function addRuleFromBuilder() {
   if (!state.model) return
   const type = ruleBuilderType.value
   const value = ruleBuilderValue.value.trim()
-  const target = ruleBuilderTarget.value || 'PROXY'
+  const target = validPolicyTarget(ruleBuilderTarget.value)
   if (type !== 'MATCH' && !value) {
     showValidation('Rule value is required.', 'error')
+    return
+  }
+  if (type === 'RULE-SET' && nameHasRuleSeparator(value)) {
+    showValidation('RULE-SET provider name cannot contain commas.', 'error')
+    return
+  }
+  if (type !== 'MATCH' && /[\r\n]/.test(value)) {
+    showValidation('Rule value must be a single line.', 'error')
     return
   }
   const rule = type === 'MATCH' ? `MATCH,${target}` : `${type},${value},${target}`
@@ -1815,9 +1953,10 @@ function rulePlaceholderForType(type) {
 function syncProviderRule(name, target) {
   if (!name) return
   const prefix = `RULE-SET,${name},`
+  const ruleTarget = validPolicyTarget(target)
   const index = state.model.rules.findIndex((rule) => rule.startsWith(prefix))
-  if (index >= 0) state.model.rules[index] = `RULE-SET,${name},${target || 'PROXY'}`
-  else ensureRule(`RULE-SET,${name},${target || 'PROXY'}`, true)
+  if (index >= 0) state.model.rules[index] = `RULE-SET,${name},${ruleTarget}`
+  else ensureRule(`RULE-SET,${name},${ruleTarget}`, true)
   renderRules()
 }
 
@@ -1848,8 +1987,13 @@ function replacePolicyTargetName(previousName, nextName) {
   state.model.rules = state.model.rules.map((rule) => replaceRuleTargetName(rule, previousName, nextName))
   state.model.ruleProviders.forEach((provider) => {
     if (provider.target === previousName) provider.target = nextName
+    if (provider.proxy === previousName) provider.proxy = nextName
+  })
+  state.model.proxyProviders.forEach((provider) => {
+    if (provider.proxy === previousName) provider.proxy = nextName
   })
   renderRules()
+  renderRuleTargetOptions()
   refreshRenderedRuleProviderTargets()
 }
 
@@ -1864,8 +2008,13 @@ function replacePolicyTargetNames(renameMap) {
   })
   state.model.ruleProviders.forEach((provider) => {
     if (renameMap.has(provider.target)) provider.target = renameMap.get(provider.target)
+    if (renameMap.has(provider.proxy)) provider.proxy = renameMap.get(provider.proxy)
+  })
+  state.model.proxyProviders.forEach((provider) => {
+    if (renameMap.has(provider.proxy)) provider.proxy = renameMap.get(provider.proxy)
   })
   renderRules()
+  renderRuleTargetOptions()
   refreshRenderedRuleProviderTargets()
 }
 
@@ -1880,8 +2029,13 @@ function replaceRemovedPolicyTargets(removedNames, nextName) {
   })
   state.model.ruleProviders.forEach((provider) => {
     if (removedNames.has(provider.target)) provider.target = nextName
+    if (removedNames.has(provider.proxy)) provider.proxy = nextName
+  })
+  state.model.proxyProviders.forEach((provider) => {
+    if (removedNames.has(provider.proxy)) provider.proxy = nextName
   })
   renderRules()
+  renderRuleTargetOptions()
   refreshRenderedRuleProviderTargets()
 }
 
@@ -1896,7 +2050,7 @@ function replaceRuleTargetName(rule, previousName, nextName) {
 
 function fallbackPolicyTarget() {
   if (!state.model) return 'DIRECT'
-  return state.model.groups.find((group) => group.name)?.name || 'DIRECT'
+  return state.model.groups.find((group) => group.name && !nameHasRuleSeparator(group.name))?.name || 'DIRECT'
 }
 
 function refreshRenderedRuleProviderTargets() {
@@ -1906,7 +2060,23 @@ function refreshRenderedRuleProviderTargets() {
     const provider = state.model.ruleProviders[index]
     if (!provider) return
     const target = provider.target || 'PROXY'
-    select.innerHTML = renderSelectOptions(selectOptionsWithCurrent(options, target), target)
+    const validTarget = validPolicyTarget(target, options)
+    provider.target = validTarget
+    select.innerHTML = renderSelectOptions(options, validTarget)
+  })
+}
+
+function normalizeEditorModel() {
+  if (!state.model) return
+  const options = policyTargetOptions()
+  state.model.ruleProviders.forEach((provider) => {
+    provider.target = validPolicyTarget(provider.target || 'PROXY', options)
+  })
+  const enabledProxyNames = new Set(state.model.proxies.filter((proxy) => proxy.enabled !== false).map((proxy) => proxy.name).filter(Boolean))
+  pruneGroupProxyRefs(enabledProxyNames)
+  const proxyProviderNames = new Set(state.model.proxyProviders.map((provider) => provider.name).filter(Boolean))
+  state.model.groups.forEach((group) => {
+    group.use = (Array.isArray(group.use) ? group.use : []).filter((name) => proxyProviderNames.has(name))
   })
 }
 
@@ -2037,6 +2207,8 @@ function setNodesByKeyword(enabled) {
     pruneGroupProxyRefs(keptNames)
     replaceRemovedPolicyTargets(disabledNames, fallbackPolicyTarget())
   }
+  renderRuleTargetOptions()
+  refreshRenderedRuleProviderTargets()
   updateYamlFromModel()
   showToast(`${changed} nodes updated.`)
 }
@@ -2044,6 +2216,15 @@ function setNodesByKeyword(enabled) {
 function addGroup() {
   if (!state.model) return
   const name = groupNameInput.value.trim() || `GROUP ${state.model.groups.length + 1}`
+  const nameIssue = validEditableName(name, 'Group')
+  if (nameIssue) {
+    showValidation(nameIssue, 'error')
+    return
+  }
+  if (hasDuplicateName(state.model.groups, name)) {
+    showValidation(`Group "${name}" already exists.`, 'error')
+    return
+  }
   const enabledNames = state.model.proxies.filter((proxy) => proxy.enabled !== false).map((proxy) => proxy.name)
   state.model.groups.push({
     name,
@@ -2064,17 +2245,27 @@ function addRuleProvider() {
     showValidation('Rule provider requires name and URL.', 'error')
     return
   }
+  const nameIssue = validEditableName(name, 'Rule provider')
+  if (nameIssue) {
+    showValidation(nameIssue, 'error')
+    return
+  }
+  if (hasDuplicateName(state.model.ruleProviders, name)) {
+    showValidation(`Rule provider "${name}" already exists.`, 'error')
+    return
+  }
+  const target = validPolicyTarget(ruleProviderTarget.value)
   state.model.ruleProviders.push({
     name,
     type: 'http',
     behavior: ruleProviderBehavior.value,
-    path: `./rules/${name}.yaml`,
+    path: generatedProviderPath('./rules', name),
     url,
-    target: ruleProviderTarget.value,
+    target,
     format: ruleProviderFormat.value,
     interval: 86400,
   })
-  ensureRule(`RULE-SET,${name},${ruleProviderTarget.value}`)
+  ensureRule(`RULE-SET,${name},${target}`)
   ruleProviderName.value = ''
   ruleProviderUrl.value = ''
   updateYamlFromModel()
@@ -2083,15 +2274,20 @@ function addRuleProvider() {
 function addProxyProvider() {
   if (!state.model) return
   const name = proxyProviderName.value.trim()
-  if (!name) {
-    showValidation('Proxy provider requires a name.', 'error')
+  const nameIssue = validEditableName(name, 'Proxy provider')
+  if (nameIssue) {
+    showValidation(nameIssue, 'error')
+    return
+  }
+  if (hasDuplicateName(state.model.proxyProviders, name)) {
+    showValidation(`Proxy provider "${name}" already exists.`, 'error')
     return
   }
   state.model.proxyProviders.push({
     name,
     type: proxyProviderType.value,
     url: proxyProviderUrl.value.trim(),
-    path: `./proxy_providers/${name}.yaml`,
+    path: generatedProviderPath('./proxy_providers', name),
     interval: 3600,
     healthCheck: {
       enable: true,
@@ -2494,6 +2690,9 @@ function validateManualNodeValues(type, values) {
     if (!values[field.key]) return `${field.label} is required for ${type}.`
   }
   if (needsManualEndpoint(type) && (!values.server || !values.port)) return `Server and Port are required for ${type}.`
+  if (values.network === 'xhttp' && parseJsonObjectInput(values['xhttp.download-settings'], 'xhttp-opts.download-settings') === invalidEditorInput) {
+    return 'xhttp-opts.download-settings must be a valid JSON object.'
+  }
   return ''
 }
 
@@ -2617,7 +2816,7 @@ function applyManualCommonOptions(proxy, values) {
       'sc-max-each-post-bytes': parseManualNumber(values['xhttp.sc-max-each-post-bytes']),
       'sc-min-posts-interval-ms': parseManualNumber(values['xhttp.sc-min-posts-interval-ms']),
       'reuse-settings': reuseSettings,
-      'download-settings': parseJsonObject(values['xhttp.download-settings']),
+      'download-settings': parseJsonObjectInput(values['xhttp.download-settings'], 'xhttp-opts.download-settings'),
     })
   }
 }
@@ -2649,8 +2848,13 @@ function addManualNode() {
   const name = manualNodeName.value.trim()
   const type = manualNodeType.value
   const values = readManualNodeValues()
-  if (!name) {
-    showValidation('Manual node requires a name.', 'error')
+  const nameIssue = validEditableName(name, 'Node')
+  if (nameIssue) {
+    showValidation(nameIssue, 'error')
+    return
+  }
+  if (hasDuplicateName(state.model.proxies, name)) {
+    showValidation(`Node "${name}" already exists.`, 'error')
     return
   }
   const issue = validateManualNodeValues(type, values)
@@ -2971,6 +3175,7 @@ function updateGeoFromEditor() {
 function updateYamlFromModel(rerender = true) {
   if (!state.model) return
   state.yamlManualEdit = false
+  normalizeEditorModel()
   state.yaml = buildYamlFromModel(state.model)
   resetSubscriptionUrl()
   syncYamlEditor()
@@ -4521,13 +4726,19 @@ function updateNestedProxyField(proxy, field, target) {
   else if (valueType === 'number') value = parseNumberInput(target.value)
   else if (valueType === 'list') value = splitLinesOrComma(target.value)
   else if (valueType === 'policy') value = textToPolicy(target.value)
-  else if (valueType === 'json') value = parseJsonObject(target.value)
+  else if (valueType === 'json') {
+    value = parseJsonObjectInput(target.value, key)
+    if (value === invalidEditorInput) {
+      cleanupEmptyNestedSection(proxy, section, parents)
+      return false
+    }
+  }
   else value = target.value
 
   if (isEmptyTransportValue(value)) delete container[key]
   else container[key] = value
-  pruneEmptyTransportParents(proxy[section], parents)
-  if (isEmptyTransportValue(proxy[section])) delete proxy[section]
+  cleanupEmptyNestedSection(proxy, section, parents)
+  return true
 }
 
 function updateTransportField(proxy, field, target) {
@@ -4548,12 +4759,19 @@ function updateTransportField(proxy, field, target) {
   else if (valueType === 'number') value = parseNumberInput(target.value)
   else if (valueType === 'list') value = splitLinesOrComma(target.value)
   else if (valueType === 'policy') value = textToPolicy(target.value)
-  else if (valueType === 'json') value = parseJsonObject(target.value)
+  else if (valueType === 'json') {
+    value = parseJsonObjectInput(target.value, key)
+    if (value === invalidEditorInput) {
+      cleanupEmptyNestedSection(proxy, section, parents)
+      return false
+    }
+  }
   else value = target.value
 
   if (isEmptyTransportValue(value)) delete container[key]
   else container[key] = value
-  pruneEmptyTransportParents(proxy[section], parents)
+  cleanupEmptyNestedSection(proxy, section, parents)
+  return true
 }
 
 function cleanupTransportOptions(proxy) {
@@ -4634,15 +4852,17 @@ function parseJsonOrLines(value) {
   }
 }
 
-function parseJsonObject(value) {
+function parseJsonObjectInput(value, label = 'JSON') {
   const text = String(value || '').trim()
   if (!text) return {}
   try {
     const parsed = JSON.parse(text)
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed
   } catch {
-    return textToPolicy(text)
+    // Fall through to the shared validation message below.
   }
+  showValidation(`${label} must be a valid JSON object.`, 'error')
+  return invalidEditorInput
 }
 
 function presetRules(value) {
@@ -4707,6 +4927,7 @@ function pruneGroupProxyRefs(keptNames) {
 
 function formatNodeName(proxy, index, pattern) {
   const originalName = proxy.name || proxy.server || proxy.type || 'proxy'
+  const fallbackName = String(originalName).replaceAll(',', ' ').replace(/\s+/g, ' ').trim() || 'proxy'
   const number = String(index + 1)
   return pattern
     .replaceAll('{name}', originalName)
@@ -4715,8 +4936,9 @@ function formatNodeName(proxy, index, pattern) {
     .replaceAll('{port}', proxy.port ? String(proxy.port) : '')
     .replaceAll('{n}', number)
     .replaceAll('{nn}', number.padStart(2, '0'))
+    .replaceAll(',', ' ')
     .replace(/\s+/g, ' ')
-    .trim() || originalName
+    .trim() || fallbackName
 }
 
 function makeLocalUniqueNames(proxies) {
