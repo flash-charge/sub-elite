@@ -1812,7 +1812,7 @@ function handleRuleProviderInput(event, index) {
   if (field === 'interval') provider.interval = Number(event.target.value) || 86400
   else if (field === 'sizeLimit') provider.sizeLimit = Number(event.target.value) || 0
   else if (field === 'header') provider.header = textToPolicy(event.target.value)
-  else if (field === 'payload') provider.payload = splitLinesOrComma(event.target.value)
+  else if (field === 'payload') provider.payload = splitLines(event.target.value)
   else if (field === 'target') {
     provider.target = validPolicyTarget(event.target.value)
     event.target.value = provider.target
@@ -3900,6 +3900,12 @@ function normalizeTextList(value, fallback) {
   return fallback
 }
 
+function normalizeLineList(value, fallback) {
+  if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean)
+  if (typeof value === 'string') return splitLines(value)
+  return fallback
+}
+
 function normalizeSniffForText(value, fallback) {
   if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean)
   if (typeof value === 'string') return splitLinesOrComma(value)
@@ -4050,7 +4056,7 @@ function normalizeClientModel(model) {
     ruleProviders: Array.isArray(model?.ruleProviders)
       ? model.ruleProviders
         .filter(isPlainObject)
-        .map((provider) => ({ ...provider, payload: normalizeTextList(provider.payload, []), target: provider.target || 'PROXY' }))
+        .map((provider) => ({ ...provider, payload: normalizeLineList(provider.payload, []), target: provider.target || 'PROXY' }))
       : [],
     proxyProviders: Array.isArray(model?.proxyProviders)
       ? model.proxyProviders
@@ -4070,7 +4076,7 @@ function normalizeClientModel(model) {
         .filter(isPlainObject)
         .map((group) => ({ ...group, proxies: normalizeTextList(group.proxies, []), use: normalizeTextList(group.use, []) }))
       : [],
-    rules: normalizeTextList(model?.rules, ['MATCH,PROXY']),
+    rules: normalizeLineList(model?.rules, ['MATCH,PROXY']),
   }
 }
 
@@ -4177,6 +4183,10 @@ function clearValidation() {
 
 function splitLinesOrComma(value) {
   return String(value || '').split(/\r?\n|,/).map((item) => item.trim()).filter(Boolean)
+}
+
+function splitLines(value) {
+  return String(value || '').split(/\r?\n/).map((item) => item.trim()).filter(Boolean)
 }
 
 function compactObject(object) {

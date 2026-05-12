@@ -1583,7 +1583,7 @@ function normalizeRuleProvider(provider: ProxyNode = {}) {
     format: ['yaml', 'text', 'mrs'].includes(provider.format) ? provider.format : '',
     sizeLimit: Number(provider.sizeLimit || provider['size-limit']) || 0,
     header: normalizePolicy(provider.header),
-    payload: normalizeList(provider.payload, []),
+    payload: normalizeLineList(provider.payload, []),
   }
 }
 
@@ -1660,6 +1660,12 @@ function normalizeSubRules(value = {}) {
 function normalizeList(value, fallback) {
   if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean)
   if (typeof value === 'string') return value.split(/\r?\n|,/).map((item) => item.trim()).filter(Boolean)
+  return fallback
+}
+
+function normalizeLineList(value, fallback) {
+  if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean)
+  if (typeof value === 'string') return value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean)
   return fallback
 }
 

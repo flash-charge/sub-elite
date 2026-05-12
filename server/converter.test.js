@@ -556,6 +556,25 @@ test('rule provider model supports target metadata without leaking it to yaml', 
   assert.doesNotMatch(yaml, /target:/)
 })
 
+test('rule provider inline payload preserves comma rules', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
+    ruleProviders: [{
+      name: 'inline-rules',
+      type: 'inline',
+      behavior: 'classical',
+      payload: 'DOMAIN-SUFFIX,example.com\nIP-CIDR,1.1.1.0/24,DIRECT,no-resolve',
+    }],
+    rules: ['RULE-SET,inline-rules,REJECT', 'MATCH,PROXY'],
+  })
+
+  assert.match(yaml, /- "DOMAIN-SUFFIX,example\.com"/)
+  assert.match(yaml, /- "IP-CIDR,1\.1\.1\.0\/24,DIRECT,no-resolve"/)
+  assert.doesNotMatch(yaml, /- "DOMAIN-SUFFIX"\n\s+- "example\.com"/)
+})
+
 test('buildYamlFromModel supports advanced mihomo sections', () => {
   const yaml = buildYamlFromModel({
     template: 'full',
