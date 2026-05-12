@@ -1,4 +1,4 @@
-export const DEFAULT_BACKEND_ORIGIN = 'https://sub-elite-api.stroke.workers.dev'
+export const DEFAULT_BACKEND_ORIGIN = 'https://sub-elite-api.arbalest.workers.dev'
 export const PROXY_SECRET_HEADER = 'x-sub-elite-proxy-secret'
 
 export function backendOrigin(env) {
