@@ -3126,7 +3126,9 @@ function updateDnsFromEditor() {
 function updateGeneralFromEditor() {
   if (!state.model) return
   clearRawSection('general')
+  const extra = omitKeys(state.model.general, generalFieldKeys)
   state.model.general = {
+    ...extra,
     port: Number(generalPort.value) || 0,
     socksPort: Number(generalSocksPort.value) || 0,
     redirPort: Number(generalRedirPort.value) || 0,
@@ -3175,7 +3177,9 @@ function updateGeneralFromEditor() {
 function updateSnifferFromEditor() {
   if (!state.model) return
   clearRawSection('sniffer')
+  const extra = omitKeys(state.model.sniffer, snifferFieldKeys)
   state.model.sniffer = {
+    ...extra,
     enable: snifferEnable.checked,
     overrideDestination: snifferOverride.checked,
     parsePureIp: snifferParseIp.checked,
@@ -4103,7 +4107,9 @@ function normalizeClientGeneral(general = {}) {
   const tlsCustom = isPlainObject(general.tlsCustom)
     ? general.tlsCustom
     : Object.fromEntries(Object.entries(tls).filter(([key]) => !['certificate', 'private-key'].includes(key)))
+  const extra = omitKeys(general, generalFieldKeys)
   return {
+    ...extra,
     port: general.port || 0,
     socksPort: general.socksPort ?? general['socks-port'] ?? 0,
     redirPort: general.redirPort ?? general['redir-port'] ?? 0,
@@ -4143,6 +4149,76 @@ function normalizeClientGeneral(general = {}) {
     tlsCustom,
   }
 }
+
+const generalFieldKeys = [
+  'port',
+  'socksPort',
+  'socks-port',
+  'redirPort',
+  'redir-port',
+  'tproxyPort',
+  'tproxy-port',
+  'mixedPort',
+  'mixed-port',
+  'allowLan',
+  'allow-lan',
+  'bindAddress',
+  'bind-address',
+  'lanAllowedIps',
+  'lan-allowed-ips',
+  'lanDisallowedIps',
+  'lan-disallowed-ips',
+  'authentication',
+  'skipAuthPrefixes',
+  'skip-auth-prefixes',
+  'interfaceName',
+  'interface-name',
+  'routingMark',
+  'routing-mark',
+  'mode',
+  'logLevel',
+  'log-level',
+  'ipv6',
+  'keepAliveIdle',
+  'keep-alive-idle',
+  'keepAliveInterval',
+  'keep-alive-interval',
+  'disableKeepAlive',
+  'disable-keep-alive',
+  'findProcessMode',
+  'find-process-mode',
+  'unifiedDelay',
+  'unified-delay',
+  'tcpConcurrent',
+  'tcp-concurrent',
+  'externalController',
+  'external-controller',
+  'externalControllerTls',
+  'external-controller-tls',
+  'externalControllerUnix',
+  'external-controller-unix',
+  'externalControllerPipe',
+  'external-controller-pipe',
+  'externalControllerCors',
+  'external-controller-cors',
+  'externalUi',
+  'external-ui',
+  'externalUiName',
+  'external-ui-name',
+  'externalUiUrl',
+  'external-ui-url',
+  'secret',
+  'globalClientFingerprint',
+  'global-client-fingerprint',
+  'globalUa',
+  'global-ua',
+  'etagSupport',
+  'etag-support',
+  'tlsCertificate',
+  'tlsPrivateKey',
+  'tlsCustom',
+  'tls',
+]
 
 function normalizeClientDns(dns = {}) {
   const extra = omitKeys(dns, dnsFieldKeys)
@@ -4219,7 +4295,9 @@ const dnsFieldKeys = [
 ]
 
 function normalizeClientSniffer(sniffer = {}) {
+  const extra = omitKeys(sniffer, snifferFieldKeys)
   return {
+    ...extra,
     enable: Boolean(sniffer.enable),
     overrideDestination: sniffer.overrideDestination ?? sniffer['override-destination'] ?? true,
     parsePureIp: Boolean(sniffer.parsePureIp ?? sniffer['parse-pure-ip']),
@@ -4231,6 +4309,25 @@ function normalizeClientSniffer(sniffer = {}) {
     skipDstAddress: normalizeTextList(sniffer.skipDstAddress ?? sniffer['skip-dst-address'], []),
   }
 }
+
+const snifferFieldKeys = [
+  'enable',
+  'overrideDestination',
+  'override-destination',
+  'parsePureIp',
+  'parse-pure-ip',
+  'forceDnsMapping',
+  'force-dns-mapping',
+  'sniff',
+  'forceDomain',
+  'force-domain',
+  'skipDomain',
+  'skip-domain',
+  'skipSrcAddress',
+  'skip-src-address',
+  'skipDstAddress',
+  'skip-dst-address',
+]
 
 function normalizeClientTun(tun = {}) {
   const extra = omitKeys(tun, tunFieldKeys)

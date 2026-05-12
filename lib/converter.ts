@@ -959,12 +959,14 @@ function createGeo() {
 
 function buildGeneralAdvanced(model) {
   const general = model.general
+  const extra = omitKeys(general, generalFieldKeys)
   const tls = compact({
     certificate: general.tlsCertificate || undefined,
     'private-key': general.tlsPrivateKey || undefined,
     ...normalizeObject(general.tlsCustom),
   })
   return compact({
+    ...extra,
     port: general.port || undefined,
     'socks-port': general.socksPort || undefined,
     'redir-port': general.redirPort || undefined,
@@ -1051,8 +1053,10 @@ function buildSniffer(sniffer, rawSniffer) {
   const raw = normalizeRawSection(rawSniffer)
   if (raw) return { sniffer: raw }
   if (!sniffer.enable) return {}
+  const extra = omitKeys(sniffer, snifferFieldKeys)
   return {
     sniffer: compact({
+      ...extra,
       enable: true,
       'override-destination': sniffer.overrideDestination,
       'parse-pure-ip': sniffer.parsePureIp,
@@ -1577,9 +1581,10 @@ function normalizeGeneral(general: ProxyNode = {}) {
   const tlsCustom = Object.keys(normalizedTlsCustom).length
     ? normalizedTlsCustom
     : Object.fromEntries(Object.entries(tls).filter(([key]) => !['certificate', 'private-key'].includes(key)))
+  const extra = omitKeys(general, generalFieldKeys)
   return {
+    ...extra,
     ...defaults,
-    ...general,
     port: Number(general.port) || 0,
     socksPort: Number(general.socksPort || general['socks-port']) || 0,
     redirPort: Number(general.redirPort || general['redir-port']) || 0,
@@ -1620,6 +1625,76 @@ function normalizeGeneral(general: ProxyNode = {}) {
   }
 }
 
+const generalFieldKeys = [
+  'port',
+  'socksPort',
+  'socks-port',
+  'redirPort',
+  'redir-port',
+  'tproxyPort',
+  'tproxy-port',
+  'mixedPort',
+  'mixed-port',
+  'allowLan',
+  'allow-lan',
+  'bindAddress',
+  'bind-address',
+  'lanAllowedIps',
+  'lan-allowed-ips',
+  'lanDisallowedIps',
+  'lan-disallowed-ips',
+  'authentication',
+  'skipAuthPrefixes',
+  'skip-auth-prefixes',
+  'interfaceName',
+  'interface-name',
+  'routingMark',
+  'routing-mark',
+  'mode',
+  'logLevel',
+  'log-level',
+  'ipv6',
+  'keepAliveIdle',
+  'keep-alive-idle',
+  'keepAliveInterval',
+  'keep-alive-interval',
+  'disableKeepAlive',
+  'disable-keep-alive',
+  'findProcessMode',
+  'find-process-mode',
+  'unifiedDelay',
+  'unified-delay',
+  'tcpConcurrent',
+  'tcp-concurrent',
+  'externalController',
+  'external-controller',
+  'externalControllerTls',
+  'external-controller-tls',
+  'externalControllerUnix',
+  'external-controller-unix',
+  'externalControllerPipe',
+  'external-controller-pipe',
+  'externalControllerCors',
+  'external-controller-cors',
+  'externalUi',
+  'external-ui',
+  'externalUiName',
+  'external-ui-name',
+  'externalUiUrl',
+  'external-ui-url',
+  'secret',
+  'globalClientFingerprint',
+  'global-client-fingerprint',
+  'globalUa',
+  'global-ua',
+  'etagSupport',
+  'etag-support',
+  'tlsCertificate',
+  'tlsPrivateKey',
+  'tlsCustom',
+  'tls',
+]
+
 function normalizeProfile(profile: ProxyNode = {}) {
   return {
     storeSelected: Boolean(profile.storeSelected ?? profile['store-selected'] ?? createProfile().storeSelected),
@@ -1629,7 +1704,9 @@ function normalizeProfile(profile: ProxyNode = {}) {
 
 function normalizeSniffer(sniffer: ProxyNode = {}) {
   const defaults = createSniffer()
+  const extra = omitKeys(sniffer, snifferFieldKeys)
   return {
+    ...extra,
     enable: Boolean(sniffer.enable),
     overrideDestination: sniffer.overrideDestination ?? sniffer['override-destination'] ?? defaults.overrideDestination,
     parsePureIp: Boolean(sniffer.parsePureIp ?? sniffer['parse-pure-ip']),
@@ -1641,6 +1718,25 @@ function normalizeSniffer(sniffer: ProxyNode = {}) {
     skipDstAddress: normalizeList(sniffer.skipDstAddress || sniffer['skip-dst-address'], []),
   }
 }
+
+const snifferFieldKeys = [
+  'enable',
+  'overrideDestination',
+  'override-destination',
+  'parsePureIp',
+  'parse-pure-ip',
+  'forceDnsMapping',
+  'force-dns-mapping',
+  'sniff',
+  'forceDomain',
+  'force-domain',
+  'skipDomain',
+  'skip-domain',
+  'skipSrcAddress',
+  'skip-src-address',
+  'skipDstAddress',
+  'skip-dst-address',
+]
 
 function normalizeTun(tun: ProxyNode = {}) {
   const defaults = createTun()

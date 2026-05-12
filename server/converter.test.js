@@ -860,6 +860,45 @@ test('tun extra fields are preserved from editor models', () => {
   assert.doesNotMatch(yaml, /auto-route: false/)
 })
 
+test('general extra fields are preserved from editor models', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    general: {
+      mixedPort: 7890,
+      'custom-general-option': 'kept',
+      'tcp-concurrent': true,
+      tcpConcurrent: false,
+    },
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.match(yaml, /custom-general-option: "kept"/)
+  assert.match(yaml, /tcp-concurrent: false/)
+  assert.doesNotMatch(yaml, /tcp-concurrent: true/)
+})
+
+test('sniffer extra fields are preserved from editor models', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    sniffer: {
+      enable: true,
+      sniff: ['TLS:443'],
+      'custom-sniffer-option': { mode: 'strict' },
+      'force-dns-mapping': true,
+      forceDnsMapping: false,
+    },
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.match(yaml, /custom-sniffer-option:\n\s+mode: "strict"/)
+  assert.match(yaml, /force-dns-mapping: false/)
+  assert.doesNotMatch(yaml, /force-dns-mapping: true/)
+})
+
 test('provider extra fields are preserved from editor models', () => {
   const yaml = buildYamlFromModel({
     template: 'full',
