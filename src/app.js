@@ -1650,8 +1650,9 @@ function handleNodeInput(event, index) {
   }
 
   if (field === 'name') {
-    replaceGroupProxyName(previousName, proxy.name)
-    replacePolicyTargetName(previousName, proxy.name)
+    if (proxy.name) replaceGroupProxyName(previousName, proxy.name)
+    else removeGroupProxyName(previousName)
+    replacePolicyTargetName(previousName, proxy.name || fallbackPolicyTarget())
     renderGroups()
     renderRuleTargetOptions()
   }
@@ -1676,8 +1677,9 @@ function handleGroupInput(event, index) {
   else if (event.target.type === 'checkbox') group[field] = event.target.checked
   else group[field] = event.target.value
   if (field === 'name') {
-    replaceGroupProxyName(previousName, group.name)
-    replacePolicyTargetName(previousName, group.name)
+    if (group.name) replaceGroupProxyName(previousName, group.name)
+    else removeGroupProxyName(previousName)
+    replacePolicyTargetName(previousName, group.name || fallbackPolicyTarget())
     renderRuleTargetOptions()
   }
   if (field === 'type') {
@@ -1709,7 +1711,10 @@ function handleRuleProviderInput(event, index) {
   else if (field === 'header') provider.header = textToPolicy(event.target.value)
   else if (field === 'payload') provider.payload = splitLinesOrComma(event.target.value)
   else provider[field] = event.target.value
-  if (field === 'name') replaceProviderRuleName(previousName, provider.name)
+  if (field === 'name') {
+    if (provider.name) replaceProviderRuleName(previousName, provider.name)
+    else removeRuleProviderRules(previousName)
+  }
   if (field === 'target') syncProviderRule(provider.name, provider.target)
   updateYamlFromModel(false)
 }
@@ -1733,7 +1738,8 @@ function handleProxyProviderInput(event, index) {
   else if (field === 'healthCheckLazy') provider.healthCheck.lazy = event.target.checked
   else provider[field] = event.target.value
   if (field === 'name') {
-    replaceGroupProviderName(previousName, provider.name)
+    if (provider.name) replaceGroupProviderName(previousName, provider.name)
+    else removeGroupProviderName(previousName)
     renderGroups()
   }
   updateYamlFromModel(false)
