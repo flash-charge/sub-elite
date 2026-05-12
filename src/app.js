@@ -1450,7 +1450,7 @@ function renderRuleProviders() {
     row.addEventListener('input', (event) => handleRuleProviderInput(event, index))
     row.addEventListener('change', (event) => handleRuleProviderInput(event, index))
     row.addEventListener('click', (event) => {
-      if (event.target.dataset.action === 'delete') {
+      if (event.target.closest('[data-action]')?.dataset.action === 'delete') {
         const previousName = state.model.ruleProviders[index]?.name
         state.model.ruleProviders.splice(index, 1)
         if (previousName) removeRuleProviderRules(previousName)
@@ -1517,7 +1517,7 @@ function renderProxyProviders() {
     row.addEventListener('input', (event) => handleProxyProviderInput(event, index))
     row.addEventListener('change', (event) => handleProxyProviderInput(event, index))
     row.addEventListener('click', (event) => {
-      if (event.target.dataset.action === 'delete') {
+      if (event.target.closest('[data-action]')?.dataset.action === 'delete') {
         const previousName = state.model.proxyProviders[index]?.name
         state.model.proxyProviders.splice(index, 1)
         if (previousName) removeGroupProviderName(previousName)
@@ -1836,6 +1836,7 @@ function replacePolicyTargetName(previousName, nextName) {
     if (provider.target === previousName) provider.target = nextName
   })
   renderRules()
+  refreshRenderedRuleProviderTargets()
 }
 
 function replaceRuleTargetName(rule, previousName, nextName) {
@@ -1850,6 +1851,17 @@ function replaceRuleTargetName(rule, previousName, nextName) {
 function fallbackPolicyTarget() {
   if (!state.model) return 'DIRECT'
   return state.model.groups.find((group) => group.name)?.name || 'DIRECT'
+}
+
+function refreshRenderedRuleProviderTargets() {
+  if (!state.model) return
+  const options = policyTargetOptions()
+  ruleProviderList.querySelectorAll('select[data-field="target"]').forEach((select, index) => {
+    const provider = state.model.ruleProviders[index]
+    if (!provider) return
+    const target = provider.target || 'PROXY'
+    select.innerHTML = renderSelectOptions(selectOptionsWithCurrent(options, target), target)
+  })
 }
 
 function moveNode(from, to) {
