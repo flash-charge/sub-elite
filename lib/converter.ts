@@ -1265,6 +1265,39 @@ function buildProxyGroups(model, proxies) {
 
   return model.groups.map((group) => {
     const type = groupTypes.includes(group.type) ? group.type : 'select'
+    const extra = omitKeys(group, [
+      'name',
+      'type',
+      'proxies',
+      'use',
+      'url',
+      'interval',
+      'includeAll',
+      'include-all',
+      'includeAllProxies',
+      'include-all-proxies',
+      'includeAllProviders',
+      'include-all-providers',
+      'lazy',
+      'timeout',
+      'maxFailedTimes',
+      'max-failed-times',
+      'disableUdp',
+      'disable-udp',
+      'interfaceName',
+      'interface-name',
+      'routingMark',
+      'routing-mark',
+      'filter',
+      'excludeFilter',
+      'exclude-filter',
+      'excludeType',
+      'exclude-type',
+      'expectedStatus',
+      'expected-status',
+      'hidden',
+      'icon',
+    ])
     const specialNames = ['DIRECT', 'REJECT', ...groupNames.filter((name) => name !== group.name)]
     const names = Array.isArray(group.proxies) && group.proxies.length > 0 ? group.proxies : proxyNames
     const filteredNames = names.filter((name) => {
@@ -1273,6 +1306,7 @@ function buildProxyGroups(model, proxies) {
     })
     const fallbackNames = proxyNames.length ? proxyNames : ['DIRECT']
     const normalizedGroup: ProxyNode = {
+      ...extra,
       name: group.name || 'PROXY',
       type,
       proxies: filteredNames.length ? filteredNames : fallbackNames,
@@ -1722,7 +1756,41 @@ function normalizeProxyProvider(provider: ProxyNode = {}) {
 }
 
 function normalizeGroup(group: ProxyNode = {}) {
+  const extra = omitKeys(group, [
+    'name',
+    'type',
+    'proxies',
+    'use',
+    'url',
+    'interval',
+    'includeAll',
+    'include-all',
+    'includeAllProxies',
+    'include-all-proxies',
+    'includeAllProviders',
+    'include-all-providers',
+    'lazy',
+    'timeout',
+    'maxFailedTimes',
+    'max-failed-times',
+    'disableUdp',
+    'disable-udp',
+    'interfaceName',
+    'interface-name',
+    'routingMark',
+    'routing-mark',
+    'filter',
+    'excludeFilter',
+    'exclude-filter',
+    'excludeType',
+    'exclude-type',
+    'expectedStatus',
+    'expected-status',
+    'hidden',
+    'icon',
+  ])
   return {
+    ...extra,
     name: String(group.name || 'PROXY').trim(),
     type: groupTypes.includes(group.type) ? group.type : 'select',
     proxies: normalizeList(group.proxies, []),

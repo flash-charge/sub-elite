@@ -845,6 +845,27 @@ test('provider extra fields are preserved from editor models', () => {
   assert.match(yaml, /custom-proxies:\n\s+dialer-proxy: "DIRECT"/)
 })
 
+test('proxy group extra fields are preserved from editor models', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{
+      name: 'PROXY',
+      type: 'url-test',
+      proxies: ['A'],
+      url: 'https://www.gstatic.com/generate_204',
+      interval: 300,
+      strategy: 'consistent-hashing',
+      'include-all': true,
+      includeAll: false,
+    }],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.match(yaml, /strategy: "consistent-hashing"/)
+  assert.doesNotMatch(yaml, /include-all: true/)
+})
+
 test('buildYamlFromModel supports advanced mihomo sections', () => {
   const yaml = buildYamlFromModel({
     template: 'full',
