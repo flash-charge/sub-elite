@@ -1177,7 +1177,12 @@ function renderGroups() {
         return
       }
       if (action === 'delete') {
+        const previousName = group.name
         state.model.groups.splice(index, 1)
+        if (previousName) {
+          removeGroupProxyName(previousName)
+          replacePolicyTargetName(previousName, fallbackPolicyTarget())
+        }
         updateYamlFromModel()
       }
     })
@@ -1446,7 +1451,9 @@ function renderRuleProviders() {
     row.addEventListener('change', (event) => handleRuleProviderInput(event, index))
     row.addEventListener('click', (event) => {
       if (event.target.dataset.action === 'delete') {
+        const previousName = state.model.ruleProviders[index]?.name
         state.model.ruleProviders.splice(index, 1)
+        if (previousName) removeRuleProviderRules(previousName)
         updateYamlFromModel()
       }
     })
@@ -1511,7 +1518,9 @@ function renderProxyProviders() {
     row.addEventListener('change', (event) => handleProxyProviderInput(event, index))
     row.addEventListener('click', (event) => {
       if (event.target.dataset.action === 'delete') {
+        const previousName = state.model.proxyProviders[index]?.name
         state.model.proxyProviders.splice(index, 1)
+        if (previousName) removeGroupProviderName(previousName)
         updateYamlFromModel()
       }
     })
@@ -1535,8 +1544,13 @@ function handleNodeClick(event, index) {
   if (action === 'up') moveNode(index, index - 1)
   if (action === 'down') moveNode(index, index + 1)
   if (action === 'delete') {
+    const previousName = proxy?.name
     if (proxy) state.expandedNodeKeys.delete(nodeExpansionKey(proxy))
     state.model.proxies.splice(index, 1)
+    if (previousName) {
+      pruneGroupProxyRefs(new Set(state.model.proxies.filter((item) => item.enabled !== false).map((item) => item.name)))
+      replacePolicyTargetName(previousName, fallbackPolicyTarget())
+    }
     updateYamlFromModel()
   }
 }
@@ -1553,6 +1567,7 @@ function handleNodeInput(event, index) {
       if (!isPlainObject(parsed)) throw new Error('Node Raw JSON must be an object.')
       state.model.proxies[index] = { ...parsed, enabled: proxy.enabled !== false }
       replaceGroupProxyName(previousName, state.model.proxies[index].name)
+      replacePolicyTargetName(previousName, state.model.proxies[index].name)
       clearValidation()
       updateYamlFromModel(false)
     } catch {
@@ -1629,6 +1644,7 @@ function handleNodeInput(event, index) {
 
   if (field === 'name') {
     replaceGroupProxyName(previousName, proxy.name)
+    replacePolicyTargetName(previousName, proxy.name)
     renderGroups()
     renderRuleTargetOptions()
   }
@@ -1640,6 +1656,7 @@ function handleGroupInput(event, index) {
   const field = event.target.dataset.field
   if (!field || !state.model?.groups[index]) return
   const group = state.model.groups[index]
+  const previousName = group.name
   if (field === 'group-proxy-option') group.proxies = readGroupProxySelection(event.currentTarget)
   else if (field === 'group-provider-option') group.use = readGroupProviderSelection(event.currentTarget)
   else if (field === 'proxies') group.proxies = splitLinesOrComma(event.target.value)
@@ -1650,7 +1667,11 @@ function handleGroupInput(event, index) {
   else if (field === 'routingMark') group.routingMark = Number(event.target.value) || 0
   else if (event.target.type === 'checkbox') group[field] = event.target.checked
   else group[field] = event.target.value
-  if (field === 'name') renderRuleTargetOptions()
+  if (field === 'name') {
+    replaceGroupProxyName(previousName, group.name)
+    replacePolicyTargetName(previousName, group.name)
+    renderRuleTargetOptions()
+  }
   if (field === 'type') {
     updateYamlFromModel()
     return
@@ -1689,6 +1710,7 @@ function handleProxyProviderInput(event, index) {
   const field = event.target.dataset.field
   if (!field || !state.model?.proxyProviders[index]) return
   const provider = state.model.proxyProviders[index]
+  const previousName = provider.name
   provider.healthCheck = provider.healthCheck || {}
   if (field === 'interval') provider.interval = Number(event.target.value) || 3600
   else if (field === 'sizeLimit') provider.sizeLimit = Number(event.target.value) || 0
@@ -1702,6 +1724,10 @@ function handleProxyProviderInput(event, index) {
   else if (field === 'healthCheckExpectedStatus') provider.healthCheck.expectedStatus = event.target.value
   else if (field === 'healthCheckLazy') provider.healthCheck.lazy = event.target.checked
   else provider[field] = event.target.value
+  if (field === 'name') {
+    replaceGroupProviderName(previousName, provider.name)
+    renderGroups()
+  }
   updateYamlFromModel(false)
 }
 
@@ -1792,6 +1818,38 @@ function replaceProviderRuleName(previousName, nextName) {
     return rule
   })
   renderRules()
+}
+
+function removeRuleProviderRules(name) {
+  if (!name || !state.model) return
+  state.model.rules = state.model.rules.filter((rule) => {
+    const parts = rule.split(',').map((part) => part.trim())
+    return !(parts[0] === 'RULE-SET' && parts[1] === name)
+  })
+  renderRules()
+}
+
+function replacePolicyTargetName(previousName, nextName) {
+  if (!previousName || !nextName || previousName === nextName || !state.model) return
+  state.model.rules = state.model.rules.map((rule) => replaceRuleTargetName(rule, previousName, nextName))
+  state.model.ruleProviders.forEach((provider) => {
+    if (provider.target === previousName) provider.target = nextName
+  })
+  renderRules()
+}
+
+function replaceRuleTargetName(rule, previousName, nextName) {
+  const parts = String(rule).split(',').map((part) => part.trim())
+  const candidateIndexes = parts[0] === 'MATCH' ? [1] : [2, parts.length - 1]
+  for (const index of [...new Set(candidateIndexes)]) {
+    if (parts[index] === previousName) parts[index] = nextName
+  }
+  return parts.join(',')
+}
+
+function fallbackPolicyTarget() {
+  if (!state.model) return 'DIRECT'
+  return state.model.groups.find((group) => group.name)?.name || 'DIRECT'
 }
 
 function moveNode(from, to) {
@@ -4507,10 +4565,32 @@ function replaceGroupProxyName(previousName, nextName) {
   }
 }
 
+function removeGroupProxyName(name) {
+  if (!name || !state.model) return
+  for (const group of state.model.groups) {
+    group.proxies = group.proxies.filter((item) => item !== name)
+    if (!group.proxies.length) group.proxies = ['DIRECT']
+  }
+}
+
 function replaceGroupProxyNames(renameMap) {
   if (!state.model || !renameMap.size) return
   for (const group of state.model.groups) {
     group.proxies = group.proxies.map((name) => renameMap.get(name) || name)
+  }
+}
+
+function replaceGroupProviderName(previousName, nextName) {
+  if (!previousName || !nextName || previousName === nextName || !state.model) return
+  for (const group of state.model.groups) {
+    group.use = group.use.map((name) => (name === previousName ? nextName : name))
+  }
+}
+
+function removeGroupProviderName(name) {
+  if (!name || !state.model) return
+  for (const group of state.model.groups) {
+    group.use = group.use.filter((item) => item !== name)
   }
 }
 
