@@ -1592,7 +1592,10 @@ function handleNodeInput(event, index) {
     updateTransportField(proxy, field, event.target)
   } else if (event.target.type === 'checkbox') {
     proxy[field] = event.target.checked
-    if (field === 'tls') toggleNodeTlsFields(event.target.closest('.tls-fields'), event.target.checked)
+    if (field === 'tls') {
+      if (!event.target.checked) cleanupDisabledTlsFields(proxy)
+      toggleNodeTlsFields(event.target.closest('.tls-fields'), event.target.checked)
+    }
   } else if (field === 'port') {
     proxy.port = Number(event.target.value) || event.target.value
   } else if (field.endsWith(':number')) {
@@ -4408,6 +4411,19 @@ function cleanupUnsupportedTlsFields(proxy) {
   if (!fields.has('private-key')) delete proxy['private-key']
   if (!fields.has('reality')) delete proxy['reality-opts']
   if (!fields.has('ech')) delete proxy['ech-opts']
+}
+
+function cleanupDisabledTlsFields(proxy) {
+  delete proxy.sni
+  delete proxy.servername
+  if (proxy.network !== 'xhttp') delete proxy.alpn
+  delete proxy['client-fingerprint']
+  delete proxy.fingerprint
+  delete proxy['skip-cert-verify']
+  delete proxy.certificate
+  delete proxy['private-key']
+  delete proxy['reality-opts']
+  delete proxy['ech-opts']
 }
 
 function setProxyNetwork(proxy, value) {
