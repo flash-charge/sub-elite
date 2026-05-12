@@ -6,6 +6,8 @@ const sampleLinks = [
   'vless://11111111-1111-1111-1111-111111111111@example.com:443?security=tls&type=ws&host=example.com&path=%2Fpath&sni=example.com#Sample%20VLESS',
   'trojan://password@example.com:443?sni=example.com#Sample%20Trojan',
 ].join('\n')
+const MAX_IMPORT_FILE_BYTES = 1024 * 1024
+const importFilePattern = /\.(txt|conf|list|log|ya?ml)$/i
 
 const networkOptions = [
   { value: '', label: 'Default (no network)' },
@@ -727,6 +729,8 @@ async function readJsonResponse(response, fallbackMessage) {
 }
 
 function createBlankConfig() {
+  input.value = ''
+  clearError()
   const model = normalizeClientModel(createConfigModel([], {
     template: templateSelect.value,
     rulesPreset: rulesSelect.value,
@@ -737,6 +741,7 @@ function createBlankConfig() {
     warnings: [],
     view: 'edit',
   })
+  updateSubmitState()
   showToast('Blank config created. Add nodes or edit sections as needed.')
 }
 
@@ -868,14 +873,20 @@ function useSample() {
   clearConvertedState()
   clearError()
   updateSubmitState()
+  showToast('Sample loaded. Review it, then tap Convert.')
 }
 
 async function importFile() {
   const file = fileInput.files?.[0]
   if (!file) return
 
-  const allowed = /\.(txt|conf|list|log|ya?ml)$/i
-  if (!allowed.test(file.name) && file.type && !file.type.startsWith('text/')) {
+  if (file.size > MAX_IMPORT_FILE_BYTES) {
+    showError('File is too large. Maximum import size is 1 MB.')
+    fileInput.value = ''
+    return
+  }
+
+  if (!isSupportedImportFile(file)) {
     showError('File must be text or YAML: .txt, .conf, .list, .log, .yaml, or .yml.')
     fileInput.value = ''
     return
@@ -886,12 +897,21 @@ async function importFile() {
     clearConvertedState()
     clearError()
     updateSubmitState()
-    await processInput()
+    showToast('File imported. Review it, then tap Convert.')
   } catch {
     showError('File read failed.')
   } finally {
     fileInput.value = ''
   }
+}
+
+function isSupportedImportFile(file) {
+  const name = String(file?.name || '')
+  const type = String(file?.type || '').toLowerCase()
+  return importFilePattern.test(name)
+    || type.startsWith('text/')
+    || type === 'application/yaml'
+    || type === 'application/x-yaml'
 }
 
 function renderModel() {
