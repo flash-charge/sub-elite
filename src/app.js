@@ -1867,7 +1867,7 @@ function handleProxyProviderInput(event, index) {
   if (field === 'interval') provider.interval = Number(event.target.value) || 3600
   else if (field === 'sizeLimit') provider.sizeLimit = Number(event.target.value) || 0
   else if (field === 'header') provider.header = textToPolicy(event.target.value)
-  else if (field === 'override') provider.override = textToPolicy(event.target.value)
+  else if (field === 'override') provider.override = textToPolicy(event.target.value, { typedValues: true })
   else if (field === 'payload') provider.payload = parseJsonOrLines(event.target.value)
   else if (field === 'healthCheckEnable') provider.healthCheck.enable = event.target.checked
   else if (field === 'healthCheckUrl') provider.healthCheck.url = event.target.value
@@ -3093,7 +3093,7 @@ function updateDnsFromEditor() {
     defaultNameserver: splitLinesOrComma(dnsDefault.value),
     nameserver: splitLinesOrComma(dnsNameservers.value),
     fallback: splitLinesOrComma(dnsFallback.value),
-    fallbackFilter: textToPolicy(dnsFallbackFilter.value),
+    fallbackFilter: textToPolicy(dnsFallbackFilter.value, { typedValues: true }),
     directNameserver: splitLinesOrComma(dnsDirectNameserver.value),
     directNameserverFollowPolicy: dnsDirectFollowPolicy.checked,
     proxyServerNameserver: splitLinesOrComma(dnsProxyServer.value),
@@ -3610,7 +3610,7 @@ function looksLikeYamlConfig(text) {
     if (doc.errors.length) return false
     const raw = doc.toJS()
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return false
-    return ['proxies', 'proxy-groups', 'rules', 'dns', 'sniffer', 'tun', 'ntp', 'experimental', 'mixed-port', 'proxy-providers', 'rule-providers'].some((key) => Object.hasOwn(raw, key))
+    return ['proxies', 'proxy-groups', 'rules', 'dns', 'sniffer', 'tun', 'ntp', 'mixed-port', 'proxy-providers', 'rule-providers'].some((key) => Object.hasOwn(raw, key))
   } catch {
     return false
   }
@@ -3710,7 +3710,6 @@ function modelFromYamlObject(raw) {
     sniffer: yamlSnifferToModel(raw.sniffer || {}),
     tun: yamlTunToModel(raw.tun || {}),
     ntp: yamlNtpToModel(raw.ntp || {}),
-    experimental: isPlainObject(raw.experimental) ? raw.experimental : {},
     geo: yamlGeoToModel(raw),
     ruleProviders: yamlNamedMapToList(raw['rule-providers']),
     proxyProviders: yamlNamedMapToList(raw['proxy-providers']),
@@ -3859,7 +3858,6 @@ function rawSectionsFromYaml(raw) {
     sniffer: isPlainObject(raw.sniffer) ? raw.sniffer : undefined,
     tun: isPlainObject(raw.tun) ? raw.tun : undefined,
     ntp: isPlainObject(raw.ntp) ? raw.ntp : undefined,
-    experimental: isPlainObject(raw.experimental) ? raw.experimental : undefined,
   })
 }
 
@@ -4090,7 +4088,6 @@ function normalizeClientModel(model) {
       port: model?.ntp?.port || 123,
       interval: model?.ntp?.interval || 30,
     },
-    experimental: isPlainObject(model?.experimental) ? model.experimental : {},
     geo: {
       geodataMode: Boolean(model?.geo?.geodataMode),
       geoAutoUpdate: Boolean(model?.geo?.geoAutoUpdate),
@@ -4875,7 +4872,7 @@ function pruneEmptyTransportParents(root, parents) {
   }
 }
 
-function textToPolicy(value) {
+function textToPolicy(value, { typedValues = false } = {}) {
   return Object.fromEntries(
     String(value || '')
       .split(/\r?\n/)
@@ -4883,8 +4880,9 @@ function textToPolicy(value) {
       .filter(Boolean)
       .map((line) => {
         const [key, ...rest] = line.split('=')
-        return [key.trim(), parsePolicyValue(rest.join('='))]
-      }),
+        return rest.length ? [key.trim(), parsePolicyValue(rest.join('='), typedValues)] : ['', '']
+      })
+      .filter(([key]) => key),
   )
 }
 
@@ -4895,11 +4893,14 @@ function policyToText(value = {}) {
     .join('\n')
 }
 
-function parsePolicyValue(value) {
+function parsePolicyValue(value, typedValues = false) {
   const text = String(value || '').trim()
-  if (text === 'true') return true
-  if (text === 'false') return false
-  if (/^\d+$/.test(text)) return Number(text)
+  if (typedValues) {
+    if (text === 'true') return true
+    if (text === 'false') return false
+    const number = Number(text)
+    if (text && Number.isFinite(number)) return number
+  }
   const values = splitLinesOrComma(text)
   return values.length > 1 ? values : text
 }

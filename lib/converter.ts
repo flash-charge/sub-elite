@@ -126,7 +126,6 @@ export function createConfigModel(proxies: ProxyNode[], options: any = {}) {
     sniffer: createSniffer(),
     tun: createTun(),
     ntp: createNtp(),
-    experimental: {},
     geo: createGeo(),
     ruleProviders: [],
     proxyProviders: [],
@@ -179,7 +178,6 @@ export function buildYamlFromModel(model: any) {
     ...buildSniffer(normalizedModel.sniffer, normalizedModel.rawSections.sniffer),
     ...buildTun(normalizedModel.tun, normalizedModel.rawSections.tun),
     ...buildNtp(normalizedModel.ntp, normalizedModel.rawSections.ntp),
-    ...buildExperimental(normalizedModel.experimental, normalizedModel.rawSections.experimental),
     proxies,
     ...buildProxyProviders(normalizedModel.proxyProviders),
     'proxy-groups': buildProxyGroups(normalizedModel, proxies),
@@ -1118,12 +1116,6 @@ function buildNtp(ntp, rawNtp) {
   return Object.keys(config).length ? { ntp: config } : {}
 }
 
-function buildExperimental(experimental, rawExperimental) {
-  const raw = normalizeRawSection(rawExperimental)
-  if (raw) return { experimental: raw }
-  return Object.keys(experimental).length ? { experimental } : {}
-}
-
 function buildRuleProviders(ruleProviders) {
   const providers = Object.fromEntries(
     ruleProviders
@@ -1304,7 +1296,7 @@ function dumpYaml(value, indent = 0) {
 }
 
 function spaceTopLevelSections(yaml) {
-  const sectionKeys = new Set(['dns', 'sniffer', 'tun', 'ntp', 'experimental', 'proxies', 'proxy-providers', 'proxy-groups', 'listeners', 'rule-providers', 'sub-rules', 'tunnels', 'rules'])
+  const sectionKeys = new Set(['dns', 'sniffer', 'tun', 'ntp', 'proxies', 'proxy-providers', 'proxy-groups', 'listeners', 'rule-providers', 'sub-rules', 'tunnels', 'rules'])
   const lines = String(yaml).split('\n')
   const spaced: string[] = []
 
@@ -1414,7 +1406,6 @@ function normalizeModel(model) {
     sniffer: normalizeSniffer(model?.sniffer),
     tun: normalizeTun(model?.tun),
     ntp: normalizeNtp(model?.ntp),
-    experimental: normalizeObject(model?.experimental),
     geo: normalizeGeo(model?.geo),
     ruleProviders: Array.isArray(model?.ruleProviders) ? model.ruleProviders.filter(isPlainObject).map(normalizeRuleProvider) : [],
     proxyProviders: Array.isArray(model?.proxyProviders) ? model.proxyProviders.filter(isPlainObject).map(normalizeProxyProvider) : [],
@@ -1449,7 +1440,7 @@ function normalizeDns(dns: ProxyNode = {}) {
     defaultNameserver: normalizeList(dns.defaultNameserver || dns['default-nameserver'], ['1.1.1.1', '8.8.8.8']),
     nameserver: normalizeList(dns.nameserver, ['https://dns.google/dns-query', 'https://cloudflare-dns.com/dns-query']),
     fallback: normalizeList(dns.fallback, []),
-    fallbackFilter: normalizePolicy(dns.fallbackFilter || dns['fallback-filter']),
+    fallbackFilter: normalizePolicy(dns.fallbackFilter || dns['fallback-filter'], { typedValues: true }),
     directNameserver: normalizeList(dns.directNameserver || dns['direct-nameserver'], []),
     directNameserverFollowPolicy: Boolean(dns.directNameserverFollowPolicy ?? dns['direct-nameserver-follow-policy']),
     proxyServerNameserver: normalizeList(dns.proxyServerNameserver || dns['proxy-server-nameserver'], []),
@@ -1643,7 +1634,7 @@ function normalizeProxyProvider(provider: ProxyNode = {}) {
       lazy: provider.healthCheck?.lazy ?? provider['health-check']?.lazy ?? true,
       expectedStatus: String(provider.healthCheck?.expectedStatus || provider['health-check']?.['expected-status'] || '').trim(),
     },
-    override: normalizePolicy(provider.override),
+    override: normalizePolicy(provider.override, { typedValues: true }),
     filter: String(provider.filter || '').trim(),
     excludeFilter: String(provider.excludeFilter || provider['exclude-filter'] || '').trim(),
     excludeType: String(provider.excludeType || provider['exclude-type'] || '').trim(),
@@ -1757,7 +1748,7 @@ function validProviderProxyName(name, model) {
   return [...enabledProxyNames, ...groupNames, 'DIRECT', 'REJECT', 'GLOBAL'].includes(name)
 }
 
-function normalizePolicy(value = {}) {
+function normalizePolicy(value = {}, { typedValues = false } = {}) {
   if (typeof value === 'string') {
     return Object.fromEntries(
       value
@@ -1766,11 +1757,24 @@ function normalizePolicy(value = {}) {
         .filter(Boolean)
         .map((line) => {
           const [key, ...rest] = line.split('=')
-          return [key.trim(), rest.join('=').split(',').map((item) => item.trim()).filter(Boolean)]
-        }),
+          return rest.length ? [key.trim(), parsePolicyTextValue(rest.join('='), typedValues)] : ['', '']
+        })
+        .filter(([key]) => key),
     )
   }
   return value && typeof value === 'object' ? value : {}
+}
+
+function parsePolicyTextValue(value, typedValues = false) {
+  const text = String(value || '').trim()
+  if (typedValues) {
+    if (text === 'true') return true
+    if (text === 'false') return false
+    const number = Number(text)
+    if (text && Number.isFinite(number)) return number
+  }
+  const values = text.split(',').map((item) => item.trim()).filter(Boolean)
+  return values.length > 1 ? values : text
 }
 
 function stripUiProxyFields(proxy) {

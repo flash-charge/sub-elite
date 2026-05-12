@@ -548,6 +548,28 @@ test('validateConfigModel rejects node and group name collisions', () => {
   assert.equal(result.issues.some((issue) => issue.code === 'proxy-group-name-collision'), true)
 })
 
+test('string policy fields preserve typed filters and string headers', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
+    dns: {
+      fallbackFilter: '=bad\nmissing-equals\ngeoip=true\ngeoip-code=ID\ncustom-ratio=1.5\nipcidr=240.0.0.0/4,127.0.0.0/8',
+    },
+    ruleProviders: [{ name: 'rules', type: 'http', behavior: 'domain', path: './rules/rules.yaml', url: 'https://example.com/rules.yaml', header: 'X-Retry=3\nX-Ratio=1.5' }],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.match(yaml, /geoip: true/)
+  assert.match(yaml, /geoip-code: "ID"/)
+  assert.match(yaml, /custom-ratio: 1\.5/)
+  assert.match(yaml, /ipcidr:\n\s+- "240\.0\.0\.0\/4"\n\s+- "127\.0\.0\.0\/8"/)
+  assert.match(yaml, /X-Retry: "3"/)
+  assert.match(yaml, /X-Ratio: "1\.5"/)
+  assert.doesNotMatch(yaml, /"": "bad"/)
+  assert.doesNotMatch(yaml, /missing-equals/)
+})
+
 test('group self references are reported and removed from generated yaml', () => {
   const model = {
     template: 'full',
@@ -719,7 +741,7 @@ test('buildYamlFromModel supports advanced mihomo sections', () => {
   assert.match(yaml, /tunnels:/)
 })
 
-test('buildYamlFromModel supports ntp, experimental, and raw section overrides', () => {
+test('buildYamlFromModel supports ntp and raw section overrides without experimental', () => {
   const yaml = buildYamlFromModel({
     template: 'full',
     general: { mixedPort: 7890 },
@@ -743,9 +765,9 @@ test('buildYamlFromModel supports ntp, experimental, and raw section overrides',
   assert.doesNotMatch(yaml, /default-nameserver:/)
   assert.match(yaml, /ntp:\n\s+enable: true/)
   assert.match(yaml, /write-to-system: true/)
-  assert.match(yaml, /experimental:/)
-  assert.match(yaml, /quic-go-disable-gso: true/)
-  assert.match(yaml, /dialer-ip4p-convert: true/)
+  assert.doesNotMatch(yaml, /experimental:/)
+  assert.doesNotMatch(yaml, /quic-go-disable-gso/)
+  assert.doesNotMatch(yaml, /dialer-ip4p-convert/)
 })
 
 test('buildYamlFromModel supports visual Mihomo wiki fields for general, tun, and common proxies', () => {
