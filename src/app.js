@@ -1853,6 +1853,22 @@ function replacePolicyTargetName(previousName, nextName) {
   refreshRenderedRuleProviderTargets()
 }
 
+function replacePolicyTargetNames(renameMap) {
+  if (!state.model || !renameMap.size) return
+  state.model.rules = state.model.rules.map((rule) => {
+    let nextRule = rule
+    for (const [previousName, nextName] of renameMap) {
+      nextRule = replaceRuleTargetName(nextRule, previousName, nextName)
+    }
+    return nextRule
+  })
+  state.model.ruleProviders.forEach((provider) => {
+    if (renameMap.has(provider.target)) provider.target = renameMap.get(provider.target)
+  })
+  renderRules()
+  refreshRenderedRuleProviderTargets()
+}
+
 function replaceRuleTargetName(rule, previousName, nextName) {
   const parts = String(rule).split(',').map((part) => part.trim())
   const candidateIndexes = parts[0] === 'MATCH' ? [1] : [2, parts.length - 1]
@@ -1925,6 +1941,7 @@ function applyBulkRename() {
     if (previousNames[index] && proxy.name) renameMap.set(previousNames[index], proxy.name)
   })
   replaceGroupProxyNames(renameMap)
+  replacePolicyTargetNames(renameMap)
   updateYamlFromModel()
   showToast('Bulk rename applied.')
 }
