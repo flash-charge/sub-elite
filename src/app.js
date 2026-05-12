@@ -3192,7 +3192,9 @@ function updateSnifferFromEditor() {
 function updateTunFromEditor() {
   if (!state.model) return
   clearRawSection('tun')
+  const extra = omitKeys(state.model.tun, tunFieldKeys)
   state.model.tun = {
+    ...extra,
     enable: tunEnable.checked,
     stack: tunStack.value,
     device: tunDevice.value.trim(),
@@ -4231,7 +4233,9 @@ function normalizeClientSniffer(sniffer = {}) {
 }
 
 function normalizeClientTun(tun = {}) {
+  const extra = omitKeys(tun, tunFieldKeys)
   return {
+    ...extra,
     enable: Boolean(tun.enable),
     stack: tun.stack || 'mixed',
     device: tun.device || '',
@@ -4262,6 +4266,60 @@ function normalizeClientTun(tun = {}) {
     excludePackage: normalizeTextList(tun.excludePackage ?? tun['exclude-package'], []),
   }
 }
+
+const tunFieldKeys = [
+  'enable',
+  'stack',
+  'device',
+  'autoRoute',
+  'auto-route',
+  'autoRedirect',
+  'auto-redirect',
+  'autoDetectInterface',
+  'auto-detect-interface',
+  'strictRoute',
+  'strict-route',
+  'dnsHijack',
+  'dns-hijack',
+  'mtu',
+  'gso',
+  'gsoMaxSize',
+  'gso-max-size',
+  'udpTimeout',
+  'udp-timeout',
+  'iproute2TableIndex',
+  'iproute2-table-index',
+  'iproute2RuleIndex',
+  'iproute2-rule-index',
+  'endpointIndependentNat',
+  'endpoint-independent-nat',
+  'routeAddressSet',
+  'route-address-set',
+  'routeExcludeAddressSet',
+  'route-exclude-address-set',
+  'routeAddress',
+  'route-address',
+  'routeExcludeAddress',
+  'route-exclude-address',
+  'includeInterface',
+  'include-interface',
+  'excludeInterface',
+  'exclude-interface',
+  'includeUid',
+  'include-uid',
+  'includeUidRange',
+  'include-uid-range',
+  'excludeUid',
+  'exclude-uid',
+  'excludeUidRange',
+  'exclude-uid-range',
+  'includeAndroidUser',
+  'include-android-user',
+  'includePackage',
+  'include-package',
+  'excludePackage',
+  'exclude-package',
+]
 
 function normalizeClientNtp(ntp = {}) {
   return {

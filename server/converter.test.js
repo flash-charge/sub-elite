@@ -839,6 +839,27 @@ test('dns extra fields are preserved from editor models', () => {
   assert.doesNotMatch(yaml, /legacy\.example/)
 })
 
+test('tun extra fields are preserved from editor models', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    tun: {
+      enable: true,
+      stack: 'mixed',
+      dnsHijack: ['any:53'],
+      'route-table': 2022,
+      'auto-route': false,
+      autoRoute: true,
+    },
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.match(yaml, /tun:\n\s+route-table: 2022/)
+  assert.match(yaml, /auto-route: true/)
+  assert.doesNotMatch(yaml, /auto-route: false/)
+})
+
 test('provider extra fields are preserved from editor models', () => {
   const yaml = buildYamlFromModel({
     template: 'full',
