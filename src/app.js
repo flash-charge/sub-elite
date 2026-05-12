@@ -1648,6 +1648,7 @@ function handleNodeInput(event, index) {
     renderGroups()
     renderRuleTargetOptions()
   }
+  syncWireGuardPeerField(proxy, field)
   if (field === 'plugin') updateShadowsocksPluginOptsPlaceholder(event.target.closest('.node-row'), proxy.plugin)
   updateYamlFromModel(false)
 }
@@ -1862,6 +1863,24 @@ function refreshRenderedRuleProviderTargets() {
     const target = provider.target || 'PROXY'
     select.innerHTML = renderSelectOptions(selectOptionsWithCurrent(options, target), target)
   })
+}
+
+function syncWireGuardPeerField(proxy, field) {
+  if (normalizeProxyType(proxy?.type) !== 'wireguard') return
+  if (!['server', 'port', 'public-key', 'presharedKey', 'allowedIPs'].includes(field)) return
+  proxy.peers = Array.isArray(proxy.peers) && proxy.peers.length ? proxy.peers : [{}]
+  const peer = proxy.peers[0]
+  if (field === 'server') peer.server = proxy.server
+  else if (field === 'port') peer.port = proxy.port
+  else if (field === 'public-key') peer['public-key'] = proxy['public-key']
+  else if (field === 'presharedKey') {
+    if (proxy.presharedKey) peer.presharedKey = proxy.presharedKey
+    else delete peer.presharedKey
+  } else if (field === 'allowedIPs') {
+    if (Array.isArray(proxy.allowedIPs) && proxy.allowedIPs.length) peer.allowedIPs = proxy.allowedIPs
+    else delete peer.allowedIPs
+  }
+  proxy.peers[0] = compactManualObject(peer)
 }
 
 function moveNode(from, to) {
