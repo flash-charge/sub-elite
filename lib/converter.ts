@@ -257,6 +257,9 @@ export function validateConfigModel(model) {
     if (!Number.isInteger(port) || port < 1 || port > 65535) {
       addIssue('error', `Node ${index + 1}`, `Node port ${proxy.name || proxy.server || index + 1} is invalid.`, 'invalid-port')
     }
+    if (proxy['dialer-proxy'] && !validProviderProxies.has(proxy['dialer-proxy'])) {
+      addIssue('warning', location, `Dialer proxy "${proxy['dialer-proxy']}" was not found.`, 'missing-dialer-proxy')
+    }
   })
 
   normalizedModel.groups.forEach((group, index) => {
@@ -383,6 +386,13 @@ export function autoFixConfigModel(model) {
     fixed.groups = buildDefaultGroups(enabledProxyNames)
     fixes.push('Default proxy group was rebuilt.')
   }
+
+  fixed.proxies.forEach((proxy) => {
+    if (proxy['dialer-proxy'] && !validProviderProxyName(proxy['dialer-proxy'], fixed)) {
+      proxy['dialer-proxy'] = ''
+      fixes.push(`Dialer proxy ${proxy.name || proxy.server || 'node'} was cleared because it was not found.`)
+    }
+  })
 
   const groupNames = () => fixed.groups.map((group) => group.name).filter(Boolean)
   fixed.groups.forEach((group) => {

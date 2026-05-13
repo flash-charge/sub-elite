@@ -680,7 +680,7 @@ test('cyclic group references are reported and removed from generated yaml', () 
 test('validateConfigModel reports missing provider proxy references', () => {
   const result = validateConfigModel({
     template: 'full',
-    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', 'dialer-proxy': 'Missing', enabled: true }],
     groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
     ruleProviders: [{ name: 'rules', type: 'http', behavior: 'domain', path: './rules/rules.yaml', url: 'https://example.com/rules.yaml', proxy: 'Missing' }],
     proxyProviders: [{ name: 'nodes', type: 'http', path: './proxy_providers/nodes.yaml', url: 'https://example.com/nodes.yaml', proxy: 'Missing' }],
@@ -690,6 +690,7 @@ test('validateConfigModel reports missing provider proxy references', () => {
 
   assert.equal(result.issues.filter((issue) => issue.code === 'missing-provider-proxy').length, 2)
   assert.equal(result.issues.filter((issue) => issue.code === 'missing-tunnel-proxy').length, 1)
+  assert.equal(result.issues.filter((issue) => issue.code === 'missing-dialer-proxy').length, 1)
 })
 
 test('autoFixConfigModel applies safe fixes without removing user config', () => {
@@ -697,7 +698,7 @@ test('autoFixConfigModel applies safe fixes without removing user config', () =>
     template: 'full',
     proxies: [
       { name: 'Same', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true },
-      { name: 'Same', type: 'trojan', server: 'b.example', port: 'bad', password: 'x', enabled: true },
+      { name: 'Same', type: 'trojan', server: 'b.example', port: 'bad', password: 'x', 'dialer-proxy': 'Missing', enabled: true },
     ],
     groups: [],
     ruleProviders: [{ name: 'ads', behavior: 'domain', path: '', url: 'https://example.com/ads.yaml', proxy: 'Missing' }],
@@ -717,6 +718,7 @@ test('autoFixConfigModel applies safe fixes without removing user config', () =>
   assert.equal(result.model.ruleProviders[0].proxy, '')
   assert.equal(result.model.proxyProviders[0].proxy, '')
   assert.equal(result.model.tunnels[0].proxy, '')
+  assert.equal(result.model.proxies[1]['dialer-proxy'], '')
   assert.deepEqual(result.model.rules, ['DOMAIN,example.com,PROXY', 'MATCH,PROXY'])
   assert.deepEqual(result.model.subRules.nested, ['MATCH,PROXY'])
   assert.match(yaml, /MATCH,PROXY/)

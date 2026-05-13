@@ -2022,6 +2022,9 @@ function replacePolicyTargetName(previousName, nextName) {
   if (!previousName || !nextName || previousName === nextName || !state.model) return
   state.model.rules = state.model.rules.map((rule) => replaceRuleTargetName(rule, previousName, nextName))
   mapSubRuleRules((rule) => replaceRuleTargetName(rule, previousName, nextName))
+  state.model.proxies.forEach((proxy) => {
+    if (proxy['dialer-proxy'] === previousName) proxy['dialer-proxy'] = nextName
+  })
   state.model.ruleProviders.forEach((provider) => {
     if (provider.target === previousName) provider.target = nextName
     if (provider.proxy === previousName) provider.proxy = nextName
@@ -2053,6 +2056,9 @@ function replacePolicyTargetNames(renameMap) {
     }
     return nextRule
   })
+  state.model.proxies.forEach((proxy) => {
+    if (renameMap.has(proxy['dialer-proxy'])) proxy['dialer-proxy'] = renameMap.get(proxy['dialer-proxy'])
+  })
   state.model.ruleProviders.forEach((provider) => {
     if (renameMap.has(provider.target)) provider.target = renameMap.get(provider.target)
     if (renameMap.has(provider.proxy)) provider.proxy = renameMap.get(provider.proxy)
@@ -2083,6 +2089,9 @@ function replaceRemovedPolicyTargets(removedNames, nextName) {
       nextRule = replaceRuleTargetName(nextRule, previousName, nextName)
     }
     return nextRule
+  })
+  state.model.proxies.forEach((proxy) => {
+    if (removedNames.has(proxy['dialer-proxy'])) proxy['dialer-proxy'] = nextName
   })
   state.model.ruleProviders.forEach((provider) => {
     if (removedNames.has(provider.target)) provider.target = nextName
@@ -2155,6 +2164,9 @@ function refreshRenderedRuleProviderTargets() {
 function normalizeEditorModel() {
   if (!state.model) return
   const options = policyTargetOptions()
+  state.model.proxies.forEach((proxy) => {
+    if (proxy['dialer-proxy'] && !options.includes(proxy['dialer-proxy'])) proxy['dialer-proxy'] = ''
+  })
   state.model.ruleProviders.forEach((provider) => {
     provider.target = validPolicyTarget(provider.target || 'PROXY', options)
     if (provider.proxy && !options.includes(provider.proxy)) provider.proxy = ''
