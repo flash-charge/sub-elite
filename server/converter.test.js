@@ -780,6 +780,27 @@ test('rule provider inline payload preserves comma rules', () => {
   assert.doesNotMatch(yaml, /- "DOMAIN-SUFFIX"\n\s+- "example\.com"/)
 })
 
+test('rule provider payload is emitted only for inline providers', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
+    ruleProviders: [{
+      name: 'remote-rules',
+      type: 'http',
+      behavior: 'domain',
+      path: './rules/remote.yaml',
+      url: 'https://example.com/remote.yaml',
+      payload: ['DOMAIN-SUFFIX,example.com'],
+    }],
+    rules: ['RULE-SET,remote-rules,REJECT', 'MATCH,PROXY'],
+  })
+
+  assert.match(yaml, /remote-rules:/)
+  assert.doesNotMatch(yaml, /payload:/)
+  assert.doesNotMatch(yaml, /DOMAIN-SUFFIX,example\.com/)
+})
+
 test('sub-rules preserve comma rules from string values', () => {
   const yaml = buildYamlFromModel({
     template: 'full',
@@ -811,6 +832,26 @@ test('proxy provider inline payload preserves node objects', () => {
   assert.match(yaml, /payload:\n\s+-\n\s+name: "Inline A"/)
   assert.match(yaml, /server: "inline\.example"/)
   assert.doesNotMatch(yaml, /\[object Object\]/)
+})
+
+test('proxy provider payload is emitted only for inline providers', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    proxyProviders: [{
+      name: 'remote-nodes',
+      type: 'http',
+      url: 'https://example.com/sub.yaml',
+      path: './proxy_providers/remote.yaml',
+      payload: [{ name: 'Inline A', type: 'trojan', server: 'inline.example', port: 443, password: 'secret' }],
+    }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'], use: ['remote-nodes'] }],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.match(yaml, /remote-nodes:/)
+  assert.doesNotMatch(yaml, /payload:/)
+  assert.doesNotMatch(yaml, /Inline A/)
 })
 
 test('proxy provider camelCase health check overrides imported kebab alias', () => {

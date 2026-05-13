@@ -1219,7 +1219,7 @@ function buildRuleProviders(ruleProviders) {
             format: provider.format || undefined,
             'size-limit': provider.sizeLimit || undefined,
             header: provider.header,
-            payload: provider.payload,
+            payload: provider.type === 'inline' ? provider.payload : undefined,
           }),
         ]
       }),
@@ -1271,7 +1271,7 @@ function buildProxyProviders(proxyProviders) {
             filter: provider.filter || undefined,
             'exclude-filter': provider.excludeFilter || undefined,
             'exclude-type': provider.excludeType || undefined,
-            payload: provider.payload,
+            payload: provider.type === 'inline' ? provider.payload : undefined,
           }),
         ]
       }),
