@@ -401,6 +401,13 @@ export function autoFixConfigModel(model) {
     fixed.rules = ['MATCH,PROXY']
     fixes.push('Empty rules were filled with MATCH,PROXY.')
   }
+  const fixedRuleTargets = fixRulePolicyTargets(fixed.rules, fixed)
+  if (fixedRuleTargets > 0) fixes.push(`${fixedRuleTargets} missing rule target${fixedRuleTargets === 1 ? '' : 's'} were replaced with a safe fallback.`)
+  let fixedSubRuleTargets = 0
+  Object.values(fixed.subRules || {}).forEach((rules) => {
+    fixedSubRuleTargets += fixRulePolicyTargets(rules, fixed)
+  })
+  if (fixedSubRuleTargets > 0) fixes.push(`${fixedSubRuleTargets} missing sub-rule target${fixedSubRuleTargets === 1 ? '' : 's'} were replaced with a safe fallback.`)
 
   fixed.ruleProviders.forEach((provider) => {
     if (!provider.path && provider.name) {
@@ -2209,6 +2216,37 @@ function validProviderProxyName(name, model) {
   const enabledProxyNames = model.proxies.filter((proxy) => proxy.enabled !== false).map((proxy) => proxy.name).filter(Boolean)
   const groupNames = model.groups.map((group) => group.name).filter(Boolean)
   return [...enabledProxyNames, ...groupNames, 'DIRECT', 'REJECT', 'GLOBAL'].includes(name)
+}
+
+function fixRulePolicyTargets(rules, model) {
+  if (!Array.isArray(rules)) return 0
+  const validTargets = new Set(policyTargetNames(model))
+  const fallback = fallbackPolicyTargetName(model)
+  let fixedCount = 0
+
+  rules.forEach((rule, index) => {
+    const parts = splitRuleParts(rule)
+    if (!parts[0] || parts[0] === 'SUB-RULE') return
+    const targetIndex = parts[0] === 'MATCH' ? 1 : 2
+    if (validTargets.has(parts[targetIndex])) return
+    parts[targetIndex] = fallback
+    rules[index] = parts.join(',')
+    fixedCount += 1
+  })
+
+  return fixedCount
+}
+
+function policyTargetNames(model) {
+  const enabledProxyNames = model.proxies.filter((proxy) => proxy.enabled !== false).map((proxy) => proxy.name).filter(Boolean)
+  const groupNames = model.groups.map((group) => group.name).filter(Boolean)
+  return [...enabledProxyNames, ...groupNames, 'DIRECT', 'REJECT', 'GLOBAL']
+}
+
+function fallbackPolicyTargetName(model) {
+  const groupNames = model.groups.map((group) => group.name).filter(Boolean)
+  const enabledProxyNames = model.proxies.filter((proxy) => proxy.enabled !== false).map((proxy) => proxy.name).filter(Boolean)
+  return groupNames.find((name) => name === 'PROXY') || groupNames[0] || enabledProxyNames[0] || 'DIRECT'
 }
 
 function normalizePolicy(value = {}, { typedValues = false } = {}) {

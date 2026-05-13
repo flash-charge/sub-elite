@@ -703,7 +703,8 @@ test('autoFixConfigModel applies safe fixes without removing user config', () =>
     ruleProviders: [{ name: 'ads', behavior: 'domain', path: '', url: 'https://example.com/ads.yaml', proxy: 'Missing' }],
     proxyProviders: [{ name: 'remote', type: 'http', path: '', url: 'https://example.com/sub.yaml', proxy: 'Missing' }],
     tunnels: [{ network: ['tcp'], address: '127.0.0.1:6553', target: '8.8.8.8:53', proxy: 'Missing' }],
-    rules: [],
+    subRules: { nested: ['MATCH,MissingNested'] },
+    rules: ['DOMAIN,example.com,MissingMain', 'MATCH,MissingMatch'],
   }
 
   const result = autoFixConfigModel(model)
@@ -716,6 +717,8 @@ test('autoFixConfigModel applies safe fixes without removing user config', () =>
   assert.equal(result.model.ruleProviders[0].proxy, '')
   assert.equal(result.model.proxyProviders[0].proxy, '')
   assert.equal(result.model.tunnels[0].proxy, '')
+  assert.deepEqual(result.model.rules, ['DOMAIN,example.com,PROXY', 'MATCH,PROXY'])
+  assert.deepEqual(result.model.subRules.nested, ['MATCH,PROXY'])
   assert.match(yaml, /MATCH,PROXY/)
 })
 
