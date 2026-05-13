@@ -319,6 +319,7 @@ export function validateConfigModel(model) {
 
   const validateRuleRefs = (rule, location, currentSubRuleName = '') => {
     const [type, name, target] = splitRuleParts(rule)
+    const policyTarget = type === 'MATCH' ? name : target
     if (type === 'RULE-SET' && name && !providerNames.includes(name)) {
       addIssue('warning', location, `RULE-SET "${name}" has no rule provider.`, 'missing-rule-provider')
     }
@@ -328,8 +329,8 @@ export function validateConfigModel(model) {
       addIssue('error', location, `SUB-RULE "${target}" creates a cycle.`, 'cyclic-sub-rule-reference')
     }
     if (type === 'SUB-RULE') return
-    if (target && !groupNames.has(target) && !proxyNames.has(target) && !['DIRECT', 'REJECT', 'GLOBAL'].includes(target)) {
-      addIssue('warning', location, `Target policy "${target}" was not found.`, 'missing-rule-target')
+    if (policyTarget && !groupNames.has(policyTarget) && !proxyNames.has(policyTarget) && !['DIRECT', 'REJECT', 'GLOBAL'].includes(policyTarget)) {
+      addIssue('warning', location, `Target policy "${policyTarget}" was not found.`, 'missing-rule-target')
     }
   }
 

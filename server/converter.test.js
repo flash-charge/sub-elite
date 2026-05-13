@@ -545,6 +545,21 @@ test('validateConfigModel checks references inside sub-rules', () => {
   assert.equal(result.issues.some((issue) => issue.location === 'Sub-rule nested rule 2' && issue.code === 'missing-rule-target'), true)
 })
 
+test('validateConfigModel checks MATCH policy targets', () => {
+  const result = validateConfigModel({
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
+    subRules: {
+      nested: ['MATCH,MissingNested'],
+    },
+    rules: ['DOMAIN,example.com,PROXY', 'MATCH,MissingMain'],
+  })
+
+  assert.equal(result.issues.some((issue) => issue.location === 'Rule 2' && issue.code === 'missing-rule-target'), true)
+  assert.equal(result.issues.some((issue) => issue.location === 'Sub-rule nested rule 1' && issue.code === 'missing-rule-target'), true)
+})
+
 test('validateConfigModel rejects cyclic sub-rule references', () => {
   const result = validateConfigModel({
     template: 'full',
