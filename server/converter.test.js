@@ -689,6 +689,28 @@ test('imported dialer proxy references are trimmed before validation and export'
   assert.equal(fixed.model.proxies[0]['dialer-proxy'], 'PROXY')
 })
 
+test('imported provider and tunnel proxy references are trimmed before validation and export', () => {
+  const model = {
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'], use: ['remote'] }],
+    ruleProviders: [{ name: 'rules', type: 'http', behavior: 'domain', path: './rules/rules.yaml', url: 'https://example.com/rules.yaml', proxy: ' PROXY ' }],
+    proxyProviders: [{ name: 'remote', type: 'http', path: './proxy_providers/remote.yaml', url: 'https://example.com/sub.yaml', proxy: ' PROXY ' }],
+    tunnels: [{ network: ['tcp'], address: '127.0.0.1:6553', target: '8.8.8.8:53', proxy: ' PROXY ' }],
+    rules: ['MATCH,PROXY'],
+  }
+  const validation = validateConfigModel(model)
+  const yaml = buildYamlFromModel(model)
+  const fixed = autoFixConfigModel(model)
+
+  assert.equal(validation.issues.some((issue) => issue.code === 'missing-provider-proxy'), false)
+  assert.equal(validation.issues.some((issue) => issue.code === 'missing-tunnel-proxy'), false)
+  assert.equal(fixed.model.ruleProviders[0].proxy, 'PROXY')
+  assert.equal(fixed.model.proxyProviders[0].proxy, 'PROXY')
+  assert.equal(fixed.model.tunnels[0].proxy, 'PROXY')
+  assert.doesNotMatch(yaml, /proxy: " PROXY "/)
+})
+
 test('validateConfigModel rejects malformed inline proxy provider payload entries', () => {
   const result = validateConfigModel({
     template: 'full',

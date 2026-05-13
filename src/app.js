@@ -2181,16 +2181,20 @@ function normalizeEditorModel() {
   if (!state.model) return
   const options = policyTargetOptions()
   state.model.proxies.forEach((proxy) => {
+    if (proxy['dialer-proxy']) proxy['dialer-proxy'] = String(proxy['dialer-proxy']).trim()
     if (proxy['dialer-proxy'] && !options.includes(proxy['dialer-proxy'])) proxy['dialer-proxy'] = ''
   })
   state.model.ruleProviders.forEach((provider) => {
-    provider.target = validPolicyTarget(provider.target || 'PROXY', options)
+    provider.target = validPolicyTarget(String(provider.target || 'PROXY').trim(), options)
+    if (provider.proxy) provider.proxy = String(provider.proxy).trim()
     if (provider.proxy && !options.includes(provider.proxy)) provider.proxy = ''
   })
   state.model.proxyProviders.forEach((provider) => {
+    if (provider.proxy) provider.proxy = String(provider.proxy).trim()
     if (provider.proxy && !options.includes(provider.proxy)) provider.proxy = ''
   })
   state.model.tunnels.forEach((tunnel) => {
+    if (tunnel.proxy) tunnel.proxy = String(tunnel.proxy).trim()
     if (tunnel.proxy && !options.includes(tunnel.proxy)) tunnel.proxy = ''
   })
   const enabledProxyNames = new Set(state.model.proxies.filter((proxy) => proxy.enabled !== false).map((proxy) => proxy.name).filter(Boolean))
