@@ -896,6 +896,24 @@ test('ntp extra fields are preserved from editor models', () => {
   assert.doesNotMatch(yaml, /write-to-system: true/)
 })
 
+test('tunnel extra fields are preserved from editor models', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    tunnels: [{
+      network: ['tcp'],
+      address: '127.0.0.1:6553',
+      target: '8.8.8.8:53',
+      proxy: 'PROXY',
+      'custom-tunnel-option': 'kept',
+    }],
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.match(yaml, /tunnels:\n\s+-\n\s+custom-tunnel-option: "kept"/)
+})
+
 test('general extra fields are preserved from editor models', () => {
   const yaml = buildYamlFromModel({
     template: 'full',

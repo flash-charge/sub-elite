@@ -2056,13 +2056,22 @@ function normalizeGroup(group: ProxyNode = {}) {
 }
 
 function normalizeTunnel(tunnel: ProxyNode = {}) {
+  const extra = omitKeys(tunnel, tunnelFieldKeys)
   return compact({
+    ...extra,
     network: normalizeList(tunnel.network, ['tcp', 'udp']),
     address: String(tunnel.address || '').trim(),
     target: String(tunnel.target || '').trim(),
     proxy: String(tunnel.proxy || '').trim() || undefined,
   })
 }
+
+const tunnelFieldKeys = [
+  'network',
+  'address',
+  'target',
+  'proxy',
+]
 
 function omitKeys(value: ProxyNode = {}, keys: string[]) {
   const omitted = new Set(keys)
