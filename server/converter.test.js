@@ -665,6 +665,34 @@ test('inline proxy provider payload nodes are normalized before validation and e
   assert.doesNotMatch(yaml, /type: " VLESS "/)
 })
 
+test('inline proxy provider payload omits editor-only node fields', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'], use: ['inline-nodes'] }],
+    proxyProviders: [{
+      name: 'inline-nodes',
+      type: 'inline',
+      payload: [{
+        id: 'ui-only',
+        rawJson: '{"name":"Inline"}',
+        enabled: false,
+        name: 'Inline',
+        type: 'trojan',
+        server: 'inline.example',
+        port: 443,
+        password: 'secret',
+      }],
+    }],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.match(yaml, /name: "Inline"/)
+  assert.doesNotMatch(yaml, /enabled: false/)
+  assert.doesNotMatch(yaml, /id: "ui-only"/)
+  assert.doesNotMatch(yaml, /rawJson:/)
+})
+
 test('imported dialer proxy references are trimmed before validation and export', () => {
   const model = {
     template: 'full',

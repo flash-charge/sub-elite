@@ -1304,7 +1304,7 @@ function buildProxyProviders(proxyProviders) {
             filter: provider.filter || undefined,
             'exclude-filter': provider.excludeFilter || undefined,
             'exclude-type': provider.excludeType || undefined,
-            payload: provider.type === 'inline' ? provider.payload.filter(isValidProxyProviderPayloadProxy) : undefined,
+            payload: provider.type === 'inline' ? provider.payload.filter(isValidProxyProviderPayloadProxy).map(stripUiProxyFields) : undefined,
           }),
         ]
       }),
