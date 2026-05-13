@@ -1,6 +1,7 @@
 type ProxyNode = Record<string, any>
 
 const PROTOCOL_RE = /^(vmess|vless|trojan|ss|ssr|socks|socks5|hysteria|hysteria2|hy2|tuic|wireguard):\/\//i
+const PROVIDER_TYPES = ['http', 'file', 'inline']
 const TRANSPORT_TYPES = ['http', 'h2', 'grpc', 'ws', 'xhttp']
 const TRANSPORT_TYPES_BY_PROXY: Record<string, string[]> = {
   vmess: ['ws', 'http', 'h2', 'grpc'],
@@ -291,7 +292,7 @@ export function validateConfigModel(model) {
     const location = `Provider ${provider.name || index + 1}`
     if (!provider.name) addIssue('error', location, 'Provider name is empty.', 'empty-provider-name')
     if (hasRuleSeparator(provider.name)) addIssue('error', location, 'Provider name cannot contain commas.', 'invalid-provider-name')
-    if (!['http', 'file', 'inline'].includes(provider.type)) {
+    if (!PROVIDER_TYPES.includes(provider.type)) {
       addIssue('warning', location, `Provider type "${provider.type}" is uncommon for Mihomo.`, 'invalid-provider-type')
     }
     if (provider.type === 'http' && !provider.url) addIssue('warning', location, 'Provider URL is empty.', 'empty-provider-url')
@@ -2021,6 +2022,7 @@ const geoFieldKeys = [
 ]
 
 function normalizeRuleProvider(provider: ProxyNode = {}) {
+  const providerType = String(provider.type || '').trim()
   const extra = omitKeys(provider, [
     'name',
     'type',
@@ -2039,7 +2041,7 @@ function normalizeRuleProvider(provider: ProxyNode = {}) {
   return {
     ...extra,
     name: String(provider.name || '').trim(),
-    type: String(provider.type || 'http').trim(),
+    type: PROVIDER_TYPES.includes(providerType) ? providerType : 'http',
     behavior: String(provider.behavior || 'classical').trim(),
     path: String(provider.path || '').trim(),
     url: String(provider.url || '').trim(),
@@ -2054,6 +2056,7 @@ function normalizeRuleProvider(provider: ProxyNode = {}) {
 }
 
 function normalizeProxyProvider(provider: ProxyNode = {}) {
+  const providerType = String(provider.type || '').trim()
   const extra = omitKeys(provider, [
     'name',
     'type',
@@ -2077,7 +2080,7 @@ function normalizeProxyProvider(provider: ProxyNode = {}) {
   return {
     ...extra,
     name: String(provider.name || '').trim(),
-    type: ['http', 'file', 'inline'].includes(provider.type) ? provider.type : 'http',
+    type: PROVIDER_TYPES.includes(providerType) ? providerType : 'http',
     url: String(provider.url || '').trim(),
     path: String(provider.path || '').trim(),
     interval: Number(provider.interval) || 3600,

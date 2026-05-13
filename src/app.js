@@ -237,6 +237,8 @@ const proxyTypeOptions = [
   'dns',
 ]
 
+const providerTypes = ['http', 'file', 'inline']
+
 const proxyTypeLabels = {
   vmess: 'VMess',
   vless: 'VLESS',
@@ -1488,7 +1490,7 @@ function renderRuleProviders() {
       <div class="form-grid section-grid provider-edit-grid">
         <label><span>Name</span><input type="text" data-field="name" value="${escapeAttr(valueOrEmpty(provider.name))}"></label>
         <label><span>Type</span><select data-field="type">
-          ${['http', 'file', 'inline'].map((type) => `<option value="${type}" ${type === (provider.type || 'http') ? 'selected' : ''}>${type}</option>`).join('')}
+          ${providerTypes.map((type) => `<option value="${type}" ${type === (provider.type || 'http') ? 'selected' : ''}>${type}</option>`).join('')}
         </select></label>
         <label><span>Behavior</span><select data-field="behavior">
           ${['classical', 'domain', 'ipcidr'].map((type) => `<option value="${type}" ${type === provider.behavior ? 'selected' : ''}>${type}</option>`).join('')}
@@ -1550,7 +1552,7 @@ function renderProxyProviders() {
       <div class="form-grid section-grid provider-edit-grid">
         <label><span>Name</span><input type="text" data-field="name" value="${escapeAttr(valueOrEmpty(provider.name))}"></label>
         <label><span>Type</span><select data-field="type">
-          ${['http', 'file', 'inline'].map((type) => `<option value="${type}" ${type === provider.type ? 'selected' : ''}>${type}</option>`).join('')}
+          ${providerTypes.map((type) => `<option value="${type}" ${type === provider.type ? 'selected' : ''}>${type}</option>`).join('')}
         </select></label>
         <label class="wide-field"><span>URL</span><input type="text" data-field="url" value="${escapeAttr(valueOrEmpty(provider.url))}"></label>
         <label><span>Path</span><input type="text" data-field="path" value="${escapeAttr(valueOrEmpty(provider.path))}"></label>
@@ -1839,7 +1841,7 @@ function handleRuleProviderInput(event, index) {
   else if (field === 'header') provider.header = textToPolicy(event.target.value)
   else if (field === 'payload') provider.payload = splitLines(event.target.value)
   else if (field === 'type') {
-    provider.type = ['http', 'file', 'inline'].includes(event.target.value) ? event.target.value : 'http'
+    provider.type = providerTypes.includes(event.target.value) ? event.target.value : 'http'
     updateYamlFromModel()
     return
   }
@@ -1884,6 +1886,11 @@ function handleProxyProviderInput(event, index) {
   else if (field === 'healthCheckTimeout') provider.healthCheck.timeout = Number(event.target.value) || 5000
   else if (field === 'healthCheckExpectedStatus') provider.healthCheck.expectedStatus = event.target.value
   else if (field === 'healthCheckLazy') provider.healthCheck.lazy = event.target.checked
+  else if (field === 'type') {
+    provider.type = providerTypes.includes(event.target.value) ? event.target.value : 'http'
+    updateYamlFromModel()
+    return
+  }
   else provider[field] = event.target.value
   if (field === 'name') {
     if (provider.name) {
@@ -4080,12 +4087,13 @@ function omitKeys(value = {}, keys = []) {
 }
 
 function normalizeClientRuleProvider(provider) {
+  const providerType = String(provider.type || '').trim()
   const rest = { ...provider }
   delete rest['size-limit']
   return {
     ...rest,
     name: String(provider.name || '').trim(),
-    type: String(provider.type || 'http').trim(),
+    type: providerTypes.includes(providerType) ? providerType : 'http',
     behavior: String(provider.behavior || 'classical').trim(),
     path: String(provider.path || '').trim(),
     url: String(provider.url || '').trim(),
@@ -4100,6 +4108,7 @@ function normalizeClientRuleProvider(provider) {
 }
 
 function normalizeClientProxyProvider(provider) {
+  const providerType = String(provider.type || '').trim()
   const healthCheck = isPlainObject(provider.healthCheck) ? provider.healthCheck : {}
   const rawHealthCheck = isPlainObject(provider['health-check']) ? provider['health-check'] : {}
   const rest = { ...provider }
@@ -4110,7 +4119,7 @@ function normalizeClientProxyProvider(provider) {
   return {
     ...rest,
     name: String(provider.name || '').trim(),
-    type: ['http', 'file', 'inline'].includes(provider.type) ? provider.type : 'http',
+    type: providerTypes.includes(providerType) ? providerType : 'http',
     url: String(provider.url || '').trim(),
     path: String(provider.path || '').trim(),
     interval: Number(provider.interval) || 3600,

@@ -542,6 +542,34 @@ test('validateConfigModel accepts file providers without URL warnings', () => {
   assert.equal(result.issues.some((issue) => issue.code === 'empty-proxy-provider-path'), false)
 })
 
+test('provider types are normalized before validation and export', () => {
+  const model = {
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'], use: ['remote-nodes'] }],
+    ruleProviders: [{
+      name: 'remote-rules',
+      type: ' inline ',
+      behavior: 'classical',
+      payload: ['DOMAIN-SUFFIX,example.com'],
+    }],
+    proxyProviders: [{
+      name: 'remote-nodes',
+      type: 'broken',
+      url: 'https://example.com/sub.yaml',
+      path: './proxy_providers/remote.yaml',
+    }],
+    rules: ['RULE-SET,remote-rules,PROXY', 'MATCH,PROXY'],
+  }
+
+  const result = validateConfigModel(model)
+  const yaml = buildYamlFromModel(model)
+
+  assert.equal(result.issues.some((issue) => issue.code === 'invalid-provider-type'), false)
+  assert.match(yaml, /remote-rules:\n\s+type: "inline"/)
+  assert.match(yaml, /remote-nodes:\n\s+type: "http"/)
+})
+
 test('validateConfigModel rejects malformed inline proxy provider payload entries', () => {
   const result = validateConfigModel({
     template: 'full',
