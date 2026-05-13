@@ -2110,10 +2110,8 @@ function mapSubRuleRules(mapper) {
 function replaceRuleTargetName(rule, previousName, nextName) {
   const parts = splitRuleParts(rule)
   if (parts[0] === 'SUB-RULE') return rule
-  const candidateIndexes = parts[0] === 'MATCH' ? [1] : [2, parts.length - 1]
-  for (const index of [...new Set(candidateIndexes)]) {
-    if (parts[index] === previousName) parts[index] = nextName
-  }
+  const targetIndex = parts[0] === 'MATCH' ? 1 : 2
+  if (parts[targetIndex] === previousName) parts[targetIndex] = nextName
   return parts.join(',')
 }
 
