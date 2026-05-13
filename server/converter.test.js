@@ -570,6 +570,31 @@ test('provider types are normalized before validation and export', () => {
   assert.match(yaml, /remote-nodes:\n\s+type: "http"/)
 })
 
+test('rule provider behavior and format are normalized before validation and export', () => {
+  const model = {
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
+    ruleProviders: [{
+      name: 'remote-rules',
+      type: 'http',
+      behavior: ' Domain ',
+      format: ' YAML ',
+      path: './rules/remote.yaml',
+      url: 'https://example.com/remote.yaml',
+    }],
+    rules: ['RULE-SET,remote-rules,PROXY', 'MATCH,PROXY'],
+  }
+  const result = validateConfigModel(model)
+  const yaml = buildYamlFromModel(model)
+
+  assert.equal(result.issues.some((issue) => issue.code === 'invalid-provider-behavior'), false)
+  assert.match(yaml, /behavior: "domain"/)
+  assert.match(yaml, /format: "yaml"/)
+  assert.doesNotMatch(yaml, /Domain/)
+  assert.doesNotMatch(yaml, /YAML/)
+})
+
 test('proxy type and network are normalized before validation and export', () => {
   const yaml = buildYamlFromModel({
     template: 'full',
