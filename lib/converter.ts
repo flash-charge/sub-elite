@@ -1013,7 +1013,9 @@ function buildProfile(profile) {
 }
 
 function buildGeo(geo) {
+  const extra = omitKeys(geo, geoFieldKeys)
   return compact({
+    ...extra,
     'geodata-mode': geo.geodataMode,
     'geo-auto-update': geo.geoAutoUpdate,
     'geo-update-interval': geo.geoUpdateInterval,
@@ -1875,9 +1877,10 @@ function normalizeRawSection(value) {
 }
 
 function normalizeGeo(geo: ProxyNode = {}) {
+  const extra = omitKeys(geo, geoFieldKeys)
   return {
+    ...extra,
     ...createGeo(),
-    ...geo,
     geodataMode: Boolean(geo.geodataMode ?? geo['geodata-mode'] ?? createGeo().geodataMode),
     geoAutoUpdate: Boolean(geo.geoAutoUpdate ?? geo['geo-auto-update'] ?? createGeo().geoAutoUpdate),
     geoUpdateInterval: Number(geo.geoUpdateInterval ?? geo['geo-update-interval']) || 24,
@@ -1887,6 +1890,17 @@ function normalizeGeo(geo: ProxyNode = {}) {
     },
   }
 }
+
+const geoFieldKeys = [
+  'geodataMode',
+  'geodata-mode',
+  'geoAutoUpdate',
+  'geo-auto-update',
+  'geoUpdateInterval',
+  'geo-update-interval',
+  'geoxUrl',
+  'geox-url',
+]
 
 function normalizeRuleProvider(provider: ProxyNode = {}) {
   const extra = omitKeys(provider, [

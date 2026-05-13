@@ -3240,7 +3240,9 @@ function clearRawSection(section) {
 
 function updateGeoFromEditor() {
   if (!state.model) return
+  const extra = omitKeys(state.model.geo, geoFieldKeys)
   state.model.geo = {
+    ...extra,
     geodataMode: geoGeodataMode.checked,
     geoAutoUpdate: geoAutoUpdate.checked,
     geoUpdateInterval: Number(geoUpdateInterval.value) || 24,
@@ -3937,6 +3939,7 @@ function pickGeneralTopLevel(raw) {
 
 function yamlGeoToModel(raw) {
   return {
+    ...omitKeys(raw, geoFieldKeys),
     geodataMode: raw['geodata-mode'],
     geoAutoUpdate: raw['geo-auto-update'],
     geoUpdateInterval: raw['geo-update-interval'],
@@ -4094,7 +4097,9 @@ function normalizeClientGroup(group) {
 
 function normalizeClientGeo(geo = {}) {
   const geoxUrl = isPlainObject(geo.geoxUrl) ? geo.geoxUrl : isPlainObject(geo['geox-url']) ? geo['geox-url'] : {}
+  const extra = omitKeys(geo, geoFieldKeys)
   return {
+    ...extra,
     geodataMode: Boolean(geo.geodataMode ?? geo['geodata-mode']),
     geoAutoUpdate: Boolean(geo.geoAutoUpdate ?? geo['geo-auto-update']),
     geoUpdateInterval: geo.geoUpdateInterval ?? geo['geo-update-interval'] ?? 24,
@@ -4106,6 +4111,17 @@ function normalizeClientGeo(geo = {}) {
     },
   }
 }
+
+const geoFieldKeys = [
+  'geodataMode',
+  'geodata-mode',
+  'geoAutoUpdate',
+  'geo-auto-update',
+  'geoUpdateInterval',
+  'geo-update-interval',
+  'geoxUrl',
+  'geox-url',
+]
 
 function normalizeClientGeneral(general = {}) {
   const tls = isPlainObject(general.tls) ? general.tls : {}

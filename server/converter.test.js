@@ -860,6 +860,24 @@ test('tun extra fields are preserved from editor models', () => {
   assert.doesNotMatch(yaml, /auto-route: false/)
 })
 
+test('geo extra fields are preserved from editor models', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    geo: {
+      geodataMode: false,
+      'geodata-mode': true,
+      'custom-geo-option': 'kept',
+    },
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.match(yaml, /custom-geo-option: "kept"/)
+  assert.match(yaml, /geodata-mode: false/)
+  assert.doesNotMatch(yaml, /geodata-mode: true/)
+})
+
 test('general extra fields are preserved from editor models', () => {
   const yaml = buildYamlFromModel({
     template: 'full',
