@@ -1994,6 +1994,14 @@ function replaceProviderRuleName(previousName, nextName) {
     }
     return rule
   })
+  mapSubRuleRules((rule) => {
+    const parts = splitRuleParts(rule)
+    if (parts[0] === 'RULE-SET' && parts[1] === previousName) {
+      parts[1] = nextName
+      return parts.join(',')
+    }
+    return rule
+  })
   renderRules()
 }
 
@@ -2003,12 +2011,17 @@ function removeRuleProviderRules(name) {
     const parts = splitRuleParts(rule)
     return !(parts[0] === 'RULE-SET' && parts[1] === name)
   })
+  mapSubRuleRules((rule) => {
+    const parts = splitRuleParts(rule)
+    return parts[0] === 'RULE-SET' && parts[1] === name ? '' : rule
+  })
   renderRules()
 }
 
 function replacePolicyTargetName(previousName, nextName) {
   if (!previousName || !nextName || previousName === nextName || !state.model) return
   state.model.rules = state.model.rules.map((rule) => replaceRuleTargetName(rule, previousName, nextName))
+  mapSubRuleRules((rule) => replaceRuleTargetName(rule, previousName, nextName))
   state.model.ruleProviders.forEach((provider) => {
     if (provider.target === previousName) provider.target = nextName
     if (provider.proxy === previousName) provider.proxy = nextName
@@ -2027,6 +2040,13 @@ function replacePolicyTargetName(previousName, nextName) {
 function replacePolicyTargetNames(renameMap) {
   if (!state.model || !renameMap.size) return
   state.model.rules = state.model.rules.map((rule) => {
+    let nextRule = rule
+    for (const [previousName, nextName] of renameMap) {
+      nextRule = replaceRuleTargetName(nextRule, previousName, nextName)
+    }
+    return nextRule
+  })
+  mapSubRuleRules((rule) => {
     let nextRule = rule
     for (const [previousName, nextName] of renameMap) {
       nextRule = replaceRuleTargetName(nextRule, previousName, nextName)
@@ -2057,6 +2077,13 @@ function replaceRemovedPolicyTargets(removedNames, nextName) {
     }
     return nextRule
   })
+  mapSubRuleRules((rule) => {
+    let nextRule = rule
+    for (const previousName of removedNames) {
+      nextRule = replaceRuleTargetName(nextRule, previousName, nextName)
+    }
+    return nextRule
+  })
   state.model.ruleProviders.forEach((provider) => {
     if (removedNames.has(provider.target)) provider.target = nextName
     if (removedNames.has(provider.proxy)) provider.proxy = nextName
@@ -2070,6 +2097,14 @@ function replaceRemovedPolicyTargets(removedNames, nextName) {
   renderRules()
   renderRuleTargetOptions()
   refreshRenderedRuleProviderTargets()
+}
+
+function mapSubRuleRules(mapper) {
+  if (!state.model?.subRules) return
+  for (const [name, rules] of Object.entries(state.model.subRules)) {
+    if (!Array.isArray(rules)) continue
+    state.model.subRules[name] = rules.map(mapper).map((rule) => String(rule).trim()).filter(Boolean)
+  }
 }
 
 function replaceRuleTargetName(rule, previousName, nextName) {

@@ -317,21 +317,30 @@ export function validateConfigModel(model) {
     addIssue('error', 'Proxy Providers', `Duplicate proxy provider names: ${[...new Set(duplicateProxyProviders)].join(', ')}`, 'duplicate-proxy-provider-name')
   }
 
-  normalizedModel.rules.forEach((rule, index) => {
+  const validateRuleRefs = (rule, location) => {
     const [type, name, target] = splitRuleParts(rule)
-    if (type === 'MATCH' && index !== normalizedModel.rules.length - 1) {
-      addIssue('warning', `Rule ${index + 1}`, 'MATCH should be the last rule so later rules remain reachable.', 'match-not-last')
-    }
     if (type === 'RULE-SET' && name && !providerNames.includes(name)) {
-      addIssue('warning', `Rule ${index + 1}`, `RULE-SET "${name}" has no rule provider.`, 'missing-rule-provider')
+      addIssue('warning', location, `RULE-SET "${name}" has no rule provider.`, 'missing-rule-provider')
     }
     if (type === 'SUB-RULE' && target && !subRuleNames.has(target)) {
-      addIssue('warning', `Rule ${index + 1}`, `SUB-RULE "${target}" was not found.`, 'missing-sub-rule')
+      addIssue('warning', location, `SUB-RULE "${target}" was not found.`, 'missing-sub-rule')
     }
     if (type === 'SUB-RULE') return
     if (target && !groupNames.has(target) && !proxyNames.has(target) && !['DIRECT', 'REJECT', 'GLOBAL'].includes(target)) {
-      addIssue('warning', `Rule ${index + 1}`, `Target policy "${target}" was not found.`, 'missing-rule-target')
+      addIssue('warning', location, `Target policy "${target}" was not found.`, 'missing-rule-target')
     }
+  }
+
+  normalizedModel.rules.forEach((rule, index) => {
+    const [type] = splitRuleParts(rule)
+    if (type === 'MATCH' && index !== normalizedModel.rules.length - 1) {
+      addIssue('warning', `Rule ${index + 1}`, 'MATCH should be the last rule so later rules remain reachable.', 'match-not-last')
+    }
+    validateRuleRefs(rule, `Rule ${index + 1}`)
+  })
+
+  Object.entries(normalizedModel.subRules || {}).forEach(([subRuleName, rules]) => {
+    rules.forEach((rule, index) => validateRuleRefs(rule, `Sub-rule ${subRuleName} rule ${index + 1}`))
   })
 
   normalizedModel.tunnels.forEach((tunnel, index) => {

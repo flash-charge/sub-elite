@@ -526,6 +526,25 @@ test('validateConfigModel parses SUB-RULE rules without treating inner commas as
   assert.equal(result.issues.some((issue) => issue.code === 'missing-sub-rule'), false)
 })
 
+test('validateConfigModel checks references inside sub-rules', () => {
+  const result = validateConfigModel({
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
+    ruleProviders: [{ name: 'known-rules', type: 'http', behavior: 'domain', path: './rules/known.yaml', url: 'https://example.com/known.yaml' }],
+    subRules: {
+      nested: [
+        'RULE-SET,missing-rules,PROXY',
+        'DOMAIN-SUFFIX,example.com,MissingPolicy',
+      ],
+    },
+    rules: ['SUB-RULE,(DOMAIN,example.com),nested', 'MATCH,PROXY'],
+  })
+
+  assert.equal(result.issues.some((issue) => issue.location === 'Sub-rule nested rule 1' && issue.code === 'missing-rule-provider'), true)
+  assert.equal(result.issues.some((issue) => issue.location === 'Sub-rule nested rule 2' && issue.code === 'missing-rule-target'), true)
+})
+
 test('validateConfigModel accepts direct node names as rule targets', () => {
   const result = validateConfigModel({
     template: 'full',
