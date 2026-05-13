@@ -545,6 +545,24 @@ test('validateConfigModel checks references inside sub-rules', () => {
   assert.equal(result.issues.some((issue) => issue.location === 'Sub-rule nested rule 2' && issue.code === 'missing-rule-target'), true)
 })
 
+test('validateConfigModel rejects cyclic sub-rule references', () => {
+  const result = validateConfigModel({
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
+    subRules: {
+      nestedA: ['SUB-RULE,(DOMAIN,a.example),nestedB', 'MATCH,PROXY'],
+      nestedB: ['SUB-RULE,(DOMAIN,b.example),nestedA', 'MATCH,DIRECT'],
+      self: ['SUB-RULE,(DOMAIN,self.example),self'],
+    },
+    rules: ['SUB-RULE,(DOMAIN,example.com),nestedA', 'MATCH,PROXY'],
+  })
+
+  assert.equal(result.valid, false)
+  assert.equal(result.issues.some((issue) => issue.location === 'Sub-rule nestedA rule 1' && issue.code === 'cyclic-sub-rule-reference'), true)
+  assert.equal(result.issues.some((issue) => issue.location === 'Sub-rule self rule 1' && issue.code === 'cyclic-sub-rule-reference'), true)
+})
+
 test('validateConfigModel accepts direct node names as rule targets', () => {
   const result = validateConfigModel({
     template: 'full',

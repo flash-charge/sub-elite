@@ -317,13 +317,15 @@ export function validateConfigModel(model) {
     addIssue('error', 'Proxy Providers', `Duplicate proxy provider names: ${[...new Set(duplicateProxyProviders)].join(', ')}`, 'duplicate-proxy-provider-name')
   }
 
-  const validateRuleRefs = (rule, location) => {
+  const validateRuleRefs = (rule, location, currentSubRuleName = '') => {
     const [type, name, target] = splitRuleParts(rule)
     if (type === 'RULE-SET' && name && !providerNames.includes(name)) {
       addIssue('warning', location, `RULE-SET "${name}" has no rule provider.`, 'missing-rule-provider')
     }
     if (type === 'SUB-RULE' && target && !subRuleNames.has(target)) {
       addIssue('warning', location, `SUB-RULE "${target}" was not found.`, 'missing-sub-rule')
+    } else if (type === 'SUB-RULE' && subRuleReferenceCreatesCycle(currentSubRuleName, target, normalizedModel.subRules)) {
+      addIssue('error', location, `SUB-RULE "${target}" creates a cycle.`, 'cyclic-sub-rule-reference')
     }
     if (type === 'SUB-RULE') return
     if (target && !groupNames.has(target) && !proxyNames.has(target) && !['DIRECT', 'REJECT', 'GLOBAL'].includes(target)) {
@@ -340,7 +342,7 @@ export function validateConfigModel(model) {
   })
 
   Object.entries(normalizedModel.subRules || {}).forEach(([subRuleName, rules]) => {
-    rules.forEach((rule, index) => validateRuleRefs(rule, `Sub-rule ${subRuleName} rule ${index + 1}`))
+    rules.forEach((rule, index) => validateRuleRefs(rule, `Sub-rule ${subRuleName} rule ${index + 1}`, subRuleName))
   })
 
   normalizedModel.tunnels.forEach((tunnel, index) => {
@@ -2158,6 +2160,35 @@ function groupReferenceCreatesCycle(sourceName, targetName, groups) {
   const graph = new Map(groups.map((group) => [
     group.name,
     (Array.isArray(group.proxies) ? group.proxies : []).filter((name) => groupNames.has(name)),
+  ]))
+  graph.set(sourceName, [...new Set([...(graph.get(sourceName) || []), targetName])])
+
+  const seen = new Set()
+  const stack = [targetName]
+  while (stack.length) {
+    const name = stack.pop()
+    if (name === sourceName) return true
+    if (seen.has(name)) continue
+    seen.add(name)
+    stack.push(...(graph.get(name) || []))
+  }
+  return false
+}
+
+function subRuleReferenceCreatesCycle(sourceName, targetName, subRules) {
+  if (!sourceName || !targetName) return false
+  if (sourceName === targetName) return true
+  if (!subRules || typeof subRules !== 'object' || Array.isArray(subRules)) return false
+
+  const subRuleNames = new Set(Object.keys(subRules))
+  if (!subRuleNames.has(targetName)) return false
+
+  const graph = new Map(Object.entries(subRules).map(([name, rules]) => [
+    name,
+    (Array.isArray(rules) ? rules : [])
+      .map((rule) => splitRuleParts(rule))
+      .filter(([type, , target]) => type === 'SUB-RULE' && subRuleNames.has(target))
+      .map(([, , target]) => target),
   ]))
   graph.set(sourceName, [...new Set([...(graph.get(sourceName) || []), targetName])])
 
