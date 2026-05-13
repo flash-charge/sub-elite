@@ -879,6 +879,23 @@ test('general extra fields are preserved from editor models', () => {
   assert.doesNotMatch(yaml, /tcp-concurrent: true/)
 })
 
+test('profile extra fields are preserved from editor models', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    profile: {
+      storeSelected: false,
+      'store-selected': true,
+      'custom-profile-option': 'kept',
+    },
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.match(yaml, /profile:\n\s+custom-profile-option: "kept"/)
+  assert.doesNotMatch(yaml, /store-selected: true/)
+})
+
 test('sniffer extra fields are preserved from editor models', () => {
   const yaml = buildYamlFromModel({
     template: 'full',

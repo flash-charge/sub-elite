@@ -1001,12 +1001,14 @@ function buildGeneralAdvanced(model) {
 }
 
 function buildProfile(profile) {
-  if (!profile.storeSelected && !profile.storeFakeIp) return {}
+  const extra = omitKeys(profile, profileFieldKeys)
+  if (!profile.storeSelected && !profile.storeFakeIp && !Object.keys(extra).length) return {}
   return {
-    profile: {
+    profile: compact({
+      ...extra,
       'store-selected': profile.storeSelected,
       'store-fake-ip': profile.storeFakeIp,
-    },
+    }),
   }
 }
 
@@ -1696,11 +1698,20 @@ const generalFieldKeys = [
 ]
 
 function normalizeProfile(profile: ProxyNode = {}) {
+  const extra = omitKeys(profile, profileFieldKeys)
   return {
+    ...extra,
     storeSelected: Boolean(profile.storeSelected ?? profile['store-selected'] ?? createProfile().storeSelected),
     storeFakeIp: Boolean(profile.storeFakeIp ?? profile['store-fake-ip'] ?? createProfile().storeFakeIp),
   }
 }
+
+const profileFieldKeys = [
+  'storeSelected',
+  'store-selected',
+  'storeFakeIp',
+  'store-fake-ip',
+]
 
 function normalizeSniffer(sniffer: ProxyNode = {}) {
   const defaults = createSniffer()

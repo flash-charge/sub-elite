@@ -3167,7 +3167,9 @@ function updateGeneralFromEditor() {
     tcpConcurrent: generalTcpConcurrent.checked,
     etagSupport: generalEtagSupport.checked,
   }
+  const profileExtra = omitKeys(state.model.profile, profileFieldKeys)
   state.model.profile = {
+    ...profileExtra,
     storeSelected: profileStoreSelected.checked,
     storeFakeIp: profileStoreFakeIp.checked,
   }
@@ -4453,6 +4455,7 @@ function normalizeClientModel(model) {
     rulesPreset: model?.rulesPreset || 'proxy',
     general: normalizeClientGeneral(model?.general),
     profile: {
+      ...omitKeys(model?.profile, profileFieldKeys),
       storeSelected: Boolean(model?.profile?.storeSelected ?? model?.profile?.['store-selected']),
       storeFakeIp: Boolean(model?.profile?.storeFakeIp ?? model?.profile?.['store-fake-ip']),
     },
@@ -4487,6 +4490,13 @@ function normalizeClientModel(model) {
     rules: normalizeLineList(model?.rules, ['MATCH,PROXY']),
   }
 }
+
+const profileFieldKeys = [
+  'storeSelected',
+  'store-selected',
+  'storeFakeIp',
+  'store-fake-ip',
+]
 
 function normalizeFilename(value) {
   const cleaned = String(value || '').trim().replace(/[\\/:*?"<>|]+/g, '-')
