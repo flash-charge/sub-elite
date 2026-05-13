@@ -317,16 +317,26 @@ export function validateConfigModel(model) {
     if (['http', 'file'].includes(provider.type) && !provider.path) addIssue('warning', location, 'Proxy provider path is empty.', 'empty-proxy-provider-path')
     if (provider.type === 'inline') {
       if (!provider.payload.length) addIssue('warning', location, 'Proxy provider inline payload is empty.', 'empty-proxy-provider-payload')
+      const payloadNames = provider.payload
+        .filter(isPlainObject)
+        .map((payloadProxy) => String(payloadProxy.name || '').trim())
+        .filter(Boolean)
+      const duplicatePayloadNames = payloadNames.filter((name, nameIndex) => payloadNames.indexOf(name) !== nameIndex)
+      if (duplicatePayloadNames.length) {
+        addIssue('error', location, `Duplicate inline proxy payload names: ${[...new Set(duplicatePayloadNames)].join(', ')}`, 'duplicate-proxy-provider-payload-name')
+      }
       provider.payload.forEach((payloadProxy, payloadIndex) => {
         const payloadLocation = `${location} payload ${payloadIndex + 1}`
         if (!isPlainObject(payloadProxy)) {
           addIssue('error', payloadLocation, 'Inline proxy provider payload entries must be proxy objects.', 'invalid-proxy-provider-payload-entry')
           return
         }
-        const type = String(payloadProxy.type || '').toLowerCase()
-        if (!type) addIssue('error', payloadLocation, 'Inline proxy payload type is empty.', 'empty-proxy-type')
-        for (const field of REQUIRED_PROXY_FIELDS[type] || ['server', 'port']) {
-          if (isEmptyProxyField(payloadProxy[field])) {
+        if (hasRuleSeparator(payloadProxy.name)) addIssue('error', payloadLocation, 'Inline proxy payload name cannot contain commas.', 'invalid-proxy-provider-payload-name')
+        for (const field of missingProxyProviderPayloadFields(payloadProxy)) {
+          if (field === 'name') addIssue('error', payloadLocation, 'Inline proxy payload name is empty.', 'empty-proxy-provider-payload-name')
+          else if (field === 'type') addIssue('error', payloadLocation, 'Inline proxy payload type is empty.', 'empty-proxy-type')
+          else {
+            const type = String(payloadProxy.type || '').toLowerCase()
             addIssue('error', payloadLocation, `${payloadProxy.name || type || payloadIndex + 1} must have field "${field}".`, 'missing-proxy-provider-payload-field')
           }
         }
@@ -1292,7 +1302,7 @@ function buildProxyProviders(proxyProviders) {
             filter: provider.filter || undefined,
             'exclude-filter': provider.excludeFilter || undefined,
             'exclude-type': provider.excludeType || undefined,
-            payload: provider.type === 'inline' ? provider.payload.filter(isPlainObject) : undefined,
+            payload: provider.type === 'inline' ? provider.payload.filter(isValidProxyProviderPayloadProxy) : undefined,
           }),
         ]
       }),
@@ -1498,6 +1508,17 @@ function isEmptyProxyField(value) {
   if (typeof value === 'string' && value.trim() === '') return true
   if (Array.isArray(value) && value.length === 0) return true
   return false
+}
+
+function missingProxyProviderPayloadFields(proxy) {
+  if (!isPlainObject(proxy)) return ['name', 'type']
+  const type = String(proxy.type || '').toLowerCase()
+  const requiredFields = ['name', 'type', ...(REQUIRED_PROXY_FIELDS[type] || ['server', 'port'])]
+  return requiredFields.filter((field) => isEmptyProxyField(proxy[field]))
+}
+
+function isValidProxyProviderPayloadProxy(proxy) {
+  return isPlainObject(proxy) && !hasRuleSeparator(proxy.name) && missingProxyProviderPayloadFields(proxy).length === 0
 }
 
 function hasRuleSeparator(value) {

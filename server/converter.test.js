@@ -553,6 +553,9 @@ test('validateConfigModel rejects malformed inline proxy provider payload entrie
       payload: [
         'trojan://secret@example.com:443#Bad',
         { name: 'Broken', type: 'trojan', server: 'inline.example', port: 443 },
+        { name: '', type: 'trojan', server: 'empty.example', port: 443, password: 'secret' },
+        { name: 'Dup', type: 'trojan', server: 'dup-a.example', port: 443, password: 'secret' },
+        { name: 'Dup', type: 'trojan', server: 'dup-b.example', port: 443, password: 'secret' },
       ],
     }],
     rules: ['MATCH,PROXY'],
@@ -561,6 +564,8 @@ test('validateConfigModel rejects malformed inline proxy provider payload entrie
   assert.equal(result.valid, false)
   assert.equal(result.issues.some((issue) => issue.code === 'invalid-proxy-provider-payload-entry'), true)
   assert.equal(result.issues.some((issue) => issue.code === 'missing-proxy-provider-payload-field'), true)
+  assert.equal(result.issues.some((issue) => issue.code === 'empty-proxy-provider-payload-name'), true)
+  assert.equal(result.issues.some((issue) => issue.code === 'duplicate-proxy-provider-payload-name'), true)
 })
 
 test('validateConfigModel reports Mihomo structure mistakes more precisely', () => {
@@ -936,6 +941,7 @@ test('proxy provider inline payload omits malformed string entries', () => {
       type: 'inline',
       payload: [
         'trojan://secret@example.com:443#Bad',
+        { name: 'Broken', type: 'trojan', server: 'broken.example', port: 443 },
         { name: 'Inline A', type: 'trojan', server: 'inline.example', port: 443, password: 'secret' },
       ],
     }],
@@ -945,6 +951,7 @@ test('proxy provider inline payload omits malformed string entries', () => {
 
   assert.match(yaml, /payload:\n\s+-\n\s+name: "Inline A"/)
   assert.doesNotMatch(yaml, /trojan:\/\/secret@example\.com/)
+  assert.doesNotMatch(yaml, /name: "Broken"/)
 })
 
 test('proxy provider camelCase health check overrides imported kebab alias', () => {
