@@ -442,6 +442,12 @@ export function autoFixConfigModel(model) {
     }
   })
   makeUniqueProviderNames(fixed.proxyProviders, './proxy_providers')
+  const proxyProviderNames = new Set(fixed.proxyProviders.map((provider) => provider.name).filter(Boolean))
+  fixed.groups.forEach((group) => {
+    const previousLength = group.use.length
+    group.use = group.use.filter((name) => proxyProviderNames.has(name))
+    if (group.use.length !== previousLength) fixes.push(`Missing proxy providers were removed from group ${group.name || 'PROXY'}.`)
+  })
 
   fixed.tunnels.forEach((tunnel) => {
     if (tunnel.proxy && !validProviderProxyName(tunnel.proxy, fixed)) {
@@ -1327,6 +1333,7 @@ function normalizePorts(value) {
 function buildProxyGroups(model, proxies) {
   const proxyNames = proxies.map((proxy) => proxy.name)
   const groupNames = model.groups.map((group) => group.name)
+  const proxyProviderNames = new Set(model.proxyProviders.map((provider) => provider.name).filter(Boolean))
 
   return model.groups.map((group) => {
     const type = groupTypes.includes(group.type) ? group.type : 'select'
@@ -1375,7 +1382,7 @@ function buildProxyGroups(model, proxies) {
       name: group.name || 'PROXY',
       type,
       proxies: filteredNames.length ? filteredNames : fallbackNames,
-      use: group.use.length ? group.use : undefined,
+      use: group.use.filter((name) => proxyProviderNames.has(name)),
       'include-all': group.includeAll || undefined,
       'include-all-proxies': group.includeAllProxies || undefined,
       'include-all-providers': group.includeAllProviders || undefined,
@@ -1397,6 +1404,7 @@ function buildProxyGroups(model, proxies) {
       normalizedGroup.url = group.url || 'http://www.gstatic.com/generate_204'
       normalizedGroup.interval = Number(group.interval) || 300
     }
+    if (!normalizedGroup.use.length) delete normalizedGroup.use
 
     return normalizedGroup
   })

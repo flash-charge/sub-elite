@@ -681,7 +681,7 @@ test('validateConfigModel reports missing provider proxy references', () => {
   const result = validateConfigModel({
     template: 'full',
     proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', 'dialer-proxy': 'Missing', enabled: true }],
-    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'], use: ['MissingProvider'] }],
     ruleProviders: [{ name: 'rules', type: 'http', behavior: 'domain', path: './rules/rules.yaml', url: 'https://example.com/rules.yaml', proxy: 'Missing' }],
     proxyProviders: [{ name: 'nodes', type: 'http', path: './proxy_providers/nodes.yaml', url: 'https://example.com/nodes.yaml', proxy: 'Missing' }],
     tunnels: [{ network: ['tcp'], address: '127.0.0.1:6553', target: '8.8.8.8:53', proxy: 'Missing' }],
@@ -691,6 +691,7 @@ test('validateConfigModel reports missing provider proxy references', () => {
   assert.equal(result.issues.filter((issue) => issue.code === 'missing-provider-proxy').length, 2)
   assert.equal(result.issues.filter((issue) => issue.code === 'missing-tunnel-proxy').length, 1)
   assert.equal(result.issues.filter((issue) => issue.code === 'missing-dialer-proxy').length, 1)
+  assert.equal(result.issues.filter((issue) => issue.code === 'missing-proxy-provider').length, 1)
 })
 
 test('autoFixConfigModel applies safe fixes without removing user config', () => {
@@ -700,7 +701,7 @@ test('autoFixConfigModel applies safe fixes without removing user config', () =>
       { name: 'Same', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true },
       { name: 'Same', type: 'trojan', server: 'b.example', port: 'bad', password: 'x', 'dialer-proxy': 'Missing', enabled: true },
     ],
-    groups: [],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['Same'], use: ['MissingProvider'] }],
     ruleProviders: [{ name: 'ads', behavior: 'domain', path: '', url: 'https://example.com/ads.yaml', proxy: 'Missing' }],
     proxyProviders: [{ name: 'remote', type: 'http', path: '', url: 'https://example.com/sub.yaml', proxy: 'Missing' }],
     tunnels: [{ network: ['tcp'], address: '127.0.0.1:6553', target: '8.8.8.8:53', proxy: 'Missing' }],
@@ -714,6 +715,7 @@ test('autoFixConfigModel applies safe fixes without removing user config', () =>
   assert.equal(result.model.proxies[1].name, 'Same 2')
   assert.equal(result.model.proxies[1].port, 443)
   assert.equal(result.model.groups.length > 0, true)
+  assert.deepEqual(result.model.groups[0].use, [])
   assert.equal(result.model.ruleProviders[0].path, './rules/ads.yaml')
   assert.equal(result.model.ruleProviders[0].proxy, '')
   assert.equal(result.model.proxyProviders[0].proxy, '')
@@ -722,6 +724,20 @@ test('autoFixConfigModel applies safe fixes without removing user config', () =>
   assert.deepEqual(result.model.rules, ['DOMAIN,example.com,PROXY', 'MATCH,PROXY'])
   assert.deepEqual(result.model.subRules.nested, ['MATCH,PROXY'])
   assert.match(yaml, /MATCH,PROXY/)
+  assert.doesNotMatch(yaml, /MissingProvider/)
+})
+
+test('buildYamlFromModel omits missing proxy providers from group use', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'], use: ['MissingProvider'] }],
+    proxyProviders: [],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.doesNotMatch(yaml, /MissingProvider/)
+  assert.doesNotMatch(yaml, /use:/)
 })
 
 test('rule provider model supports target metadata without leaking it to yaml', () => {
