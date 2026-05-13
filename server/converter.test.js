@@ -857,6 +857,27 @@ test('geo kebab aliases are normalized from yaml-shaped models', () => {
   assert.match(yaml, /geoip: "https:\/\/example\.com\/geoip\.dat"/)
 })
 
+test('geo custom URLs are preserved when update toggles are disabled', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    geo: {
+      geodataMode: false,
+      geoAutoUpdate: false,
+      geoxUrl: {
+        geoip: 'https://example.com/geoip.dat',
+        geosite: 'https://example.com/geosite.dat',
+      },
+    },
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.match(yaml, /geox-url:/)
+  assert.match(yaml, /geoip: "https:\/\/example\.com\/geoip\.dat"/)
+  assert.match(yaml, /geosite: "https:\/\/example\.com\/geosite\.dat"/)
+})
+
 test('general tls custom fields are preserved from yaml-shaped models', () => {
   const yaml = buildYamlFromModel({
     template: 'full',

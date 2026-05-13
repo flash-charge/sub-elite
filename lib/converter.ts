@@ -1055,8 +1055,13 @@ function buildGeo(geo) {
     'geodata-mode': geo.geodataMode,
     'geo-auto-update': geo.geoAutoUpdate,
     'geo-update-interval': geo.geoUpdateInterval,
-    'geox-url': geo.geodataMode || geo.geoAutoUpdate ? geo.geoxUrl : undefined,
+    'geox-url': geo.geodataMode || geo.geoAutoUpdate || hasCustomGeoUrl(geo.geoxUrl) ? geo.geoxUrl : undefined,
   })
+}
+
+function hasCustomGeoUrl(geoxUrl = {}) {
+  const defaults = createGeo().geoxUrl
+  return Object.keys(defaults).some((key) => geoxUrl[key] && geoxUrl[key] !== defaults[key])
 }
 
 function buildDns(dns) {
