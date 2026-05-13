@@ -1277,6 +1277,67 @@ test('string false editor booleans remain disabled before export', () => {
   assert.doesNotMatch(yaml, /hidden: true/)
 })
 
+test('string false advanced editor booleans remain disabled before export', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    general: {
+      allowLan: 'false',
+      ipv6: 'false',
+      disableKeepAlive: 'false',
+      unifiedDelay: 'false',
+      tcpConcurrent: 'false',
+      etagSupport: 'false',
+    },
+    profile: {
+      storeSelected: 'false',
+      storeFakeIp: 'false',
+    },
+    dns: {
+      enable: 'false',
+      ipv6: 'false',
+      preferH3: 'false',
+      useHosts: 'false',
+      useSystemHosts: 'false',
+      respectRules: 'false',
+      directNameserverFollowPolicy: 'false',
+    },
+    sniffer: {
+      enable: 'false',
+      parsePureIp: 'false',
+      forceDnsMapping: 'false',
+    },
+    tun: {
+      enable: 'false',
+      autoRedirect: 'false',
+      strictRoute: 'false',
+      gso: 'false',
+      endpointIndependentNat: 'false',
+    },
+    ntp: {
+      enable: 'false',
+      writeToSystem: 'false',
+    },
+    geo: {
+      geodataMode: 'false',
+      geoAutoUpdate: 'false',
+    },
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.doesNotMatch(yaml, /allow-lan: true/)
+  assert.doesNotMatch(yaml, /tcp-concurrent: true/)
+  assert.doesNotMatch(yaml, /store-selected: true/)
+  assert.doesNotMatch(yaml, /prefer-h3: true/)
+  assert.doesNotMatch(yaml, /direct-nameserver-follow-policy: true/)
+  assert.doesNotMatch(yaml, /force-dns-mapping: true/)
+  assert.doesNotMatch(yaml, /auto-redirect: true/)
+  assert.doesNotMatch(yaml, /endpoint-independent-nat: true/)
+  assert.doesNotMatch(yaml, /write-to-system: true/)
+  assert.doesNotMatch(yaml, /geodata-mode: true/)
+})
+
 test('geo kebab aliases are normalized from yaml-shaped models', () => {
   const yaml = buildYamlFromModel({
     template: 'full',
