@@ -1978,6 +1978,7 @@ function normalizeObject(value: ProxyNode = {}) {
 
 function normalizeProxyModelNode(proxy: ProxyNode = {}) {
   const normalized = { ...proxy }
+  normalized.name = String(normalized.name || '').trim()
   normalized.type = String(normalized.type || '').trim().toLowerCase()
   if (normalized.network !== undefined) normalized.network = String(normalized.network || '').trim().toLowerCase()
   return normalized
@@ -2111,6 +2112,7 @@ function normalizeProxyProvider(provider: ProxyNode = {}) {
 }
 
 function normalizeGroup(group: ProxyNode = {}) {
+  const groupType = String(group.type || '').trim().toLowerCase()
   const extra = omitKeys(group, [
     'name',
     'type',
@@ -2147,7 +2149,7 @@ function normalizeGroup(group: ProxyNode = {}) {
   return {
     ...extra,
     name: String(group.name || 'PROXY').trim(),
-    type: groupTypes.includes(group.type) ? group.type : 'select',
+    type: groupTypes.includes(groupType) ? groupType : 'select',
     proxies: normalizeList(group.proxies, []),
     use: normalizeList(group.use, []),
     url: String(group.url || '').trim(),

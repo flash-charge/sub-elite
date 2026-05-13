@@ -593,6 +593,28 @@ test('proxy type and network are normalized before validation and export', () =>
   assert.match(yaml, /Host: "upper\.example"/)
 })
 
+test('imported proxy and group names are trimmed before references are resolved', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    proxies: [{
+      name: ' A ',
+      type: ' Trojan ',
+      server: 'a.example',
+      port: 443,
+      password: 'x',
+      enabled: true,
+    }],
+    groups: [{ name: ' PROXY ', type: ' Url-Test ', proxies: ['A'], url: 'https://example.com/generate_204' }],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.match(yaml, /name: "A"/)
+  assert.match(yaml, /name: "PROXY"/)
+  assert.match(yaml, /type: "url-test"/)
+  assert.match(yaml, /proxies:\n\s+- "A"/)
+  assert.doesNotMatch(yaml, /name: " A "/)
+})
+
 test('validateConfigModel rejects malformed inline proxy provider payload entries', () => {
   const result = validateConfigModel({
     template: 'full',

@@ -4143,6 +4143,7 @@ function normalizeClientProxyProvider(provider) {
 }
 
 function normalizeClientGroup(group) {
+  const groupType = String(group.type || '').trim().toLowerCase()
   const rest = { ...group }
   delete rest['include-all']
   delete rest['include-all-proxies']
@@ -4156,6 +4157,8 @@ function normalizeClientGroup(group) {
   delete rest['expected-status']
   return {
     ...rest,
+    name: String(group.name || 'PROXY').trim(),
+    type: ['select', 'url-test', 'fallback', 'load-balance', 'relay'].includes(groupType) ? groupType : 'select',
     proxies: normalizeTextList(group.proxies, []),
     use: normalizeTextList(group.use, []),
     includeAll: Boolean(group.includeAll ?? group['include-all']),
@@ -4733,6 +4736,7 @@ function normalizeProxyType(type) {
 function normalizeClientProxyNode(proxy) {
   return {
     ...proxy,
+    name: String(proxy.name || '').trim(),
     type: normalizeProxyType(proxy.type),
     network: proxy.network === undefined ? undefined : String(proxy.network || '').trim().toLowerCase(),
     enabled: proxy.enabled !== false,
