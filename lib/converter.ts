@@ -291,8 +291,12 @@ export function validateConfigModel(model) {
     const location = `Provider ${provider.name || index + 1}`
     if (!provider.name) addIssue('error', location, 'Provider name is empty.', 'empty-provider-name')
     if (hasRuleSeparator(provider.name)) addIssue('error', location, 'Provider name cannot contain commas.', 'invalid-provider-name')
-    if (!provider.url) addIssue('warning', location, 'Provider URL is empty.', 'empty-provider-url')
-    if (!provider.path) addIssue('warning', location, 'Provider path is empty.', 'empty-provider-path')
+    if (!['http', 'file', 'inline'].includes(provider.type)) {
+      addIssue('warning', location, `Provider type "${provider.type}" is uncommon for Mihomo.`, 'invalid-provider-type')
+    }
+    if (provider.type === 'http' && !provider.url) addIssue('warning', location, 'Provider URL is empty.', 'empty-provider-url')
+    if (['http', 'file'].includes(provider.type) && !provider.path) addIssue('warning', location, 'Provider path is empty.', 'empty-provider-path')
+    if (provider.type === 'inline' && !provider.payload.length) addIssue('warning', location, 'Provider inline payload is empty.', 'empty-provider-payload')
     if (!['classical', 'domain', 'ipcidr'].includes(provider.behavior)) {
       addIssue('warning', location, `Behavior "${provider.behavior}" is uncommon for Mihomo.`, 'invalid-provider-behavior')
     }
@@ -310,7 +314,8 @@ export function validateConfigModel(model) {
     if (!provider.name) addIssue('error', location, 'Proxy provider name is empty.', 'empty-proxy-provider-name')
     if (hasRuleSeparator(provider.name)) addIssue('error', location, 'Proxy provider name cannot contain commas.', 'invalid-proxy-provider-name')
     if (provider.type === 'http' && !provider.url) addIssue('warning', location, 'Proxy provider URL is empty.', 'empty-proxy-provider-url')
-    if (!provider.path) addIssue('warning', location, 'Proxy provider path is empty.', 'empty-proxy-provider-path')
+    if (['http', 'file'].includes(provider.type) && !provider.path) addIssue('warning', location, 'Proxy provider path is empty.', 'empty-proxy-provider-path')
+    if (provider.type === 'inline' && !provider.payload.length) addIssue('warning', location, 'Proxy provider inline payload is empty.', 'empty-proxy-provider-payload')
     if (provider.proxy && !validProviderProxies.has(provider.proxy)) {
       addIssue('warning', location, `Proxy provider proxy "${provider.proxy}" was not found.`, 'missing-provider-proxy')
     }

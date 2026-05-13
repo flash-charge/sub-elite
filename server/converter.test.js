@@ -490,6 +490,33 @@ test('validateConfigModel returns structured issues for advanced checks', () => 
   assert.ok(result.issues.some((issue) => issue.code === 'missing-rule-provider'))
 })
 
+test('validateConfigModel accepts inline providers without remote source warnings', () => {
+  const result = validateConfigModel({
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'], use: ['inline-nodes'] }],
+    ruleProviders: [{
+      name: 'inline-rules',
+      type: 'inline',
+      behavior: 'classical',
+      payload: ['DOMAIN-SUFFIX,example.com'],
+    }],
+    proxyProviders: [{
+      name: 'inline-nodes',
+      type: 'inline',
+      payload: [{ name: 'Inline A', type: 'trojan', server: 'inline.example', port: 443, password: 'secret' }],
+    }],
+    rules: ['RULE-SET,inline-rules,PROXY', 'MATCH,PROXY'],
+  })
+
+  assert.equal(result.issues.some((issue) => issue.code === 'empty-provider-url'), false)
+  assert.equal(result.issues.some((issue) => issue.code === 'empty-provider-path'), false)
+  assert.equal(result.issues.some((issue) => issue.code === 'empty-proxy-provider-url'), false)
+  assert.equal(result.issues.some((issue) => issue.code === 'empty-proxy-provider-path'), false)
+  assert.equal(result.issues.some((issue) => issue.code === 'empty-provider-payload'), false)
+  assert.equal(result.issues.some((issue) => issue.code === 'empty-proxy-provider-payload'), false)
+})
+
 test('validateConfigModel reports Mihomo structure mistakes more precisely', () => {
   const model = {
     template: 'full',
