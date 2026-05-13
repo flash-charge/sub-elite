@@ -1386,7 +1386,7 @@ function buildProxyGroups(model, proxies) {
       'include-all': group.includeAll || undefined,
       'include-all-proxies': group.includeAllProxies || undefined,
       'include-all-providers': group.includeAllProviders || undefined,
-      lazy: group.lazy || undefined,
+      lazy: group.lazy,
       timeout: group.timeout || undefined,
       'max-failed-times': group.maxFailedTimes || undefined,
       'disable-udp': group.disableUdp || undefined,

@@ -1126,11 +1126,13 @@ test('proxy group extra fields are preserved from editor models', () => {
       strategy: 'consistent-hashing',
       'include-all': true,
       includeAll: false,
+      lazy: false,
     }],
     rules: ['MATCH,PROXY'],
   })
 
   assert.match(yaml, /strategy: "consistent-hashing"/)
+  assert.match(yaml, /lazy: false/)
   assert.doesNotMatch(yaml, /include-all: true/)
 })
 
