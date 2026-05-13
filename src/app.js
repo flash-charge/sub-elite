@@ -5081,8 +5081,8 @@ function renderTransportFields(proxy) {
     ], [
       `<label><span>ws-opts.max-early-data</span><input type="text" data-field="transport:ws-opts.max-early-data:number" value="${escapeAttr(proxy['ws-opts']?.['max-early-data'] || '')}"></label>`,
       `<label><span>ws-opts.early-data-header-name</span><input type="text" data-field="transport:ws-opts.early-data-header-name" value="${escapeAttr(proxy['ws-opts']?.['early-data-header-name'] || '')}"></label>`,
-      `<label><span>ws-opts.v2ray-http-upgrade</span><select data-field="transport:ws-opts.v2ray-http-upgrade:boolean-string">${renderSelectOptions(['false', 'true'], String(Boolean(proxy['ws-opts']?.['v2ray-http-upgrade'])))}</select></label>`,
-      `<label><span>ws-opts.v2ray-http-upgrade-fast-open</span><select data-field="transport:ws-opts.v2ray-http-upgrade-fast-open:boolean-string">${renderSelectOptions(['false', 'true'], String(Boolean(proxy['ws-opts']?.['v2ray-http-upgrade-fast-open'])))}</select></label>`,
+      `<label><span>ws-opts.v2ray-http-upgrade</span><select data-field="transport:ws-opts.v2ray-http-upgrade:boolean-string">${renderSelectOptions(['false', 'true'], booleanSelectValue(proxy['ws-opts']?.['v2ray-http-upgrade']))}</select></label>`,
+      `<label><span>ws-opts.v2ray-http-upgrade-fast-open</span><select data-field="transport:ws-opts.v2ray-http-upgrade-fast-open:boolean-string">${renderSelectOptions(['false', 'true'], booleanSelectValue(proxy['ws-opts']?.['v2ray-http-upgrade-fast-open']))}</select></label>`,
     ])
   }
 

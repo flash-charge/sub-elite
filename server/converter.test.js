@@ -381,6 +381,33 @@ test('ws http upgrade options are emitted as booleans', () => {
   assert.match(yaml, /v2ray-http-upgrade-fast-open: false/)
 })
 
+test('ws http upgrade string false options remain disabled before export', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    proxies: [{
+      name: 'WS',
+      type: 'vless',
+      server: 'example.com',
+      port: 443,
+      uuid: 'uuid',
+      network: 'ws',
+      'ws-opts': {
+        path: '/ws',
+        'v2ray-http-upgrade': 'false',
+        'v2ray-http-upgrade-fast-open': 'false',
+      },
+      enabled: true,
+    }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['WS'] }],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.match(yaml, /v2ray-http-upgrade: false/)
+  assert.match(yaml, /v2ray-http-upgrade-fast-open: false/)
+  assert.doesNotMatch(yaml, /v2ray-http-upgrade: true/)
+  assert.doesNotMatch(yaml, /v2ray-http-upgrade-fast-open: true/)
+})
+
 test('parseLink supports socks and hysteria links', () => {
   const socks = parseLink('socks5://user:pass@example.com:1080?udp=true#Socks')
   const hysteria = parseLink('hysteria://auth@example.com:443?protocol=udp&up=50&down=100&sni=example.com#Hy')

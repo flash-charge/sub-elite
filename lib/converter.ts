@@ -2404,8 +2404,8 @@ function stripUiProxyFields(proxy) {
   if (cleanProxy.network === 'ws') {
     cleanProxy['ws-opts'] = {
       ...(cleanProxy['ws-opts'] || {}),
-      'v2ray-http-upgrade': Boolean(cleanProxy['ws-opts']?.['v2ray-http-upgrade']),
-      'v2ray-http-upgrade-fast-open': Boolean(cleanProxy['ws-opts']?.['v2ray-http-upgrade-fast-open']),
+      'v2ray-http-upgrade': normalizeBooleanValue(cleanProxy['ws-opts']?.['v2ray-http-upgrade']),
+      'v2ray-http-upgrade-fast-open': normalizeBooleanValue(cleanProxy['ws-opts']?.['v2ray-http-upgrade-fast-open']),
     }
   }
   if (cleanProxy.network === 'xhttp') applyXhttpDefaults(cleanProxy)
