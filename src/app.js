@@ -1917,7 +1917,7 @@ function policyTargetOptions() {
     .filter((proxy) => proxy.enabled !== false)
     .map((proxy) => proxy.name)
     .filter((name) => name && !nameHasRuleSeparator(name))
-  return uniqueList(['PROXY', 'DIRECT', 'REJECT', ...groupNames, ...proxyNames])
+  return uniqueList(['PROXY', 'DIRECT', 'REJECT', 'GLOBAL', ...groupNames, ...proxyNames])
 }
 
 function renderRuleTargetOptions() {
