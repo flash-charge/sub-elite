@@ -878,6 +878,24 @@ test('geo extra fields are preserved from editor models', () => {
   assert.doesNotMatch(yaml, /geodata-mode: true/)
 })
 
+test('ntp extra fields are preserved from editor models', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    ntp: {
+      enable: false,
+      'custom-ntp-option': 'kept',
+      'write-to-system': true,
+      writeToSystem: false,
+    },
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.match(yaml, /ntp:\n\s+custom-ntp-option: "kept"/)
+  assert.doesNotMatch(yaml, /write-to-system: true/)
+})
+
 test('general extra fields are preserved from editor models', () => {
   const yaml = buildYamlFromModel({
     template: 'full',

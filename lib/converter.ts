@@ -1117,9 +1117,11 @@ function buildTun(tun, rawTun) {
 function buildNtp(ntp, rawNtp) {
   const raw = normalizeRawSection(rawNtp)
   if (raw) return { ntp: raw }
-  if (!ntp.enable) return {}
+  const extra = omitKeys(ntp, ntpFieldKeys)
+  if (!ntp.enable && !Object.keys(extra).length) return {}
   const config = compact({
-    enable: true,
+    ...extra,
+    enable: ntp.enable ? true : undefined,
     server: ntp.server || undefined,
     port: ntp.port || undefined,
     interval: ntp.interval || undefined,
@@ -1843,7 +1845,9 @@ const tunFieldKeys = [
 
 function normalizeNtp(ntp: ProxyNode = {}) {
   const defaults = createNtp()
+  const extra = omitKeys(ntp, ntpFieldKeys)
   return {
+    ...extra,
     enable: Boolean(ntp.enable),
     writeToSystem: Boolean(ntp.writeToSystem ?? ntp['write-to-system']),
     server: String(ntp.server || defaults.server).trim(),
@@ -1851,6 +1855,15 @@ function normalizeNtp(ntp: ProxyNode = {}) {
     interval: Number(ntp.interval) || defaults.interval,
   }
 }
+
+const ntpFieldKeys = [
+  'enable',
+  'writeToSystem',
+  'write-to-system',
+  'server',
+  'port',
+  'interval',
+]
 
 function normalizeObject(value: ProxyNode = {}) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {}

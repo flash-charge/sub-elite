@@ -3877,6 +3877,7 @@ function yamlTunToModel(tun) {
 
 function yamlNtpToModel(ntp) {
   return {
+    ...omitKeys(ntp, ntpFieldKeys),
     enable: ntp.enable,
     writeToSystem: ntp['write-to-system'],
     server: ntp.server,
@@ -4440,7 +4441,9 @@ const tunFieldKeys = [
 ]
 
 function normalizeClientNtp(ntp = {}) {
+  const extra = omitKeys(ntp, ntpFieldKeys)
   return {
+    ...extra,
     enable: Boolean(ntp.enable),
     writeToSystem: Boolean(ntp.writeToSystem ?? ntp['write-to-system']),
     server: ntp.server || 'time.apple.com',
@@ -4448,6 +4451,15 @@ function normalizeClientNtp(ntp = {}) {
     interval: ntp.interval || 30,
   }
 }
+
+const ntpFieldKeys = [
+  'enable',
+  'writeToSystem',
+  'write-to-system',
+  'server',
+  'port',
+  'interval',
+]
 
 function normalizeSniffForText(value, fallback) {
   if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean)
