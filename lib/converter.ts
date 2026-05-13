@@ -228,11 +228,15 @@ export function validateConfigModel(model) {
   if (!normalizedModel.dns.listen) addIssue('warning', 'DNS', 'DNS listen is empty.', 'empty-dns-listen')
   if (normalizedModel.tun.enable && !normalizedModel.tun.stack) addIssue('error', 'TUN', 'TUN stack is required when TUN is enabled.', 'empty-tun-stack')
   if (normalizedModel.sniffer.enable && !hasSniffProtocols(normalizedModel.sniffer.sniff)) addIssue('warning', 'Sniffer', 'Sniffer is enabled without sniff protocols.', 'empty-sniff')
+  Object.keys(normalizedModel.subRules || {}).forEach((name) => {
+    if (hasRuleSeparator(name)) addIssue('error', `Sub-rule ${name}`, 'Sub-rule name cannot contain commas.', 'invalid-sub-rule-name')
+  })
 
   enabledProxies.forEach((proxy, index) => {
-    if (['direct', 'dns'].includes(proxy.type)) return
     const location = `Node ${index + 1}`
     const type = String(proxy.type || '').toLowerCase()
+    if (hasRuleSeparator(proxy.name)) addIssue('error', location, 'Node name cannot contain commas.', 'invalid-proxy-name')
+    if (['direct', 'dns'].includes(proxy.type)) return
     if (!type) addIssue('error', location, `Node type ${proxy.name || index + 1} is empty.`, 'empty-proxy-type')
     for (const field of REQUIRED_PROXY_FIELDS[type] || ['server', 'port']) {
       if (isEmptyProxyField(proxy[field])) {
@@ -257,6 +261,7 @@ export function validateConfigModel(model) {
 
   normalizedModel.groups.forEach((group, index) => {
     if (!group.name) addIssue('error', `Group ${index + 1}`, 'Group name is empty.', 'empty-group-name')
+    if (hasRuleSeparator(group.name)) addIssue('error', `Group ${index + 1}`, 'Group name cannot contain commas.', 'invalid-group-name')
     if (!groupTypes.includes(group.type)) addIssue('error', `Group ${group.name || index + 1}`, `Group type "${group.type}" is invalid.`, 'invalid-group-type')
     if (!group.proxies.length) addIssue('warning', `Group ${group.name || index + 1}`, 'Proxy list is empty.', 'empty-group-proxies')
     group.proxies.forEach((name) => {
@@ -282,6 +287,7 @@ export function validateConfigModel(model) {
   normalizedModel.ruleProviders.forEach((provider, index) => {
     const location = `Provider ${provider.name || index + 1}`
     if (!provider.name) addIssue('error', location, 'Provider name is empty.', 'empty-provider-name')
+    if (hasRuleSeparator(provider.name)) addIssue('error', location, 'Provider name cannot contain commas.', 'invalid-provider-name')
     if (!provider.url) addIssue('warning', location, 'Provider URL is empty.', 'empty-provider-url')
     if (!provider.path) addIssue('warning', location, 'Provider path is empty.', 'empty-provider-path')
     if (!['classical', 'domain', 'ipcidr'].includes(provider.behavior)) {
@@ -299,6 +305,7 @@ export function validateConfigModel(model) {
   normalizedModel.proxyProviders.forEach((provider, index) => {
     const location = `Proxy Provider ${provider.name || index + 1}`
     if (!provider.name) addIssue('error', location, 'Proxy provider name is empty.', 'empty-proxy-provider-name')
+    if (hasRuleSeparator(provider.name)) addIssue('error', location, 'Proxy provider name cannot contain commas.', 'invalid-proxy-provider-name')
     if (provider.type === 'http' && !provider.url) addIssue('warning', location, 'Proxy provider URL is empty.', 'empty-proxy-provider-url')
     if (!provider.path) addIssue('warning', location, 'Proxy provider path is empty.', 'empty-proxy-provider-path')
     if (provider.proxy && !validProviderProxies.has(provider.proxy)) {
@@ -1428,6 +1435,10 @@ function isEmptyProxyField(value) {
   if (typeof value === 'string' && value.trim() === '') return true
   if (Array.isArray(value) && value.length === 0) return true
   return false
+}
+
+function hasRuleSeparator(value) {
+  return String(value || '').includes(',')
 }
 
 function makeUniqueNames(proxies) {

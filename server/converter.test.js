@@ -537,6 +537,24 @@ test('validateConfigModel accepts direct node names as rule targets', () => {
   assert.equal(result.issues.some((issue) => issue.code === 'missing-rule-target'), false)
 })
 
+test('validateConfigModel rejects comma-separated editor names', () => {
+  const result = validateConfigModel({
+    template: 'full',
+    proxies: [{ name: 'Node,A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'Group,A', type: 'select', proxies: ['Node,A'] }],
+    ruleProviders: [{ name: 'rules,A', type: 'http', behavior: 'domain', path: './rules/a.yaml', url: 'https://example.com/a.yaml' }],
+    proxyProviders: [{ name: 'nodes,A', type: 'http', path: './proxy_providers/a.yaml', url: 'https://example.com/a.yaml' }],
+    subRules: { 'sub,A': ['MATCH,DIRECT'] },
+    rules: ['MATCH,Group,A'],
+  })
+
+  assert.equal(result.issues.some((issue) => issue.code === 'invalid-proxy-name'), true)
+  assert.equal(result.issues.some((issue) => issue.code === 'invalid-group-name'), true)
+  assert.equal(result.issues.some((issue) => issue.code === 'invalid-provider-name'), true)
+  assert.equal(result.issues.some((issue) => issue.code === 'invalid-proxy-provider-name'), true)
+  assert.equal(result.issues.some((issue) => issue.code === 'invalid-sub-rule-name'), true)
+})
+
 test('validateConfigModel rejects node and group name collisions', () => {
   const result = validateConfigModel({
     template: 'full',
