@@ -4584,7 +4584,9 @@ function normalizeClientModel(model) {
     rawSections: isPlainObject(model?.rawSections)
       ? Object.fromEntries(Object.entries(model.rawSections).filter(([, value]) => isPlainObject(value)))
       : {},
-    proxies: Array.isArray(model?.proxies) ? model.proxies.filter(isPlainObject).map((proxy) => ({ ...proxy, enabled: proxy.enabled !== false })) : [],
+    proxies: Array.isArray(model?.proxies)
+      ? model.proxies.filter(isPlainObject).map(normalizeClientProxyNode)
+      : [],
     groups: Array.isArray(model?.groups)
       ? model.groups
         .filter(isPlainObject)
@@ -4726,6 +4728,15 @@ function valueOrEmpty(value) {
 
 function normalizeProxyType(type) {
   return String(type || '').trim().toLowerCase()
+}
+
+function normalizeClientProxyNode(proxy) {
+  return {
+    ...proxy,
+    type: normalizeProxyType(proxy.type),
+    network: proxy.network === undefined ? undefined : String(proxy.network || '').trim().toLowerCase(),
+    enabled: proxy.enabled !== false,
+  }
 }
 
 function supportedNetworksForProxy(proxy) {

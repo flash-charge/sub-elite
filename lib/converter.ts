@@ -1604,7 +1604,7 @@ function normalizeModel(model) {
     tunnels: Array.isArray(model?.tunnels) ? model.tunnels.filter(isPlainObject).map(normalizeTunnel) : [],
     extraTopLevel: model?.extraTopLevel && typeof model.extraTopLevel === 'object' && !Array.isArray(model.extraTopLevel) ? model.extraTopLevel : {},
     rawSections: normalizeRawSections(model?.rawSections),
-    proxies: Array.isArray(model?.proxies) ? model.proxies.filter(isPlainObject).map((proxy) => ({ ...proxy })) : [],
+    proxies: Array.isArray(model?.proxies) ? model.proxies.filter(isPlainObject).map(normalizeProxyModelNode) : [],
     groups: Array.isArray(model?.groups) ? model.groups.filter(isPlainObject).map(normalizeGroup) : [],
     rules: Array.isArray(model?.rules) ? model.rules.map((rule) => String(rule).trim()).filter(Boolean) : [],
   }
@@ -1974,6 +1974,13 @@ const ntpFieldKeys = [
 function normalizeObject(value: ProxyNode = {}) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
   return { ...value }
+}
+
+function normalizeProxyModelNode(proxy: ProxyNode = {}) {
+  const normalized = { ...proxy }
+  normalized.type = String(normalized.type || '').trim().toLowerCase()
+  if (normalized.network !== undefined) normalized.network = String(normalized.network || '').trim().toLowerCase()
+  return normalized
 }
 
 function isPlainObject(value) {

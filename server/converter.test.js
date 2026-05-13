@@ -570,6 +570,29 @@ test('provider types are normalized before validation and export', () => {
   assert.match(yaml, /remote-nodes:\n\s+type: "http"/)
 })
 
+test('proxy type and network are normalized before validation and export', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    proxies: [{
+      name: 'Upper',
+      type: ' VLESS ',
+      server: 'upper.example',
+      port: 443,
+      uuid: '11111111-1111-1111-1111-111111111111',
+      network: ' WS ',
+      'ws-opts': { path: '/ws', headers: { Host: 'upper.example' } },
+      enabled: true,
+    }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['Upper'] }],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.match(yaml, /type: "vless"/)
+  assert.match(yaml, /network: "ws"/)
+  assert.match(yaml, /ws-opts:/)
+  assert.match(yaml, /Host: "upper\.example"/)
+})
+
 test('validateConfigModel rejects malformed inline proxy provider payload entries', () => {
   const result = validateConfigModel({
     template: 'full',
