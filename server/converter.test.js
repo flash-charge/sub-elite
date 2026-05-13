@@ -665,6 +665,30 @@ test('inline proxy provider payload nodes are normalized before validation and e
   assert.doesNotMatch(yaml, /type: " VLESS "/)
 })
 
+test('imported dialer proxy references are trimmed before validation and export', () => {
+  const model = {
+    template: 'full',
+    proxies: [{
+      name: 'A',
+      type: 'trojan',
+      server: 'a.example',
+      port: 443,
+      password: 'x',
+      'dialer-proxy': ' PROXY ',
+      enabled: true,
+    }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
+    rules: ['MATCH,PROXY'],
+  }
+  const validation = validateConfigModel(model)
+  const yaml = buildYamlFromModel(model)
+  const fixed = autoFixConfigModel(model)
+
+  assert.equal(validation.issues.some((issue) => issue.code === 'missing-dialer-proxy'), false)
+  assert.match(yaml, /dialer-proxy: "PROXY"/)
+  assert.equal(fixed.model.proxies[0]['dialer-proxy'], 'PROXY')
+})
+
 test('validateConfigModel rejects malformed inline proxy provider payload entries', () => {
   const result = validateConfigModel({
     template: 'full',

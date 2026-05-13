@@ -1981,6 +1981,7 @@ function normalizeProxyModelNode(proxy: ProxyNode = {}) {
   const normalized = { ...proxy }
   normalized.name = String(normalized.name || '').trim()
   normalized.type = String(normalized.type || '').trim().toLowerCase()
+  if (normalized['dialer-proxy'] !== undefined) normalized['dialer-proxy'] = String(normalized['dialer-proxy'] || '').trim()
   if (normalized.network !== undefined) normalized.network = String(normalized.network || '').trim().toLowerCase()
   return normalized
 }

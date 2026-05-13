@@ -4746,6 +4746,7 @@ function normalizeClientProxyNode(proxy) {
     ...proxy,
     name: String(proxy.name || '').trim(),
     type: normalizeProxyType(proxy.type),
+    'dialer-proxy': proxy['dialer-proxy'] === undefined ? undefined : String(proxy['dialer-proxy'] || '').trim(),
     network: proxy.network === undefined ? undefined : String(proxy.network || '').trim().toLowerCase(),
     enabled: proxy.enabled !== false,
   }
