@@ -2129,6 +2129,9 @@ function normalizeEditorModel() {
   state.model.proxyProviders.forEach((provider) => {
     if (provider.proxy && !options.includes(provider.proxy)) provider.proxy = ''
   })
+  state.model.tunnels.forEach((tunnel) => {
+    if (tunnel.proxy && !options.includes(tunnel.proxy)) tunnel.proxy = ''
+  })
   const enabledProxyNames = new Set(state.model.proxies.filter((proxy) => proxy.enabled !== false).map((proxy) => proxy.name).filter(Boolean))
   pruneGroupProxyRefs(enabledProxyNames)
   const proxyProviderNames = new Set(state.model.proxyProviders.map((provider) => provider.name).filter(Boolean))
