@@ -4062,11 +4062,19 @@ function normalizeLineList(value, fallback) {
   return fallback
 }
 
+function normalizeRuleList(value, fallback) {
+  return normalizeLineList(value, fallback).map(normalizeRuleLine).filter(Boolean)
+}
+
+function normalizeRuleLine(rule) {
+  return splitRuleParts(rule).filter((part) => part !== '').join(',')
+}
+
 function normalizeSubRuleMap(value) {
   if (!isPlainObject(value)) return {}
   return Object.fromEntries(
     Object.entries(value)
-      .map(([key, rules]) => [String(key).trim(), normalizeLineList(rules, [])])
+      .map(([key, rules]) => [String(key).trim(), normalizeRuleList(rules, [])])
       .filter(([key, rules]) => key && rules.length),
   )
 }
@@ -4595,7 +4603,7 @@ function normalizeClientModel(model) {
         .filter(isPlainObject)
         .map(normalizeClientGroup)
       : [],
-    rules: normalizeLineList(model?.rules, ['MATCH,PROXY']),
+    rules: normalizeRuleList(model?.rules, ['MATCH,PROXY']),
   }
 }
 

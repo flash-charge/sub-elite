@@ -1606,7 +1606,7 @@ function normalizeModel(model) {
     rawSections: normalizeRawSections(model?.rawSections),
     proxies: Array.isArray(model?.proxies) ? model.proxies.filter(isPlainObject).map(normalizeProxyModelNode) : [],
     groups: Array.isArray(model?.groups) ? model.groups.filter(isPlainObject).map(normalizeGroup) : [],
-    rules: Array.isArray(model?.rules) ? model.rules.map((rule) => String(rule).trim()).filter(Boolean) : [],
+    rules: Array.isArray(model?.rules) ? normalizeRuleList(model.rules, []) : [],
   }
 }
 
@@ -2199,7 +2199,7 @@ function normalizeSubRules(value = {}) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
   return Object.fromEntries(
     Object.entries(value)
-      .map(([key, rules]) => [String(key).trim(), normalizeLineList(rules, [])])
+      .map(([key, rules]) => [String(key).trim(), normalizeRuleList(rules, [])])
       .filter(([key, rules]) => key && rules.length),
   )
 }
@@ -2214,6 +2214,14 @@ function normalizeLineList(value, fallback) {
   if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean)
   if (typeof value === 'string') return value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean)
   return fallback
+}
+
+function normalizeRuleList(value, fallback) {
+  return normalizeLineList(value, fallback).map(normalizeRuleLine).filter(Boolean)
+}
+
+function normalizeRuleLine(rule) {
+  return splitRuleParts(rule).filter((part) => part !== '').join(',')
 }
 
 function splitRuleParts(rule) {

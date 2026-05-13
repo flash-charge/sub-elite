@@ -615,6 +615,26 @@ test('imported proxy and group names are trimmed before references are resolved'
   assert.doesNotMatch(yaml, /name: " A "/)
 })
 
+test('imported rules are canonicalized before validation and export', () => {
+  const model = {
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
+    ruleProviders: [{ name: 'ads', type: 'http', behavior: 'domain', path: './rules/ads.yaml', url: 'https://example.com/ads.yaml' }],
+    subRules: { nested: [' DOMAIN-SUFFIX, example.com, PROXY '] },
+    rules: [' RULE-SET, ads, REJECT ', ' SUB-RULE, (DOMAIN,example.com), nested ', ' MATCH, PROXY '],
+  }
+  const result = validateConfigModel(model)
+  const yaml = buildYamlFromModel(model)
+
+  assert.equal(result.issues.some((issue) => issue.code === 'missing-rule-provider'), false)
+  assert.match(yaml, /- "RULE-SET,ads,REJECT"/)
+  assert.match(yaml, /- "SUB-RULE,\(DOMAIN,example\.com\),nested"/)
+  assert.match(yaml, /- "DOMAIN-SUFFIX,example\.com,PROXY"/)
+  assert.match(yaml, /- "MATCH,PROXY"/)
+  assert.doesNotMatch(yaml, /RULE-SET, ads, REJECT/)
+})
+
 test('validateConfigModel rejects malformed inline proxy provider payload entries', () => {
   const result = validateConfigModel({
     template: 'full',
