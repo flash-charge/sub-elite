@@ -315,7 +315,23 @@ export function validateConfigModel(model) {
     if (hasRuleSeparator(provider.name)) addIssue('error', location, 'Proxy provider name cannot contain commas.', 'invalid-proxy-provider-name')
     if (provider.type === 'http' && !provider.url) addIssue('warning', location, 'Proxy provider URL is empty.', 'empty-proxy-provider-url')
     if (['http', 'file'].includes(provider.type) && !provider.path) addIssue('warning', location, 'Proxy provider path is empty.', 'empty-proxy-provider-path')
-    if (provider.type === 'inline' && !provider.payload.length) addIssue('warning', location, 'Proxy provider inline payload is empty.', 'empty-proxy-provider-payload')
+    if (provider.type === 'inline') {
+      if (!provider.payload.length) addIssue('warning', location, 'Proxy provider inline payload is empty.', 'empty-proxy-provider-payload')
+      provider.payload.forEach((payloadProxy, payloadIndex) => {
+        const payloadLocation = `${location} payload ${payloadIndex + 1}`
+        if (!isPlainObject(payloadProxy)) {
+          addIssue('error', payloadLocation, 'Inline proxy provider payload entries must be proxy objects.', 'invalid-proxy-provider-payload-entry')
+          return
+        }
+        const type = String(payloadProxy.type || '').toLowerCase()
+        if (!type) addIssue('error', payloadLocation, 'Inline proxy payload type is empty.', 'empty-proxy-type')
+        for (const field of REQUIRED_PROXY_FIELDS[type] || ['server', 'port']) {
+          if (isEmptyProxyField(payloadProxy[field])) {
+            addIssue('error', payloadLocation, `${payloadProxy.name || type || payloadIndex + 1} must have field "${field}".`, 'missing-proxy-provider-payload-field')
+          }
+        }
+      })
+    }
     if (provider.proxy && !validProviderProxies.has(provider.proxy)) {
       addIssue('warning', location, `Proxy provider proxy "${provider.proxy}" was not found.`, 'missing-provider-proxy')
     }
@@ -1276,7 +1292,7 @@ function buildProxyProviders(proxyProviders) {
             filter: provider.filter || undefined,
             'exclude-filter': provider.excludeFilter || undefined,
             'exclude-type': provider.excludeType || undefined,
-            payload: provider.type === 'inline' ? provider.payload : undefined,
+            payload: provider.type === 'inline' ? provider.payload.filter(isPlainObject) : undefined,
           }),
         ]
       }),

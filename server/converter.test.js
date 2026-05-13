@@ -542,6 +542,27 @@ test('validateConfigModel accepts file providers without URL warnings', () => {
   assert.equal(result.issues.some((issue) => issue.code === 'empty-proxy-provider-path'), false)
 })
 
+test('validateConfigModel rejects malformed inline proxy provider payload entries', () => {
+  const result = validateConfigModel({
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'], use: ['inline-nodes'] }],
+    proxyProviders: [{
+      name: 'inline-nodes',
+      type: 'inline',
+      payload: [
+        'trojan://secret@example.com:443#Bad',
+        { name: 'Broken', type: 'trojan', server: 'inline.example', port: 443 },
+      ],
+    }],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.equal(result.valid, false)
+  assert.equal(result.issues.some((issue) => issue.code === 'invalid-proxy-provider-payload-entry'), true)
+  assert.equal(result.issues.some((issue) => issue.code === 'missing-proxy-provider-payload-field'), true)
+})
+
 test('validateConfigModel reports Mihomo structure mistakes more precisely', () => {
   const model = {
     template: 'full',
@@ -904,6 +925,26 @@ test('proxy provider payload is emitted only for inline providers', () => {
   assert.match(yaml, /remote-nodes:/)
   assert.doesNotMatch(yaml, /payload:/)
   assert.doesNotMatch(yaml, /Inline A/)
+})
+
+test('proxy provider inline payload omits malformed string entries', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    proxyProviders: [{
+      name: 'inline-nodes',
+      type: 'inline',
+      payload: [
+        'trojan://secret@example.com:443#Bad',
+        { name: 'Inline A', type: 'trojan', server: 'inline.example', port: 443, password: 'secret' },
+      ],
+    }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'], use: ['inline-nodes'] }],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.match(yaml, /payload:\n\s+-\n\s+name: "Inline A"/)
+  assert.doesNotMatch(yaml, /trojan:\/\/secret@example\.com/)
 })
 
 test('proxy provider camelCase health check overrides imported kebab alias', () => {
