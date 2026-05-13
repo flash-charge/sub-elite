@@ -635,6 +635,36 @@ test('imported rules are canonicalized before validation and export', () => {
   assert.doesNotMatch(yaml, /RULE-SET, ads, REJECT/)
 })
 
+test('inline proxy provider payload nodes are normalized before validation and export', () => {
+  const model = {
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'], use: ['inline-nodes'] }],
+    proxyProviders: [{
+      name: 'inline-nodes',
+      type: 'inline',
+      payload: [{
+        name: ' Inline ',
+        type: ' VLESS ',
+        server: 'inline.example',
+        port: 443,
+        uuid: '11111111-1111-1111-1111-111111111111',
+        network: ' WS ',
+        'ws-opts': { path: '/ws' },
+      }],
+    }],
+    rules: ['MATCH,PROXY'],
+  }
+  const result = validateConfigModel(model)
+  const yaml = buildYamlFromModel(model)
+
+  assert.equal(result.issues.some((issue) => issue.code === 'missing-proxy-provider-payload-field'), false)
+  assert.match(yaml, /name: "Inline"/)
+  assert.match(yaml, /type: "vless"/)
+  assert.match(yaml, /network: "ws"/)
+  assert.doesNotMatch(yaml, /type: " VLESS "/)
+})
+
 test('validateConfigModel rejects malformed inline proxy provider payload entries', () => {
   const result = validateConfigModel({
     template: 'full',

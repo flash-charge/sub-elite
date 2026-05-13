@@ -4082,7 +4082,7 @@ function normalizeSubRuleMap(value) {
 function normalizeProxyProviderPayload(value) {
   if (Array.isArray(value)) {
     return value
-      .map((item) => (isPlainObject(item) ? { ...item } : String(item).trim()))
+      .map((item) => (isPlainObject(item) ? normalizeClientProxyNode(item) : String(item).trim()))
       .filter((item) => isPlainObject(item) || item)
   }
   if (typeof value === 'string') return splitLines(value)

@@ -332,13 +332,14 @@ export function validateConfigModel(model) {
           addIssue('error', payloadLocation, 'Inline proxy provider payload entries must be proxy objects.', 'invalid-proxy-provider-payload-entry')
           return
         }
-        if (hasRuleSeparator(payloadProxy.name)) addIssue('error', payloadLocation, 'Inline proxy payload name cannot contain commas.', 'invalid-proxy-provider-payload-name')
-        for (const field of missingProxyProviderPayloadFields(payloadProxy)) {
+        const normalizedPayloadProxy = normalizeProxyModelNode(payloadProxy)
+        if (hasRuleSeparator(normalizedPayloadProxy.name)) addIssue('error', payloadLocation, 'Inline proxy payload name cannot contain commas.', 'invalid-proxy-provider-payload-name')
+        for (const field of missingProxyProviderPayloadFields(normalizedPayloadProxy)) {
           if (field === 'name') addIssue('error', payloadLocation, 'Inline proxy payload name is empty.', 'empty-proxy-provider-payload-name')
           else if (field === 'type') addIssue('error', payloadLocation, 'Inline proxy payload type is empty.', 'empty-proxy-type')
           else {
-            const type = String(payloadProxy.type || '').toLowerCase()
-            addIssue('error', payloadLocation, `${payloadProxy.name || type || payloadIndex + 1} must have field "${field}".`, 'missing-proxy-provider-payload-field')
+            const type = String(normalizedPayloadProxy.type || '').toLowerCase()
+            addIssue('error', payloadLocation, `${normalizedPayloadProxy.name || type || payloadIndex + 1} must have field "${field}".`, 'missing-proxy-provider-payload-field')
           }
         }
       })
@@ -2107,7 +2108,9 @@ function normalizeProxyProvider(provider: ProxyNode = {}) {
     filter: String(provider.filter || '').trim(),
     excludeFilter: String(provider.excludeFilter || provider['exclude-filter'] || '').trim(),
     excludeType: String(provider.excludeType || provider['exclude-type'] || '').trim(),
-    payload: Array.isArray(provider.payload) ? provider.payload : [],
+    payload: Array.isArray(provider.payload)
+      ? provider.payload.map((proxy) => isPlainObject(proxy) ? normalizeProxyModelNode(proxy) : proxy)
+      : [],
   }
 }
 
@@ -2392,7 +2395,7 @@ function stripUiProxyFields(proxy) {
 }
 
 function cleanupUnsupportedTlsOptions(proxy) {
-  const type = String(proxy.type || '').toLowerCase()
+  const type = String(proxy.type || '').trim().toLowerCase()
   const fields = new Set(TLS_FIELDS_BY_PROXY[type] || [])
   if (!TLS_FLAG_PROXY_TYPES.has(type)) delete proxy.tls
   if (!fields.has('sni')) {
