@@ -2033,6 +2033,7 @@ const geoFieldKeys = [
 
 function normalizeRuleProvider(provider: ProxyNode = {}) {
   const providerType = String(provider.type || '').trim()
+  const behavior = String(provider.behavior || 'classical').trim()
   const extra = omitKeys(provider, [
     'name',
     'type',
@@ -2052,7 +2053,7 @@ function normalizeRuleProvider(provider: ProxyNode = {}) {
     ...extra,
     name: String(provider.name || '').trim(),
     type: PROVIDER_TYPES.includes(providerType) ? providerType : 'http',
-    behavior: String(provider.behavior || 'classical').trim(),
+    behavior,
     path: String(provider.path || '').trim(),
     url: String(provider.url || '').trim(),
     target: String(provider.target || 'PROXY').trim(),
@@ -2061,8 +2062,14 @@ function normalizeRuleProvider(provider: ProxyNode = {}) {
     format: ['yaml', 'text', 'mrs'].includes(provider.format) ? provider.format : '',
     sizeLimit: Number(provider.sizeLimit || provider['size-limit']) || 0,
     header: normalizePolicy(provider.header),
-    payload: normalizeLineList(provider.payload, []),
+    payload: normalizeRuleProviderPayload(provider.payload, behavior),
   }
+}
+
+function normalizeRuleProviderPayload(payload, behavior = 'classical') {
+  return behavior === 'classical'
+    ? normalizeRuleList(payload, [])
+    : normalizeLineList(payload, [])
 }
 
 function normalizeProxyProvider(provider: ProxyNode = {}) {

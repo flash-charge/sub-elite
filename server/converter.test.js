@@ -1055,6 +1055,25 @@ test('rule provider inline payload preserves comma rules', () => {
   assert.doesNotMatch(yaml, /- "DOMAIN-SUFFIX"\n\s+- "example\.com"/)
 })
 
+test('rule provider inline classical payload is canonicalized before export', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
+    ruleProviders: [{
+      name: 'inline-rules',
+      type: 'inline',
+      behavior: 'classical',
+      payload: [' DOMAIN-SUFFIX, example.com, PROXY ', ' IP-CIDR, 1.1.1.0/24, DIRECT, no-resolve '],
+    }],
+    rules: ['RULE-SET,inline-rules,PROXY', 'MATCH,PROXY'],
+  })
+
+  assert.match(yaml, /- "DOMAIN-SUFFIX,example\.com,PROXY"/)
+  assert.match(yaml, /- "IP-CIDR,1\.1\.1\.0\/24,DIRECT,no-resolve"/)
+  assert.doesNotMatch(yaml, /DOMAIN-SUFFIX, example\.com, PROXY/)
+})
+
 test('rule provider payload is emitted only for inline providers', () => {
   const yaml = buildYamlFromModel({
     template: 'full',
