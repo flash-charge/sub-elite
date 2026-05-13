@@ -1214,6 +1214,24 @@ test('proxy provider camelCase health check overrides imported kebab alias', () 
   assert.doesNotMatch(yaml, /health-check:/)
 })
 
+test('proxy provider string false health check is disabled before export', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    proxyProviders: [{
+      name: 'remote',
+      type: 'http',
+      url: 'https://example.com/sub.yaml',
+      path: './proxy_providers/remote.yaml',
+      healthCheck: { enable: 'false', lazy: 'false' },
+    }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'], use: ['remote'] }],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.doesNotMatch(yaml, /health-check:/)
+})
+
 test('group camelCase booleans override imported kebab aliases', () => {
   const yaml = buildYamlFromModel({
     template: 'full',
@@ -1232,6 +1250,31 @@ test('group camelCase booleans override imported kebab aliases', () => {
 
   assert.doesNotMatch(yaml, /include-all: true/)
   assert.doesNotMatch(yaml, /disable-udp: true/)
+})
+
+test('string false editor booleans remain disabled before export', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    proxies: [
+      { name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: 'false' },
+      { name: 'B', type: 'trojan', server: 'b.example', port: 443, password: 'x', enabled: 'true' },
+    ],
+    groups: [{
+      name: 'PROXY',
+      type: 'select',
+      proxies: ['A', 'B'],
+      includeAll: 'false',
+      disableUdp: 'false',
+      hidden: 'false',
+    }],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.doesNotMatch(yaml, /name: "A"/)
+  assert.match(yaml, /name: "B"/)
+  assert.doesNotMatch(yaml, /include-all: true/)
+  assert.doesNotMatch(yaml, /disable-udp: true/)
+  assert.doesNotMatch(yaml, /hidden: true/)
 })
 
 test('geo kebab aliases are normalized from yaml-shaped models', () => {

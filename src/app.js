@@ -4148,11 +4148,11 @@ function normalizeClientProxyProvider(provider) {
     sizeLimit: Number(provider.sizeLimit || provider['size-limit']) || 0,
     header: isPlainObject(provider.header) ? provider.header : {},
     healthCheck: {
-      enable: Boolean(healthCheck.enable ?? rawHealthCheck.enable),
+      enable: normalizeBooleanValue(healthCheck.enable ?? rawHealthCheck.enable),
       url: String(healthCheck.url || rawHealthCheck.url || 'https://www.gstatic.com/generate_204').trim(),
       interval: Number(healthCheck.interval || rawHealthCheck.interval) || 300,
       timeout: Number(healthCheck.timeout || rawHealthCheck.timeout) || 5000,
-      lazy: healthCheck.lazy ?? rawHealthCheck.lazy ?? true,
+      lazy: normalizeBooleanValue(healthCheck.lazy ?? rawHealthCheck.lazy, true),
       expectedStatus: String(healthCheck.expectedStatus || rawHealthCheck['expected-status'] || '').trim(),
     },
     override: isPlainObject(provider.override) ? provider.override : {},
@@ -4182,11 +4182,11 @@ function normalizeClientGroup(group) {
     type: ['select', 'url-test', 'fallback', 'load-balance', 'relay'].includes(groupType) ? groupType : 'select',
     proxies: normalizeTextList(group.proxies, []),
     use: normalizeTextList(group.use, []),
-    includeAll: Boolean(group.includeAll ?? group['include-all']),
-    includeAllProxies: Boolean(group.includeAllProxies ?? group['include-all-proxies']),
-    includeAllProviders: Boolean(group.includeAllProviders ?? group['include-all-providers']),
+    includeAll: normalizeBooleanValue(group.includeAll ?? group['include-all']),
+    includeAllProxies: normalizeBooleanValue(group.includeAllProxies ?? group['include-all-proxies']),
+    includeAllProviders: normalizeBooleanValue(group.includeAllProviders ?? group['include-all-providers']),
     maxFailedTimes: Number(group.maxFailedTimes ?? group['max-failed-times']) || 0,
-    disableUdp: Boolean(group.disableUdp ?? group['disable-udp']),
+    disableUdp: normalizeBooleanValue(group.disableUdp ?? group['disable-udp']),
     interfaceName: String(group.interfaceName ?? group['interface-name'] ?? '').trim(),
     routingMark: Number(group.routingMark ?? group['routing-mark']) || 0,
     excludeFilter: String(group.excludeFilter ?? group['exclude-filter'] ?? '').trim(),
@@ -4742,6 +4742,15 @@ function compactObject(object) {
   )
 }
 
+function normalizeBooleanValue(value, fallback = false) {
+  if (value === undefined || value === null || value === '') return fallback
+  if (value === true || value === false) return value
+  const normalized = String(value).trim().toLowerCase()
+  if (['true', '1', 'yes', 'on'].includes(normalized)) return true
+  if (['false', '0', 'no', 'off'].includes(normalized)) return false
+  return Boolean(value)
+}
+
 function isPlainObject(value) {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
 }
@@ -4761,7 +4770,7 @@ function normalizeClientProxyNode(proxy) {
     type: normalizeProxyType(proxy.type),
     'dialer-proxy': proxy['dialer-proxy'] === undefined ? undefined : String(proxy['dialer-proxy'] || '').trim(),
     network: proxy.network === undefined ? undefined : String(proxy.network || '').trim().toLowerCase(),
-    enabled: proxy.enabled !== false,
+    enabled: normalizeBooleanValue(proxy.enabled, true),
   }
 }
 

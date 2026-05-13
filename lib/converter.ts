@@ -1977,10 +1977,20 @@ function normalizeObject(value: ProxyNode = {}) {
   return { ...value }
 }
 
+function normalizeBooleanValue(value, fallback = false) {
+  if (value === undefined || value === null || value === '') return fallback
+  if (value === true || value === false) return value
+  const normalized = String(value).trim().toLowerCase()
+  if (['true', '1', 'yes', 'on'].includes(normalized)) return true
+  if (['false', '0', 'no', 'off'].includes(normalized)) return false
+  return Boolean(value)
+}
+
 function normalizeProxyModelNode(proxy: ProxyNode = {}) {
   const normalized = { ...proxy }
   normalized.name = String(normalized.name || '').trim()
   normalized.type = String(normalized.type || '').trim().toLowerCase()
+  if (normalized.enabled !== undefined) normalized.enabled = normalizeBooleanValue(normalized.enabled, true)
   if (normalized['dialer-proxy'] !== undefined) normalized['dialer-proxy'] = String(normalized['dialer-proxy'] || '').trim()
   if (normalized.network !== undefined) normalized.network = String(normalized.network || '').trim().toLowerCase()
   return normalized
@@ -2107,11 +2117,11 @@ function normalizeProxyProvider(provider: ProxyNode = {}) {
     sizeLimit: Number(provider.sizeLimit || provider['size-limit']) || 0,
     header: normalizePolicy(provider.header),
     healthCheck: {
-      enable: Boolean(provider.healthCheck?.enable ?? provider['health-check']?.enable),
+      enable: normalizeBooleanValue(provider.healthCheck?.enable ?? provider['health-check']?.enable),
       url: String(provider.healthCheck?.url || provider['health-check']?.url || 'https://www.gstatic.com/generate_204').trim(),
       interval: Number(provider.healthCheck?.interval || provider['health-check']?.interval) || 300,
       timeout: Number(provider.healthCheck?.timeout || provider['health-check']?.timeout) || 5000,
-      lazy: provider.healthCheck?.lazy ?? provider['health-check']?.lazy ?? true,
+      lazy: normalizeBooleanValue(provider.healthCheck?.lazy ?? provider['health-check']?.lazy, true),
       expectedStatus: String(provider.healthCheck?.expectedStatus || provider['health-check']?.['expected-status'] || '').trim(),
     },
     override: normalizePolicy(provider.override, { typedValues: true }),
@@ -2167,20 +2177,20 @@ function normalizeGroup(group: ProxyNode = {}) {
     use: normalizeList(group.use, []),
     url: String(group.url || '').trim(),
     interval: Number(group.interval) || 300,
-    includeAll: Boolean(group.includeAll ?? group['include-all']),
-    includeAllProxies: Boolean(group.includeAllProxies ?? group['include-all-proxies']),
-    includeAllProviders: Boolean(group.includeAllProviders ?? group['include-all-providers']),
-    lazy: group.lazy === undefined ? undefined : Boolean(group.lazy),
+    includeAll: normalizeBooleanValue(group.includeAll ?? group['include-all']),
+    includeAllProxies: normalizeBooleanValue(group.includeAllProxies ?? group['include-all-proxies']),
+    includeAllProviders: normalizeBooleanValue(group.includeAllProviders ?? group['include-all-providers']),
+    lazy: group.lazy === undefined ? undefined : normalizeBooleanValue(group.lazy),
     timeout: Number(group.timeout) || 0,
     maxFailedTimes: Number(group.maxFailedTimes || group['max-failed-times']) || 0,
-    disableUdp: Boolean(group.disableUdp ?? group['disable-udp']),
+    disableUdp: normalizeBooleanValue(group.disableUdp ?? group['disable-udp']),
     interfaceName: String(group.interfaceName || group['interface-name'] || '').trim(),
     routingMark: Number(group.routingMark || group['routing-mark']) || 0,
     filter: String(group.filter || '').trim(),
     excludeFilter: String(group.excludeFilter || group['exclude-filter'] || '').trim(),
     excludeType: String(group.excludeType || group['exclude-type'] || '').trim(),
     expectedStatus: String(group.expectedStatus || group['expected-status'] || '').trim(),
-    hidden: Boolean(group.hidden),
+    hidden: normalizeBooleanValue(group.hidden),
     icon: String(group.icon || '').trim(),
   }
 }
