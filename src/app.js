@@ -1479,6 +1479,7 @@ function renderRuleProviders() {
       <summary>
         <span class="provider-summary">
           <strong>${escapeHtml(provider.name || 'Unnamed provider')}</strong>
+          <em>${escapeHtml(provider.type || 'http')}</em>
           <em>${escapeHtml(provider.behavior || 'classical')}</em>
           <em>${escapeHtml(provider.target || 'PROXY')}</em>
         </span>
@@ -1486,6 +1487,9 @@ function renderRuleProviders() {
       </summary>
       <div class="form-grid section-grid provider-edit-grid">
         <label><span>Name</span><input type="text" data-field="name" value="${escapeAttr(valueOrEmpty(provider.name))}"></label>
+        <label><span>Type</span><select data-field="type">
+          ${['http', 'file', 'inline'].map((type) => `<option value="${type}" ${type === (provider.type || 'http') ? 'selected' : ''}>${type}</option>`).join('')}
+        </select></label>
         <label><span>Behavior</span><select data-field="behavior">
           ${['classical', 'domain', 'ipcidr'].map((type) => `<option value="${type}" ${type === provider.behavior ? 'selected' : ''}>${type}</option>`).join('')}
         </select></label>
@@ -1834,6 +1838,11 @@ function handleRuleProviderInput(event, index) {
   else if (field === 'sizeLimit') provider.sizeLimit = Number(event.target.value) || 0
   else if (field === 'header') provider.header = textToPolicy(event.target.value)
   else if (field === 'payload') provider.payload = splitLines(event.target.value)
+  else if (field === 'type') {
+    provider.type = ['http', 'file', 'inline'].includes(event.target.value) ? event.target.value : 'http'
+    updateYamlFromModel()
+    return
+  }
   else if (field === 'target') {
     provider.target = validPolicyTarget(event.target.value)
     event.target.value = provider.target

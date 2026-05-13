@@ -517,6 +517,31 @@ test('validateConfigModel accepts inline providers without remote source warning
   assert.equal(result.issues.some((issue) => issue.code === 'empty-proxy-provider-payload'), false)
 })
 
+test('validateConfigModel accepts file providers without URL warnings', () => {
+  const result = validateConfigModel({
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'], use: ['local-nodes'] }],
+    ruleProviders: [{
+      name: 'local-rules',
+      type: 'file',
+      behavior: 'classical',
+      path: './rules/local.yaml',
+    }],
+    proxyProviders: [{
+      name: 'local-nodes',
+      type: 'file',
+      path: './proxy_providers/local.yaml',
+    }],
+    rules: ['RULE-SET,local-rules,PROXY', 'MATCH,PROXY'],
+  })
+
+  assert.equal(result.issues.some((issue) => issue.code === 'empty-provider-url'), false)
+  assert.equal(result.issues.some((issue) => issue.code === 'empty-proxy-provider-url'), false)
+  assert.equal(result.issues.some((issue) => issue.code === 'empty-provider-path'), false)
+  assert.equal(result.issues.some((issue) => issue.code === 'empty-proxy-provider-path'), false)
+})
+
 test('validateConfigModel reports Mihomo structure mistakes more precisely', () => {
   const model = {
     template: 'full',
