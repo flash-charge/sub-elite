@@ -329,6 +329,9 @@ export function validateConfigModel(model) {
 
   normalizedModel.tunnels.forEach((tunnel, index) => {
     if (!tunnel.address || !tunnel.target) addIssue('warning', `Tunnel ${index + 1}`, 'Tunnel address and target should be filled.', 'invalid-tunnel')
+    if (tunnel.proxy && !validProviderProxies.has(tunnel.proxy)) {
+      addIssue('warning', `Tunnel ${index + 1}`, `Tunnel proxy "${tunnel.proxy}" was not found.`, 'missing-tunnel-proxy')
+    }
   })
 
   return {
@@ -403,6 +406,13 @@ export function autoFixConfigModel(model) {
     }
   })
   makeUniqueProviderNames(fixed.proxyProviders, './proxy_providers')
+
+  fixed.tunnels.forEach((tunnel) => {
+    if (tunnel.proxy && !validProviderProxyName(tunnel.proxy, fixed)) {
+      tunnel.proxy = ''
+      fixes.push(`Tunnel proxy ${tunnel.address || 'tunnel'} was cleared because it was not found.`)
+    }
+  })
 
   return { model: fixed, fixes }
 }

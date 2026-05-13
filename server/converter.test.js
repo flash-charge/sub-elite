@@ -614,10 +614,12 @@ test('validateConfigModel reports missing provider proxy references', () => {
     groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
     ruleProviders: [{ name: 'rules', type: 'http', behavior: 'domain', path: './rules/rules.yaml', url: 'https://example.com/rules.yaml', proxy: 'Missing' }],
     proxyProviders: [{ name: 'nodes', type: 'http', path: './proxy_providers/nodes.yaml', url: 'https://example.com/nodes.yaml', proxy: 'Missing' }],
+    tunnels: [{ network: ['tcp'], address: '127.0.0.1:6553', target: '8.8.8.8:53', proxy: 'Missing' }],
     rules: ['MATCH,PROXY'],
   })
 
   assert.equal(result.issues.filter((issue) => issue.code === 'missing-provider-proxy').length, 2)
+  assert.equal(result.issues.filter((issue) => issue.code === 'missing-tunnel-proxy').length, 1)
 })
 
 test('autoFixConfigModel applies safe fixes without removing user config', () => {
@@ -630,6 +632,7 @@ test('autoFixConfigModel applies safe fixes without removing user config', () =>
     groups: [],
     ruleProviders: [{ name: 'ads', behavior: 'domain', path: '', url: 'https://example.com/ads.yaml', proxy: 'Missing' }],
     proxyProviders: [{ name: 'remote', type: 'http', path: '', url: 'https://example.com/sub.yaml', proxy: 'Missing' }],
+    tunnels: [{ network: ['tcp'], address: '127.0.0.1:6553', target: '8.8.8.8:53', proxy: 'Missing' }],
     rules: [],
   }
 
@@ -642,6 +645,7 @@ test('autoFixConfigModel applies safe fixes without removing user config', () =>
   assert.equal(result.model.ruleProviders[0].path, './rules/ads.yaml')
   assert.equal(result.model.ruleProviders[0].proxy, '')
   assert.equal(result.model.proxyProviders[0].proxy, '')
+  assert.equal(result.model.tunnels[0].proxy, '')
   assert.match(yaml, /MATCH,PROXY/)
 })
 

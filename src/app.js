@@ -2016,6 +2016,9 @@ function replacePolicyTargetName(previousName, nextName) {
   state.model.proxyProviders.forEach((provider) => {
     if (provider.proxy === previousName) provider.proxy = nextName
   })
+  state.model.tunnels.forEach((tunnel) => {
+    if (tunnel.proxy === previousName) tunnel.proxy = nextName
+  })
   renderRules()
   renderRuleTargetOptions()
   refreshRenderedRuleProviderTargets()
@@ -2037,6 +2040,9 @@ function replacePolicyTargetNames(renameMap) {
   state.model.proxyProviders.forEach((provider) => {
     if (renameMap.has(provider.proxy)) provider.proxy = renameMap.get(provider.proxy)
   })
+  state.model.tunnels.forEach((tunnel) => {
+    if (renameMap.has(tunnel.proxy)) tunnel.proxy = renameMap.get(tunnel.proxy)
+  })
   renderRules()
   renderRuleTargetOptions()
   refreshRenderedRuleProviderTargets()
@@ -2057,6 +2063,9 @@ function replaceRemovedPolicyTargets(removedNames, nextName) {
   })
   state.model.proxyProviders.forEach((provider) => {
     if (removedNames.has(provider.proxy)) provider.proxy = nextName
+  })
+  state.model.tunnels.forEach((tunnel) => {
+    if (removedNames.has(tunnel.proxy)) tunnel.proxy = nextName
   })
   renderRules()
   renderRuleTargetOptions()
