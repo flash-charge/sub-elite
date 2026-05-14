@@ -8,7 +8,9 @@ import {
   shadowsocksCipherOptions, shadowsocksPluginOptions,
 } from './constants.ts'
 import { escapeHtml, escapeAttr, isPlainObject, compactObject, splitLinesOrComma, normalizeProxyType } from './utils.ts'
-import { applyPlaceholders, validEditableName, showValidation, hasDuplicateName, hasNameInCollection, nodeExpansionKey } from './app.js'
+import { applyPlaceholders, showValidation } from './app.js'
+import { validEditableName, hasDuplicateName, hasNameInCollection } from './groups.js'
+import { nodeExpansionKey } from './nodes.js'
 import { updateYamlFromModel } from './yaml-tools.js'
 import { renderSelectOptions, renderAlpnCheckboxGroup, shadowsocksPluginOptExample, parseJsonObjectInput, setProxyNetwork, textToPolicy } from './proxy-fields.js'
 

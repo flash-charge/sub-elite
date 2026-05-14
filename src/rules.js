@@ -3,7 +3,8 @@ import { splitRuleParts } from './utils.ts'
 import { renderSelectOptions } from './proxy-fields.js'
 import { updateYamlFromModel } from './yaml-tools.js'
 import { ensureRule } from './providers.js'
-import { showToast, showValidation, nameHasRuleSeparator, uniqueList } from './app.js'
+import { showToast, showValidation } from './app.js'
+import { nameHasRuleSeparator, uniqueList } from './groups.js'
 
 export function renderRules() {
   rulesEditor.value = state.model?.rules.join('\n') || ''

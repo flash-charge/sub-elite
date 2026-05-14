@@ -3,7 +3,8 @@ import { escapeHtml, escapeAttr, splitLines, valueOrEmpty } from './utils.ts'
 import { providerTypes } from './constants.ts'
 import { renderSelectOptions, textToPolicy, policyToText, parseJsonOrLines } from './proxy-fields.js'
 import { updateYamlFromModel } from './yaml-tools.js'
-import { showToast, showValidation, validEditableName, hasDuplicateName, hasDuplicateNameExcept, rejectEmptyNameInput, rejectRuleSeparatorNameInput, generatedProviderPath, syncGeneratedProviderPath, applyPlaceholders, removeGroupProviderName, replaceGroupProviderName, renderGroups } from './app.js'
+import { showToast, showValidation, applyPlaceholders } from './app.js'
+import { validEditableName, hasDuplicateName, hasDuplicateNameExcept, rejectEmptyNameInput, rejectRuleSeparatorNameInput, generatedProviderPath, syncGeneratedProviderPath, removeGroupProviderName, replaceGroupProviderName, renderGroups } from './groups.js'
 import { validPolicyTarget, policyTargetOptions, syncProviderRule, replaceProviderRuleName, removeRuleProviderRules, presetRules } from './rules.js'
 
 export function renderRuleProviders() {

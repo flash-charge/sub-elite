@@ -47,7 +47,7 @@ const appPrepared = appSource
   .replace(/from '\.\/(\w+)\.ts'/g, "from './$1.js'")
 await writeFile(join(buildTemp, 'app.js'), appPrepared)
 
-for (const mod of ['constants.ts', 'utils.ts', 'model.ts', 'state.js', 'manual-node.js', 'proxy-fields.js', 'yaml-tools.js', 'editors.js', 'providers.js', 'rules.js']) {
+for (const mod of ['constants.ts', 'utils.ts', 'model.ts', 'state.js', 'manual-node.js', 'proxy-fields.js', 'yaml-tools.js', 'editors.js', 'providers.js', 'rules.js', 'nodes.js', 'groups.js']) {
   const modSource = await readFile(join(root, 'src', mod), 'utf8')
   const modResult = ts.transpileModule(modSource, {
     compilerOptions: {

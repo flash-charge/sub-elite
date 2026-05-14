@@ -3,7 +3,8 @@ import { escapeHtml, clone, compactObject } from './utils.ts'
 import { normalizeClientModel } from './model.ts'
 import { autoFixConfigModel, buildYamlFromModel, validateConfigModel } from '../lib/converter.ts'
 import { parseDocument, stringify } from 'yaml'
-import { renderModel, showToast, showValidation, clearValidation, resetSubscriptionUrl, syncYamlEditor, normalizeEditorModel } from './app.js'
+import { renderModel, showToast, showValidation, clearValidation, resetSubscriptionUrl, syncYamlEditor } from './app.js'
+import { normalizeEditorModel } from './nodes.js'
 
 export function updateYamlFromModel(rerender = true) {
   if (!state.model) return

@@ -8,7 +8,8 @@ import {
   shadowsocksCipherOptions, shadowsocksPluginOptions, shadowsocksPluginOptExamples,
 } from './constants.ts'
 import { escapeHtml, escapeAttr, normalizeProxyType, isPlainObject, splitLinesOrComma, splitLines, valueOrEmpty } from './utils.ts'
-import { normalizeAlpnValues, needsEndpoint, isNetworkSupported, cleanupEmptyNestedSection, showValidation } from './app.js'
+import { normalizeAlpnValues, needsEndpoint, isNetworkSupported, showValidation } from './app.js'
+import { cleanupEmptyNestedSection } from './groups.js'
 
 export function renderAlpnCheckboxGroup({ label = 'ALPN', selected = new Set(), inputAttribute, extraAttributes = '' }) {
   return `
