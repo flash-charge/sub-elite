@@ -8,7 +8,8 @@ import {
   shadowsocksCipherOptions, shadowsocksPluginOptions,
 } from './constants.ts'
 import { escapeHtml, escapeAttr, isPlainObject, compactObject, splitLinesOrComma, normalizeProxyType } from './utils.ts'
-import { renderSelectOptions, applyPlaceholders, updateYamlFromModel, renderAlpnCheckboxGroup, shadowsocksPluginOptExample, parseJsonObjectInput, setProxyNetwork, textToPolicy, validEditableName, showValidation, hasDuplicateName, hasNameInCollection, nodeExpansionKey } from './app.js'
+import { applyPlaceholders, updateYamlFromModel, validEditableName, showValidation, hasDuplicateName, hasNameInCollection, nodeExpansionKey } from './app.js'
+import { renderSelectOptions, renderAlpnCheckboxGroup, shadowsocksPluginOptExample, parseJsonObjectInput, setProxyNetwork, textToPolicy } from './proxy-fields.js'
 
 export function renderManualNodeFields(values = {}) {
   manualNodeFields.replaceChildren()
