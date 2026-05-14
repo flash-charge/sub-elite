@@ -39,11 +39,21 @@ const converterResult = ts.transpileModule(converterSource, {
 await writeFile(join(buildTemp, 'converter.js'), converterResult.outputText)
 
 const appSource = await readFile(join(root, 'src', 'app.js'), 'utf8')
-const appPrepared = appSource.replace("from '../lib/converter.ts'", "from './converter.js'")
+const appPrepared = appSource
+  .replace("from '../lib/converter.ts'", "from './converter.js'")
+  .replace(/from '\.\/(\w+)\.ts'/g, "from './$1.js'")
 await writeFile(join(buildTemp, 'app.js'), appPrepared)
 
-for (const mod of ['constants.js', 'utils.js', 'model.js']) {
-  await cp(join(root, 'src', mod), join(buildTemp, mod))
+for (const mod of ['constants.ts', 'utils.ts', 'model.ts']) {
+  const modSource = await readFile(join(root, 'src', mod), 'utf8')
+  const modResult = ts.transpileModule(modSource, {
+    compilerOptions: {
+      target: ts.ScriptTarget.ES2022,
+      module: ts.ModuleKind.ESNext,
+      removeComments: true,
+    },
+  })
+  await writeFile(join(buildTemp, mod.replace('.ts', '.js')), modResult.outputText.replace(/from '\.\/(\w+)\.ts'/g, "from './$1.js'"))
 }
 
 const appPath = await bundleApp()

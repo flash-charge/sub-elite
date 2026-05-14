@@ -7,16 +7,16 @@ import {
   ssrObfsOptions, hysteriaProtocolOptions, tuicUdpRelayModeOptions, tuicCongestionControllerOptions,
   mieruTransportOptions, httpMethodOptions, shadowsocksCipherOptions, shadowsocksPluginOptions,
   shadowsocksPluginOptExamples, proxyTypeOptions, providerTypes, proxyTypeLabels,
-} from './constants.js'
+} from './constants.ts'
 import {
   splitLinesOrComma, splitLines, compactObject, isPlainObject,
   valueOrEmpty, normalizeProxyType, clone, escapeHtml, escapeAttr,
   downloadText, normalizeFilename, splitRuleParts,
-} from './utils.js'
+} from './utils.ts'
 import {
   modelFromYamlObject, normalizeClientModel, omitKeys,
   dnsFieldKeys, generalFieldKeys, profileFieldKeys, snifferFieldKeys, tunFieldKeys, geoFieldKeys,
-} from './model.js'
+} from './model.ts'
 
 
 const state = {

@@ -1,5 +1,5 @@
-import { providerTypes } from './constants.js'
-import { compactObject, isPlainObject, normalizeBooleanValue, normalizeClientProxyNode, splitLines, splitLinesOrComma, splitRuleParts } from './utils.js'
+import { providerTypes } from './constants.ts'
+import { compactObject, isPlainObject, normalizeBooleanValue, normalizeClientProxyNode, splitLines, splitLinesOrComma, splitRuleParts } from './utils.ts'
 
 export function modelFromYamlObject(raw, { template = '', rulesPreset = '' } = {}) {
   const knownKeys = new Set([
