@@ -47,7 +47,7 @@ const appPrepared = appSource
   .replace(/from '\.\/(\w+)\.ts'/g, "from './$1.js'")
 await writeFile(join(buildTemp, 'app.js'), appPrepared)
 
-for (const mod of ['constants.ts', 'utils.ts', 'model.ts', 'state.js', 'manual-node.js', 'proxy-fields.js']) {
+for (const mod of ['constants.ts', 'utils.ts', 'model.ts', 'state.js', 'manual-node.js', 'proxy-fields.js', 'yaml-tools.js', 'editors.js']) {
   const modSource = await readFile(join(root, 'src', mod), 'utf8')
   const modResult = ts.transpileModule(modSource, {
     compilerOptions: {
@@ -57,7 +57,7 @@ for (const mod of ['constants.ts', 'utils.ts', 'model.ts', 'state.js', 'manual-n
     },
   })
   const outName = mod.replace(/\.ts$/, '.js')
-  await writeFile(join(buildTemp, outName), modResult.outputText.replace(/from '\.\/(\w+)\.ts'/g, "from './$1.js'"))
+  await writeFile(join(buildTemp, outName), modResult.outputText.replace(/from '\.\/(\w+)\.ts'/g, "from './$1.js'").replace("from '../lib/converter.ts'", "from './converter.js'"))
 }
 
 const appPath = await bundleApp()
