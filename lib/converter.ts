@@ -813,15 +813,15 @@ function parseWireGuard(link) {
     ip: params.get('address') || undefined,
     'private-key': required(decodeText(url.username), 'private-key'),
     'public-key': required(params.get('publickey'), 'public-key'),
-    presharedKey: params.get('presharedkey') || undefined,
+    'pre-shared-key': params.get('presharedkey') || undefined,
     mtu: numberParam(params.get('mtu')),
     udp: true,
     peers: [{
       server: url.hostname,
       port: toPort(url.port || 51820),
       'public-key': params.get('publickey'),
-      presharedKey: params.get('presharedkey') || undefined,
-      allowedIPs: params.get('allowedips')?.split(',') || undefined,
+      'pre-shared-key': params.get('presharedkey') || undefined,
+      'allowed-ips': params.get('allowedips')?.split(',') || undefined,
     }]
   })
 }
@@ -1140,11 +1140,11 @@ function buildDns(dns) {
     'fake-ip-ttl': dns.enhancedMode === 'fake-ip' && dns.fakeIpTtl ? dns.fakeIpTtl : undefined,
     'default-nameserver': dns.defaultNameserver,
     nameserver: dns.nameserver,
-    fallback: dns.fallback,
+    fallback: dns.fallback.length ? dns.fallback : undefined,
     'fallback-filter': dns.fallbackFilter,
     'direct-nameserver': dns.directNameserver.length ? dns.directNameserver : undefined,
     'direct-nameserver-follow-policy': dns.directNameserverFollowPolicy || undefined,
-    'proxy-server-nameserver': dns.proxyServerNameserver,
+    'proxy-server-nameserver': dns.proxyServerNameserver.length ? dns.proxyServerNameserver : undefined,
     'proxy-server-nameserver-policy': dns.proxyServerNameserverPolicy,
     'nameserver-policy': dns.nameserverPolicy,
   })
@@ -2002,6 +2002,12 @@ function normalizeBooleanValue(value, fallback = false) {
   return Boolean(value)
 }
 
+function isTruthyBooleanValue(value) {
+  if (value === true) return true
+  if (typeof value === 'string') return ['true', '1', 'yes', 'on'].includes(value.trim().toLowerCase())
+  return false
+}
+
 function normalizeProxyModelNode(proxy: ProxyNode = {}) {
   const normalized = { ...proxy }
   normalized.name = String(normalized.name || '').trim()
@@ -2420,8 +2426,8 @@ function stripUiProxyFields(proxy) {
   if (cleanProxy.network === 'ws') {
     cleanProxy['ws-opts'] = {
       ...(cleanProxy['ws-opts'] || {}),
-      'v2ray-http-upgrade': normalizeBooleanValue(cleanProxy['ws-opts']?.['v2ray-http-upgrade']),
-      'v2ray-http-upgrade-fast-open': normalizeBooleanValue(cleanProxy['ws-opts']?.['v2ray-http-upgrade-fast-open']),
+      'v2ray-http-upgrade': isTruthyBooleanValue(cleanProxy['ws-opts']?.['v2ray-http-upgrade']) || undefined,
+      'v2ray-http-upgrade-fast-open': isTruthyBooleanValue(cleanProxy['ws-opts']?.['v2ray-http-upgrade-fast-open']) || undefined,
     }
   }
   if (cleanProxy.network === 'xhttp') applyXhttpDefaults(cleanProxy)

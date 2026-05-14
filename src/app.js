@@ -875,12 +875,16 @@ function showToast(message, type = 'ok') {
 
 function downloadYaml() {
   if (!state.yaml) return
-  const exportKind = exportFormatSelect.value
-  const text = buildExportYaml(exportKind)
-  const filename = exportKind === 'full'
-    ? normalizeFilename(filenameInput.value)
-    : normalizeFilename(`${exportKind}.yaml`)
-  downloadText(filename, text, 'application/yaml;charset=utf-8')
+  try {
+    const exportKind = exportFormatSelect.value
+    const text = buildExportYaml(exportKind)
+    const filename = exportKind === 'full'
+      ? normalizeFilename(filenameInput.value)
+      : normalizeFilename(`${exportKind}.yaml`)
+    downloadText(filename, text, 'application/yaml;charset=utf-8')
+  } catch {
+    showToast('Download failed. YAML may be invalid.', 'error')
+  }
 }
 
 function useSample() {
@@ -3044,15 +3048,15 @@ function addManualNode() {
   if (type === 'wireguard') {
     proxy['private-key'] = values['private-key']
     proxy['public-key'] = values['public-key']
-    proxy.presharedKey = values.presharedKey
+    proxy['pre-shared-key'] = values.presharedKey
     proxy.ip = values.ip
     proxy.mtu = parseManualNumber(values.mtu)
     proxy.peers = [{
       server: values.server,
       port: parseManualNumber(values.port) || values.port,
       'public-key': values['public-key'],
-      presharedKey: values.presharedKey || undefined,
-      allowedIPs: splitLinesOrComma(values.allowedIPs),
+      'pre-shared-key': values.presharedKey || undefined,
+      'allowed-ips': splitLinesOrComma(values.allowedIPs),
     }]
   } else if (type === 'vless') {
     proxy.uuid = values.uuid
