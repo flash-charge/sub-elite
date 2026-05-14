@@ -1720,7 +1720,7 @@ test('buildYamlFromModel supports advanced mihomo sections', () => {
   assert.match(yaml, /tunnels:/)
 })
 
-test('buildYamlFromModel supports ntp and raw section overrides without experimental', () => {
+test('buildYamlFromModel supports ntp, experimental, and raw section overrides', () => {
   const yaml = buildYamlFromModel({
     template: 'full',
     general: { mixedPort: 7890 },
@@ -1744,9 +1744,9 @@ test('buildYamlFromModel supports ntp and raw section overrides without experime
   assert.doesNotMatch(yaml, /default-nameserver:/)
   assert.match(yaml, /ntp:\n\s+enable: true/)
   assert.match(yaml, /write-to-system: true/)
-  assert.doesNotMatch(yaml, /experimental:/)
-  assert.doesNotMatch(yaml, /quic-go-disable-gso/)
-  assert.doesNotMatch(yaml, /dialer-ip4p-convert/)
+  assert.match(yaml, /experimental:/)
+  assert.match(yaml, /quic-go-disable-gso: true/)
+  assert.match(yaml, /dialer-ip4p-convert: true/)
 })
 
 test('buildYamlFromModel supports visual Mihomo wiki fields for general, tun, and common proxies', () => {

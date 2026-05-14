@@ -128,6 +128,7 @@ export function createConfigModel(proxies: ProxyNode[], options: any = {}) {
     tun: createTun(),
     ntp: createNtp(),
     geo: createGeo(),
+    experimental: {},
     ruleProviders: [],
     proxyProviders: [],
     listeners: [],
@@ -179,6 +180,7 @@ export function buildYamlFromModel(model: any) {
     ...buildSniffer(normalizedModel.sniffer, normalizedModel.rawSections.sniffer),
     ...buildTun(normalizedModel.tun, normalizedModel.rawSections.tun),
     ...buildNtp(normalizedModel.ntp, normalizedModel.rawSections.ntp),
+    ...buildExperimental(normalizedModel.experimental, normalizedModel.rawSections.experimental),
     proxies,
     ...buildProxyProviders(normalizedModel.proxyProviders),
     'proxy-groups': buildProxyGroups(normalizedModel, proxies),
@@ -477,8 +479,8 @@ export function autoFixConfigModel(model) {
   makeUniqueProviderNames(fixed.proxyProviders, './proxy_providers')
   const proxyProviderNames = new Set(fixed.proxyProviders.map((provider) => provider.name).filter(Boolean))
   fixed.groups.forEach((group) => {
-    const previousLength = group.use.length
-    group.use = group.use.filter((name) => proxyProviderNames.has(name))
+    const previousLength = (group.use || []).length
+    group.use = (group.use || []).filter((name) => proxyProviderNames.has(name))
     if (group.use.length !== previousLength) fixes.push(`Missing proxy providers were removed from group ${group.name || 'PROXY'}.`)
   })
 
@@ -1258,6 +1260,13 @@ function buildNtp(ntp, rawNtp) {
   return Object.keys(config).length ? { ntp: config } : {}
 }
 
+function buildExperimental(experimental, rawExperimental) {
+  const raw = normalizeRawSection(rawExperimental)
+  if (raw) return { experimental: raw }
+  if (experimental && Object.keys(experimental).length) return { experimental }
+  return {}
+}
+
 function buildRuleProviders(ruleProviders) {
   const providers = Object.fromEntries(
     ruleProviders
@@ -1511,7 +1520,7 @@ function dumpYaml(value, indent = 0, maxDepth = 20) {
 }
 
 function spaceTopLevelSections(yaml) {
-  const sectionKeys = new Set(['dns', 'sniffer', 'tun', 'ntp', 'proxies', 'proxy-providers', 'proxy-groups', 'listeners', 'rule-providers', 'sub-rules', 'tunnels', 'rules'])
+  const sectionKeys = new Set(['dns', 'sniffer', 'tun', 'ntp', 'experimental', 'proxies', 'proxy-providers', 'proxy-groups', 'listeners', 'rule-providers', 'sub-rules', 'tunnels', 'rules'])
   const lines = String(yaml).split('\n')
   const spaced: string[] = []
 
@@ -1651,6 +1660,7 @@ function normalizeModel(model) {
     subRules: normalizeSubRules(model?.subRules || model?.['sub-rules']),
     tunnels: Array.isArray(model?.tunnels) ? model.tunnels.filter(isPlainObject).map(normalizeTunnel) : [],
     extraTopLevel: model?.extraTopLevel && typeof model.extraTopLevel === 'object' && !Array.isArray(model.extraTopLevel) ? model.extraTopLevel : {},
+    experimental: normalizeObject(model?.experimental),
     rawSections: normalizeRawSections(model?.rawSections),
     proxies: Array.isArray(model?.proxies) ? model.proxies.filter(isPlainObject).map(normalizeProxyModelNode) : [],
     groups: Array.isArray(model?.groups) ? model.groups.filter(isPlainObject).map(normalizeGroup) : [],
