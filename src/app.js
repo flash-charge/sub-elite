@@ -417,6 +417,7 @@ const tunIncludePackage = document.querySelector('#tun-include-package')
 const tunExcludePackage = document.querySelector('#tun-exclude-package')
 const geoGeodataMode = document.querySelector('#geo-geodata-mode')
 const geoAutoUpdate = document.querySelector('#geo-auto-update')
+const geoGeodataLoader = document.querySelector('#geo-geodata-loader')
 const geoUpdateInterval = document.querySelector('#geo-update-interval')
 const geoUrlGeoip = document.querySelector('#geo-url-geoip')
 const geoUrlGeosite = document.querySelector('#geo-url-geosite')
@@ -631,6 +632,7 @@ dnsNameservers.addEventListener('input', updateDnsFromEditor)
 ].forEach((field) => field.addEventListener(field.type === 'checkbox' || field.tagName === 'SELECT' ? 'change' : 'input', updateTunFromEditor))
 ;[
   geoGeodataMode,
+  geoGeodataLoader,
   geoAutoUpdate,
   geoUpdateInterval,
   geoUrlGeoip,
@@ -1484,6 +1486,7 @@ function renderTun() {
 function renderGeo() {
   if (!state.model) return
   geoGeodataMode.checked = state.model.geo.geodataMode
+  geoGeodataLoader.value = state.model.geo.geodataLoader || ''
   geoAutoUpdate.checked = state.model.geo.geoAutoUpdate
   geoUpdateInterval.value = state.model.geo.geoUpdateInterval
   geoUrlGeoip.value = state.model.geo.geoxUrl.geoip
@@ -2616,11 +2619,16 @@ function manualNodeFieldDefinitions(type, values = {}) {
     ],
     wireguard: [
       { key: 'ip', label: 'IP' },
+      { key: 'ipv6', label: 'IPv6' },
       { key: 'private-key', label: 'Private Key', required: true },
       { key: 'public-key', label: 'Public Key', required: true },
       { key: 'pre-shared-key', label: 'Preshared Key' },
+      { key: 'reserved', label: 'Reserved', placeholder: '209,98,59' },
       { key: 'allowed-ips', label: 'Allowed IPs', type: 'textarea', wide: true },
       { key: 'mtu', label: 'MTU' },
+      { key: 'persistent-keepalive', label: 'Keepalive' },
+      { key: 'remote-dns-resolve', label: 'Remote DNS Resolve', type: 'checkbox' },
+      { key: 'dns', label: 'DNS', placeholder: '1.1.1.1,8.8.8.8' },
       ...manualCommonProxyFields(type, { includeUdp: false, includeTcp: false }),
     ],
     ssh: [
@@ -2884,6 +2892,14 @@ function parseManualNumber(value) {
   return Number.isFinite(number) ? number : ''
 }
 
+function parseReservedField(value) {
+  const text = String(value || '').trim()
+  if (!text) return undefined
+  const parts = text.split(',').map((s) => s.trim())
+  if (parts.every((p) => /^\d+$/.test(p))) return parts.map(Number)
+  return text
+}
+
 function isValidPortValue(value) {
   const port = Number(String(value || '').trim())
   return Number.isInteger(port) && port >= 1 && port <= 65535
@@ -3056,12 +3072,18 @@ function addManualNode() {
     proxy['public-key'] = values['public-key']
     proxy['pre-shared-key'] = values['pre-shared-key']
     proxy.ip = values.ip
+    proxy.ipv6 = values.ipv6
+    proxy.reserved = parseReservedField(values.reserved)
     proxy.mtu = parseManualNumber(values.mtu)
+    proxy['persistent-keepalive'] = parseManualNumber(values['persistent-keepalive'])
+    proxy['remote-dns-resolve'] = values['remote-dns-resolve'] || undefined
+    proxy.dns = values.dns ? values.dns.split(',').map((s) => s.trim()).filter(Boolean) : undefined
     proxy.peers = [{
       server: values.server,
       port: parseManualNumber(values.port) || values.port,
       'public-key': values['public-key'],
       'pre-shared-key': values['pre-shared-key'] || undefined,
+      reserved: parseReservedField(values.reserved),
       'allowed-ips': splitLinesOrComma(values['allowed-ips']),
     }]
   } else if (type === 'vless') {
@@ -3356,6 +3378,7 @@ function updateGeoFromEditor() {
   state.model.geo = {
     ...extra,
     geodataMode: geoGeodataMode.checked,
+    geodataLoader: geoGeodataLoader.value,
     geoAutoUpdate: geoAutoUpdate.checked,
     geoUpdateInterval: Number(geoUpdateInterval.value) || 24,
     geoxUrl: {
@@ -5015,11 +5038,16 @@ function renderProtocolFields(proxy) {
   if (type === 'wireguard') {
     return `
       <label><span>IP</span><input type="text" data-field="ip" value="${escapeAttr(proxy.ip || '')}"></label>
+      <label><span>IPv6</span><input type="text" data-field="ipv6" value="${escapeAttr(proxy.ipv6 || '')}"></label>
       <label><span>Private Key</span><input type="text" data-field="private-key" value="${escapeAttr(proxy['private-key'] || '')}"></label>
       <label><span>Public Key</span><input type="text" data-field="public-key" value="${escapeAttr(proxy['public-key'] || '')}"></label>
       <label><span>Preshared Key</span><input type="text" data-field="pre-shared-key" value="${escapeAttr(proxy['pre-shared-key'] || '')}"></label>
+      <label><span>Reserved</span><input type="text" data-field="reserved" value="${escapeAttr(Array.isArray(proxy.reserved) ? proxy.reserved.join(',') : (proxy.reserved || ''))}" placeholder="209,98,59"></label>
       <label class="wide-field"><span>Allowed IPs</span><textarea class="mini-editor" data-field="allowed-ips:list">${escapeHtml(listForInput(proxy['allowed-ips'] || proxy.peers?.[0]?.['allowed-ips']))}</textarea></label>
       <label><span>MTU</span><input type="text" data-field="mtu:number" value="${escapeAttr(proxy.mtu || '')}"></label>
+      <label><span>Keepalive</span><input type="text" data-field="persistent-keepalive:number" value="${escapeAttr(proxy['persistent-keepalive'] || '')}"></label>
+      <label><span>Remote DNS</span><input type="checkbox" data-field="remote-dns-resolve:boolean" ${proxy['remote-dns-resolve'] ? 'checked' : ''}></label>
+      <label><span>DNS</span><input type="text" data-field="dns:list" value="${escapeAttr(Array.isArray(proxy.dns) ? proxy.dns.join(',') : (proxy.dns || ''))}" placeholder="1.1.1.1,8.8.8.8"></label>
     `
   }
   if (type === 'snell') {
