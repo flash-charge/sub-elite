@@ -1,6 +1,6 @@
 import { buildYamlFromModel, createConfigModel } from '../lib/converter.ts'
 import { parseDocument } from 'yaml'
-import { state, invalidEditorInput, nodeUiKeys, apiBaseUrl, linkProtocolPattern, input, fileInput, templateSelect, rulesSelect, namePatternInput, filenameInput, convertButton, blankConfigButton, sampleButton, copyButton, downloadButton, exportFormatSelect, formatYamlButton, validateYamlButton, autoFixButton, toggleDiffButton, resetYamlButton, createSubscriptionButton, copySubscriptionButton, openSubscriptionLink, subscriptionUrlInput, subscriptionStatus, errorBanner, yamlEditor, diffPanel, diffSummary, diffViewer, validationBanner,  yamlSectionSelect, yamlSectionPreview,  statTotal, statConverted, statSkipped, nodeList, groupList, groupNameInput, groupTypeInput, addGroupButton, rulesEditor, dnsEnable, dnsListen, dnsCacheAlgorithm, dnsPreferH3, dnsUseHosts, dnsUseSystemHosts, dnsRespectRules, dnsDefault, dnsNameservers, generalPort, generalSocksPort, generalRedirPort, generalTproxyPort, generalMixedPort, generalMode, generalLogLevel, generalBindAddress, generalLanAllowedIps, generalLanDisallowedIps, generalAuthentication, generalSkipAuthPrefixes, generalInterfaceName, generalRoutingMark, generalKeepAliveIdle, generalKeepAliveInterval, generalFindProcessMode, generalController, generalControllerTls, generalControllerUnix, generalControllerPipe, generalControllerCors, generalUi, generalUiName, generalUiUrl, generalSecret, generalClientFingerprint, generalUa, generalTlsCertificate, generalTlsPrivateKey, generalAllowLan, generalIpv6, generalDisableKeepAlive, generalUnifiedDelay, generalTcpConcurrent, generalEtagSupport, profileStoreSelected, profileStoreFakeIp, dnsEnhancedMode, dnsFakeIpRange, dnsFakeIpRange6, dnsFakeIpFilterMode, dnsFakeIpTtl, dnsFakeIpFilter, dnsFallback, dnsFallbackFilter, dnsDirectNameserver, dnsDirectFollowPolicy, dnsProxyServer, dnsProxyPolicy, dnsPolicy, snifferEnable, snifferOverride, snifferParseIp, snifferForceDnsMapping, snifferSniff, snifferForce, snifferSkip, snifferSkipSrc, snifferSkipDst, tunEnable, tunStack, tunDevice, tunAutoRoute, tunAutoRedirect, tunAutoDetect, tunStrictRoute, tunDnsHijack, tunMtu, tunGso, tunGsoMaxSize, tunUdpTimeout, tunIproute2TableIndex, tunIproute2RuleIndex, tunEndpointIndependentNat, tunRouteAddressSet, tunRouteExcludeAddressSet, tunRouteAddress, tunRouteExcludeAddress, tunIncludeInterface, tunExcludeInterface, tunIncludeUid, tunIncludeUidRange, tunExcludeUid, tunExcludeUidRange, tunIncludeAndroidUser, tunIncludePackage, tunExcludePackage, geoGeodataMode, geoAutoUpdate, geoGeodataLoader, geoUpdateInterval, geoUrlGeoip, geoUrlGeosite, geoUrlMmdb, geoUrlAsn, ruleProviderName, ruleProviderUrl, addRuleProviderButton, addAdsProviderButton, applyLanRulesButton, ruleProviderList, ruleBuilderType, addRuleButton, addProxyProviderButton, proxyProviderList,  manualNodeType, manualNodeFields, addManualNodeButton, nodeFilterQuery, nodeFilterType, nodeFilterStatus, openNodeToolsButton, nodeToolsSheet, closeNodeToolsButton, bulkRenamePattern, applyBulkRenameButton, nodeSortField, sortNodesButton, deleteDuplicateNodesButton, nodeKeywordInput, enableKeywordNodesButton, disableKeywordNodesButton, fabCopy, fabDownload, toast, viewTabs, viewPanels, editTabs, editPanels, editorSectionSelect } from './state.js'
+import { state, invalidEditorInput, nodeUiKeys, apiBaseUrl, linkProtocolPattern, input, fileInput, templateSelect, rulesSelect, namePatternInput, filenameInput, convertButton, blankConfigButton, sampleButton, copyButton, downloadButton, exportFormatSelect, formatYamlButton, validateYamlButton, autoFixButton, toggleDiffButton, resetYamlButton, createSubscriptionButton, copySubscriptionButton, openSubscriptionLink, subscriptionUrlInput, errorBanner, yamlEditor, diffPanel, diffSummary, diffViewer, validationBanner,  yamlSectionSelect, yamlSectionPreview,  statTotal, statConverted, statSkipped, nodeList, groupList, groupNameInput, groupTypeInput, addGroupButton, rulesEditor, dnsEnable, dnsListen, dnsCacheAlgorithm, dnsPreferH3, dnsUseHosts, dnsUseSystemHosts, dnsRespectRules, dnsDefault, dnsNameservers, generalPort, generalSocksPort, generalRedirPort, generalTproxyPort, generalMixedPort, generalMode, generalLogLevel, generalBindAddress, generalLanAllowedIps, generalLanDisallowedIps, generalAuthentication, generalSkipAuthPrefixes, generalInterfaceName, generalRoutingMark, generalKeepAliveIdle, generalKeepAliveInterval, generalFindProcessMode, generalController, generalControllerTls, generalControllerUnix, generalControllerPipe, generalControllerCors, generalUi, generalUiName, generalUiUrl, generalSecret, generalClientFingerprint, generalUa, generalTlsCertificate, generalTlsPrivateKey, generalAllowLan, generalIpv6, generalDisableKeepAlive, generalUnifiedDelay, generalTcpConcurrent, generalEtagSupport, profileStoreSelected, profileStoreFakeIp, dnsEnhancedMode, dnsFakeIpRange, dnsFakeIpRange6, dnsFakeIpFilterMode, dnsFakeIpTtl, dnsFakeIpFilter, dnsFallback, dnsFallbackFilter, dnsDirectNameserver, dnsDirectFollowPolicy, dnsProxyServer, dnsProxyPolicy, dnsPolicy, snifferEnable, snifferOverride, snifferParseIp, snifferForceDnsMapping, snifferSniff, snifferForce, snifferSkip, snifferSkipSrc, snifferSkipDst, tunEnable, tunStack, tunDevice, tunAutoRoute, tunAutoRedirect, tunAutoDetect, tunStrictRoute, tunDnsHijack, tunMtu, tunGso, tunGsoMaxSize, tunUdpTimeout, tunIproute2TableIndex, tunIproute2RuleIndex, tunEndpointIndependentNat, tunRouteAddressSet, tunRouteExcludeAddressSet, tunRouteAddress, tunRouteExcludeAddress, tunIncludeInterface, tunExcludeInterface, tunIncludeUid, tunIncludeUidRange, tunExcludeUid, tunExcludeUidRange, tunIncludeAndroidUser, tunIncludePackage, tunExcludePackage, geoGeodataMode, geoAutoUpdate, geoGeodataLoader, geoUpdateInterval, geoUrlGeoip, geoUrlGeosite, geoUrlMmdb, geoUrlAsn, ruleProviderName, ruleProviderUrl, addRuleProviderButton, addAdsProviderButton, applyLanRulesButton, ruleProviderList, ruleBuilderType, addRuleButton, addProxyProviderButton, proxyProviderList,  manualNodeType, manualNodeFields, addManualNodeButton, nodeFilterQuery, nodeFilterType, nodeFilterStatus, openNodeToolsButton, nodeToolsSheet, closeNodeToolsButton, bulkRenamePattern, applyBulkRenameButton, nodeSortField, sortNodesButton, deleteDuplicateNodesButton, nodeKeywordInput, enableKeywordNodesButton, disableKeywordNodesButton, fabCopy, fabDownload, toast, viewTabs, viewPanels, editTabs, editPanels, editorSectionSelect } from './state.js'
 import {
   sampleLinks, MAX_IMPORT_FILE_BYTES, importFilePattern, networkSupportByType,
   alpnOptions, proxyTypeOptions, proxyTypeLabels,
@@ -823,7 +823,7 @@ function renderSubscriptionUrl() {
 async function checkSubscriptionApiAvailability() {
   if (typeof navigator !== 'undefined' && navigator.onLine === false) {
     state.subscriptionApiAvailable = false
-    updateSubscriptionStatus()
+    
     return
   }
 
@@ -839,7 +839,7 @@ async function checkSubscriptionApiAvailability() {
   } catch {
     state.subscriptionApiAvailable = false
   }
-  updateSubscriptionStatus()
+  
 }
 
 function setupNetworkStatus() {
@@ -848,7 +848,7 @@ function setupNetworkStatus() {
   })
   window.addEventListener('offline', () => {
     state.subscriptionApiAvailable = false
-    updateSubscriptionStatus()
+    
   })
 }
 
@@ -865,18 +865,6 @@ function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
   }).finally(() => clearTimeout(id))
 }
 
-
-function updateSubscriptionStatus() {
-  const offline = typeof navigator !== 'undefined' && navigator.onLine === false
-  createSubscriptionButton.disabled = !state.yaml || !state.subscriptionApiAvailable || offline
-  subscriptionStatus.classList.toggle('status-ok', state.subscriptionApiAvailable && !offline)
-  subscriptionStatus.classList.toggle('status-warn', !state.subscriptionApiAvailable || offline)
-  subscriptionStatus.textContent = offline
-    ? 'Offline mode: the app shell is cached, but subscription API requires internet.'
-    : state.subscriptionApiAvailable
-      ? 'Backend API connected. Treat subscription URLs like secrets.'
-      : 'Backend API is not available. Copy and Download still work.'
-}
 
 function showError(message) {
   errorBanner.textContent = message

@@ -46,7 +46,6 @@ export const createSubscriptionButton = document.querySelector('#create-subscrip
 export const copySubscriptionButton = document.querySelector('#copy-subscription-button')
 export const openSubscriptionLink = document.querySelector('#open-subscription-link')
 export const subscriptionUrlInput = document.querySelector('#subscription-url-input')
-export const subscriptionStatus = document.querySelector('#subscription-status')
 export const errorBanner = document.querySelector('#error-banner')
 export const yamlEditor = document.querySelector('#yaml-editor')
 export const diffPanel = document.querySelector('#diff-panel')
