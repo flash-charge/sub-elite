@@ -671,9 +671,11 @@ async function processInput() {
 
 async function convertLinks() {
   convertButton.disabled = true
+  convertButton.classList.add('is-loading')
   convertButton.querySelector('span').textContent = 'Converting...'
   copyButton.querySelector('span').textContent = 'Copy'
   clearError()
+  showConvertSkeleton(true)
 
   try {
     const payload = await convertLinksViaApi()
@@ -700,13 +702,15 @@ async function convertLinks() {
     clearConvertedState()
     showError(error instanceof Error ? error.message : 'Conversion failed.')
   } finally {
+    convertButton.classList.remove('is-loading')
     convertButton.querySelector('span').textContent = 'Convert'
+    showConvertSkeleton(false)
     updateSubmitState()
   }
 }
 
 async function convertLinksViaApi() {
-  const response = await fetch(apiUrl('/api/convert'), {
+  const response = await fetchWithTimeout(apiUrl('/api/convert'), {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
@@ -817,10 +821,11 @@ async function createSubscriptionUrl() {
     return
   }
   createSubscriptionButton.disabled = true
+  createSubscriptionButton.classList.add('is-loading')
   createSubscriptionButton.textContent = 'Creating...'
 
   try {
-    const response = await fetch(apiUrl('/api/subscriptions'), {
+    const response = await fetchWithTimeout(apiUrl('/api/subscriptions'), {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
@@ -837,6 +842,7 @@ async function createSubscriptionUrl() {
   } catch (error) {
     showToast(error instanceof Error ? error.message : 'Subscription URL failed.', 'error')
   } finally {
+    createSubscriptionButton.classList.remove('is-loading')
     createSubscriptionButton.textContent = 'Create URL'
     createSubscriptionButton.disabled = !state.yaml || !state.subscriptionApiAvailable
   }
@@ -931,6 +937,16 @@ function renderModel() {
   renderGroups()
   renderRules()
   renderDns()
+  deferredEditorRender.dirty = true
+  deferredEditorRender.rendered = false
+  renderDeferredEditorSections()
+}
+
+const deferredEditorRender = { dirty: false, rendered: false }
+
+function renderDeferredEditorSections() {
+  if (!deferredEditorRender.dirty || deferredEditorRender.rendered) return
+  deferredEditorRender.rendered = true
   renderSniffer()
   renderTun()
   renderGeo()
@@ -942,10 +958,12 @@ function renderModel() {
 function setActiveView(view) {
   viewTabs.forEach((tab) => tab.classList.toggle('active', tab.dataset.viewTarget === view))
   viewPanels.forEach((panel) => panel.classList.toggle('active', panel.dataset.view === view))
+  if (view === 'edit') renderDeferredEditorSections()
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 function setActiveEdit(target) {
+  renderDeferredEditorSections()
   let activeTab = null
   editTabs.forEach((tab) => {
     const active = tab.dataset.editTarget === target
@@ -4658,10 +4676,10 @@ async function checkSubscriptionApiAvailability() {
   }
 
   try {
-    const response = await fetch(apiUrl('/healthz'), {
+    const response = await fetchWithTimeout(apiUrl('/healthz'), {
       headers: { accept: 'application/json' },
       cache: 'no-store',
-    })
+    }, 10000)
     const contentType = response.headers.get('content-type') || ''
     if (!response.ok || !contentType.includes('application/json')) throw new Error('Subscription API unavailable.')
     const payload = await response.json()
@@ -4684,6 +4702,15 @@ function setupNetworkStatus() {
 
 function apiUrl(path) {
   return apiBaseUrl ? `${apiBaseUrl}${path}` : path
+}
+
+function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
+  const controller = new AbortController()
+  const id = setTimeout(() => controller.abort(), timeoutMs)
+  return fetch(url, { ...options, signal: controller.signal }).catch((error) => {
+    if (error.name === 'AbortError') throw new Error('Request timed out.')
+    throw error
+  }).finally(() => clearTimeout(id))
 }
 
 function readApiBaseUrl() {
@@ -4714,6 +4741,12 @@ function showError(message) {
 function clearError() {
   errorBanner.textContent = ''
   errorBanner.hidden = true
+}
+
+function showConvertSkeleton(show) {
+  const skeleton = document.querySelector('#convert-skeleton')
+  skeleton.classList.toggle('active', show)
+  yamlEditor.hidden = show
 }
 
 function showValidation(message, type) {

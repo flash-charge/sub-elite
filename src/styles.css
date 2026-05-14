@@ -1971,6 +1971,84 @@ summary {
   }
 }
 
+@media (min-width: 720px) and (max-width: 1039px) {
+  .option-panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .node-fields,
+  .manual-node-fields,
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .action-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .view-tabs {
+    position: sticky;
+    top: 0;
+    margin-bottom: 14px;
+    padding: 8px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+  }
+
+  .view-tabs button {
+    font-size: 12px;
+  }
+
+  .edit-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+    padding: 8px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+
+  .edit-nav button {
+    flex: 0 0 auto;
+    min-height: 38px;
+    font-size: 12px;
+  }
+
+  .inline-form {
+    grid-template-columns: minmax(0, 1fr) minmax(140px, 200px) auto;
+    align-items: center;
+  }
+
+  .rule-builder {
+    grid-template-columns: minmax(120px, 160px) minmax(0, 1fr) minmax(120px, 180px) auto;
+  }
+
+  .sheet-panel {
+    right: 16px;
+    bottom: 16px;
+    left: auto;
+    width: min(480px, calc(100vw - 32px));
+    border-radius: 8px;
+  }
+
+  .group-create-grid,
+  .group-edit-grid,
+  .provider-create-grid,
+  .provider-edit-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .section-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .node-filter-bar {
+    grid-template-columns: minmax(0, 1fr) minmax(120px, 160px) minmax(110px, 140px);
+  }
+}
+
 @media (min-width: 720px) {
   .app-shell {
     padding: 24px 24px 36px;
@@ -2255,4 +2333,46 @@ summary {
     scroll-behavior: auto !important;
     transition-duration: 1ms !important;
   }
+}
+
+.loading-skeleton {
+  display: none;
+  gap: 10px;
+  padding: 14px;
+}
+
+.loading-skeleton.active {
+  display: grid;
+}
+
+.skeleton-line {
+  height: 14px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--surface-soft) 25%, var(--line) 50%, var(--surface-soft) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.skeleton-line:nth-child(2) { width: 85%; }
+.skeleton-line:nth-child(3) { width: 70%; }
+.skeleton-line:nth-child(4) { width: 90%; }
+.skeleton-line:nth-child(5) { width: 60%; }
+
+.primary-button.is-loading {
+  pointer-events: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.primary-button.is-loading::before {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+  animation: shimmer 1.2s ease-in-out infinite;
+  content: "";
+}
+
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
 }

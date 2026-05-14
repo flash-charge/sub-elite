@@ -19,6 +19,13 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const rootDir = normalize(join(__dirname, '..'))
 const distDir = join(rootDir, 'dist')
 
+setInterval(() => {
+  const now = Date.now()
+  for (const [key, record] of localSubscriptions) {
+    if (record.expiresAt && record.expiresAt <= now) localSubscriptions.delete(key)
+  }
+}, 60_000)
+
 const server = createServer(async (request, response) => {
   try {
     const url = new URL(request.url || '/', 'http://localhost')
@@ -108,7 +115,6 @@ async function handleCreateSubscription(request, response) {
   return sendJson(response, 200, {
     ok: true,
     url: url.toString(),
-    secret,
     expiresIn,
   })
 }
@@ -210,9 +216,15 @@ function subscriptionHeaders() {
 }
 
 function randomSecret(length) {
-  const bytes = randomBytes(length)
+  const limit = 256 - (256 % SECRET_ALPHABET.length)
   let output = ''
-  for (const byte of bytes) output += SECRET_ALPHABET[byte % SECRET_ALPHABET.length]
+  while (output.length < length) {
+    const bytes = randomBytes(length - output.length)
+    for (const byte of bytes) {
+      if (byte < limit) output += SECRET_ALPHABET[byte % SECRET_ALPHABET.length]
+      if (output.length === length) break
+    }
+  }
   return output
 }
 
