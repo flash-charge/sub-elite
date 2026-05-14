@@ -785,7 +785,7 @@ small {
 
 .subscription-actions {
   display: grid;
-  grid-template-columns: 1.1fr 1fr 0.75fr;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
 
@@ -797,15 +797,37 @@ small {
 }
 
 .subscription-url-row {
+  position: relative;
   display: flex;
-  gap: 8px;
+  align-items: center;
 }
 .subscription-url-row input {
   flex: 1;
   min-width: 0;
+  padding-right: 44px;
 }
-.subscription-url-row .ghost-button {
-  flex: 0 0 auto;
+.copy-inline-button {
+  position: absolute;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color var(--motion-fast), background var(--motion-fast);
+}
+.copy-inline-button:not(:disabled):hover,
+.copy-inline-button:not(:disabled):focus-visible {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.copy-inline-button:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 #subscription-status {
@@ -1816,14 +1838,6 @@ summary {
   .yaml-tool-actions .icon-small {
     width: 16px;
     height: 16px;
-  }
-
-  .subscription-actions {
-    grid-template-columns: 1.2fr 0.8fr;
-  }
-
-  .subscription-actions .ghost-link {
-    grid-column: 1 / -1;
   }
 
   .edit-nav {
