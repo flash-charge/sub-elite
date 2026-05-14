@@ -2253,7 +2253,7 @@ function syncWireGuardPeerField(proxy, field) {
 }
 
 function moveNode(from, to) {
-  if (!state.model || from < 0 || to < 0 || from >= state.model.proxies.length || to >= state.model.proxies.length) return
+  if (!state.model || from === to || from < 0 || to < 0 || from >= state.model.proxies.length || to >= state.model.proxies.length) return
   const [item] = state.model.proxies.splice(from, 1)
   state.model.proxies.splice(to, 0, item)
   updateYamlFromModel()
@@ -5616,6 +5616,8 @@ function proxySignature(proxy) {
     proxy.uuid,
     proxy.password,
     proxy.cipher,
+    proxy.network,
+    proxy.tls,
   ].map((part) => String(part || '').trim().toLowerCase()).join('|')
 }
 

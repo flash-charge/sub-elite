@@ -39,7 +39,14 @@ async function proxyToBackend(context) {
     redirect: 'manual',
   }
 
-  return fetch(backendUrl, init)
+  try {
+    return await fetch(backendUrl, init)
+  } catch {
+    return new Response(JSON.stringify({ error: 'Backend is unreachable.' }), {
+      status: 502,
+      headers: { 'content-type': 'application/json; charset=utf-8' },
+    })
+  }
 }
 
 function backendUrlForRequest(requestUrl, env) {
