@@ -28,15 +28,18 @@ await updateSecurityHeaders(apiBaseUrl)
 await writePwaIconPng(join(dist, 'pwa-icon-192.png'), 192)
 await writePwaIconPng(join(dist, 'pwa-icon-512.png'), 512)
 
-const converterSource = await readFile(join(root, 'lib', 'converter.ts'), 'utf8')
-const converterResult = ts.transpileModule(converterSource, {
+const converterTsOptions = {
   compilerOptions: {
     target: ts.ScriptTarget.ES2022,
     module: ts.ModuleKind.ESNext,
     removeComments: true,
   },
-})
-await writeFile(join(buildTemp, 'converter.js'), converterResult.outputText)
+}
+for (const libMod of ['helpers.ts', 'parsers.ts', 'converter.ts']) {
+  const source = await readFile(join(root, 'lib', libMod), 'utf8')
+  const result = ts.transpileModule(source, converterTsOptions)
+  await writeFile(join(buildTemp, libMod.replace('.ts', '.js')), result.outputText.replace(/from '\.\/(\w+)\.ts'/g, "from './$1.js'"))
+}
 
 const appSource = await readFile(join(root, 'src', 'app.js'), 'utf8')
 const appPrepared = appSource
