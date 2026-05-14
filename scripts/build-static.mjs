@@ -41,6 +41,11 @@ await writeFile(join(buildTemp, 'converter.js'), converterResult.outputText)
 const appSource = await readFile(join(root, 'src', 'app.js'), 'utf8')
 const appPrepared = appSource.replace("from '../lib/converter.ts'", "from './converter.js'")
 await writeFile(join(buildTemp, 'app.js'), appPrepared)
+
+for (const mod of ['constants.js', 'utils.js', 'model.js']) {
+  await cp(join(root, 'src', mod), join(buildTemp, mod))
+}
+
 const appPath = await bundleApp()
 
 const cssSource = await readFile(join(root, 'src', 'styles.css'), 'utf8')
