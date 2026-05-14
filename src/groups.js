@@ -43,6 +43,9 @@ export function renderGroups() {
       </div>
       ${healthFields ? `
         <div class="form-grid section-grid group-edit-grid group-subsection">
+          ${group.type === 'load-balance' ? `<label><span>Strategy</span><select data-field="strategy">
+            ${['consistent-hashing', 'round-robin', 'sticky-sessions'].map((s) => `<option value="${s}" ${s === (group.strategy || 'consistent-hashing') ? 'selected' : ''}>${s}</option>`).join('')}
+          </select></label>` : ''}
           <label class="wide-field"><span>URL</span><input type="text" data-field="url" value="${escapeAttr(group.url || '')}"></label>
           <label><span>Interval</span><input type="text" data-field="interval" value="${escapeAttr(group.interval || 300)}"></label>
           <label><span>Timeout</span><input type="text" data-field="timeout" value="${escapeAttr(group.timeout || '')}"></label>
@@ -63,6 +66,8 @@ export function renderGroups() {
         <label class="checkbox-row"><input type="checkbox" data-field="disableUdp" ${group.disableUdp ? 'checked' : ''}> Disable UDP</label>
         <label class="checkbox-row"><input type="checkbox" data-field="hidden" ${group.hidden ? 'checked' : ''}> Hidden</label>
         <button type="button" class="ghost-button group-delete-button" data-action="delete">Delete Group</button>
+        <button type="button" class="ghost-button" data-action="move-up">↑ Up</button>
+        <button type="button" class="ghost-button" data-action="move-down">↓ Down</button>
       </div>
     `
     row.addEventListener('input', (event) => handleGroupInput(event, index))
@@ -86,6 +91,18 @@ export function renderGroups() {
       }
       if (action === 'clear-group-providers') {
         group.use = []
+        updateYamlFromModel()
+        return
+      }
+      if (action === 'move-up' && index > 0) {
+        const [item] = state.model.groups.splice(index, 1)
+        state.model.groups.splice(index - 1, 0, item)
+        updateYamlFromModel()
+        return
+      }
+      if (action === 'move-down' && index < state.model.groups.length - 1) {
+        const [item] = state.model.groups.splice(index, 1)
+        state.model.groups.splice(index + 1, 0, item)
         updateYamlFromModel()
         return
       }

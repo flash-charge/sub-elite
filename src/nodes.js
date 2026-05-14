@@ -45,7 +45,6 @@ export function renderNodes() {
           <span class="node-action-label">${expanded ? 'Collapse' : 'Expand'}</span>
         </button>
         <div class="row-actions node-toolbar">
-          <label class="checkbox-row"><input type="checkbox" data-field="enabled" ${proxy.enabled !== false ? 'checked' : ''}> Enabled</label>
           <button type="button" class="ghost-button node-action-button" data-action="up" aria-label="Move node up" title="Up">
             <svg class="icon-small" aria-hidden="true"><use href="/icons.svg#icon-chevron-up"></use></svg>
             <span class="node-action-label">Up</span>
@@ -113,7 +112,6 @@ export function nodeSummaryParts(proxy) {
   if (needsEndpoint(proxy)) parts.push(`${proxy.server || 'server'}:${proxy.port || 'port'}`)
   if (proxy.network) parts.push(`network ${proxy.network}`)
   if (proxy.tls) parts.push('TLS')
-  if (proxy.enabled === false) parts.push('disabled')
   return parts.length ? parts : ['local node']
 }
 
@@ -126,8 +124,6 @@ export function filteredNodeEntries() {
     .filter(({ proxy }) => {
       const proxyType = normalizeProxyType(proxy.type)
       if (type && proxyType !== type) return false
-      if (status === 'enabled' && proxy.enabled === false) return false
-      if (status === 'disabled' && proxy.enabled !== false) return false
       if (!query) return true
       return [proxy.name, proxy.server, proxyType, proxy.network]
         .map((value) => String(value || '').toLowerCase())
@@ -154,7 +150,7 @@ export function handleNodeClick(event, index) {
     if (proxy) state.expandedNodeKeys.delete(nodeExpansionKey(proxy))
     state.model.proxies.splice(index, 1)
     if (previousName) {
-      pruneGroupProxyRefs(new Set(state.model.proxies.filter((item) => item.enabled !== false).map((item) => item.name)))
+      pruneGroupProxyRefs(new Set(state.model.proxies.map((item) => item.name)))
       replacePolicyTargetName(previousName, fallbackPolicyTarget())
     }
     updateYamlFromModel()
@@ -187,7 +183,7 @@ export function handleNodeInput(event, index) {
         showValidation(`Node name "${String(parsed.name || '').trim()}" conflicts with a group name.`, 'error')
         return
       }
-      state.model.proxies[index] = { ...parsed, enabled: proxy.enabled !== false }
+      state.model.proxies[index] = parsed
       const nextName = state.model.proxies[index].name
       if (nextName) replaceGroupProxyName(previousName, nextName)
       else removeGroupProxyName(previousName)
@@ -229,16 +225,6 @@ export function handleNodeInput(event, index) {
     if (updateTransportField(proxy, field, event.target) === false) return
   } else if (event.target.type === 'checkbox') {
     proxy[field] = event.target.checked
-    if (field === 'enabled') {
-      if (!event.target.checked && proxy.name) {
-        const keptNames = new Set(state.model.proxies.filter((item) => item.enabled !== false).map((item) => item.name))
-        pruneGroupProxyRefs(keptNames)
-        replacePolicyTargetName(proxy.name, fallbackPolicyTarget())
-      }
-      renderGroups()
-      renderRuleTargetOptions()
-      refreshRenderedRuleProviderTargets()
-    }
     if (field === 'tls') {
       if (!event.target.checked) cleanupDisabledTlsFields(proxy)
       toggleNodeTlsFields(event.target.closest('.tls-fields'), event.target.checked)
@@ -332,7 +318,7 @@ export function normalizeEditorModel() {
     if (tunnel.proxy) tunnel.proxy = String(tunnel.proxy).trim()
     if (tunnel.proxy && !options.includes(tunnel.proxy)) tunnel.proxy = ''
   })
-  const enabledProxyNames = new Set(state.model.proxies.filter((proxy) => proxy.enabled !== false).map((proxy) => proxy.name).filter(Boolean))
+  const enabledProxyNames = new Set(state.model.proxies.map((proxy) => proxy.name).filter(Boolean))
   pruneGroupProxyRefs(enabledProxyNames)
   const proxyProviderNames = new Set(state.model.proxyProviders.map((provider) => provider.name).filter(Boolean))
   state.model.groups.forEach((group) => {
@@ -447,7 +433,7 @@ export function deleteDuplicateNodes() {
       return false
     }
     seen.add(key)
-    if (proxy.enabled !== false) keptNames.add(proxy.name)
+    keptNames.add(proxy.name)
     return true
   })
   pruneGroupProxyRefs(keptNames)
@@ -456,33 +442,6 @@ export function deleteDuplicateNodes() {
   showToast(`${before - state.model.proxies.length} duplicate nodes removed.`)
 }
 
-export function setNodesByKeyword(enabled) {
-  if (!state.model) return
-  const keyword = nodeKeywordInput.value.trim().toLowerCase()
-  if (!keyword) {
-    showValidation('Node keyword is required.', 'warning')
-    return
-  }
-  let changed = 0
-  const disabledNames = new Set()
-  for (const proxy of state.model.proxies) {
-    const haystack = [proxy.name, proxy.type, proxy.server].join(' ').toLowerCase()
-    if (haystack.includes(keyword)) {
-      if (!enabled && proxy.enabled !== false && proxy.name) disabledNames.add(proxy.name)
-      proxy.enabled = enabled
-      changed += 1
-    }
-  }
-  if (disabledNames.size) {
-    const keptNames = new Set(state.model.proxies.filter((proxy) => proxy.enabled !== false).map((proxy) => proxy.name))
-    pruneGroupProxyRefs(keptNames)
-    replaceRemovedPolicyTargets(disabledNames, fallbackPolicyTarget())
-  }
-  renderRuleTargetOptions()
-  refreshRenderedRuleProviderTargets()
-  updateYamlFromModel()
-  showToast(`${changed} nodes updated.`)
-}
 
 export function formatNodeName(proxy, index, pattern) {
   const originalName = proxy.name || proxy.server || proxy.type || 'proxy'

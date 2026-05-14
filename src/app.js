@@ -35,7 +35,7 @@ import {
 import {
   renderNodes, nodeExpansionKey, handleNodeClick, handleNodeInput,
   moveNode, openNodeTools, closeNodeTools, applyBulkRename, handleTokenClick,
-  sortNodes, deleteDuplicateNodes, setNodesByKeyword, formatNodeName,
+  sortNodes, deleteDuplicateNodes, formatNodeName,
   makeLocalUniqueNames, proxySignature, stripEnabled, normalizeEditorModel,
 } from './nodes.js'
 import {
@@ -109,8 +109,6 @@ nodeToolsSheet.addEventListener('click', (event) => {
 applyBulkRenameButton.addEventListener('click', applyBulkRename)
 sortNodesButton.addEventListener('click', sortNodes)
 deleteDuplicateNodesButton.addEventListener('click', deleteDuplicateNodes)
-enableKeywordNodesButton.addEventListener('click', () => setNodesByKeyword(true))
-disableKeywordNodesButton.addEventListener('click', () => setNodesByKeyword(false))
 document.querySelectorAll('[data-token-target]').forEach((row) => {
   row.addEventListener('click', handleTokenClick)
 })
