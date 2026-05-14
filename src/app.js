@@ -1,14 +1,14 @@
 import { buildYamlFromModel, createConfigModel } from '../lib/converter.ts'
 import { parseDocument } from 'yaml'
-import { state, invalidEditorInput, nodeUiKeys, apiBaseUrl, linkProtocolPattern, input, fileInput, templateSelect, rulesSelect, namePatternInput, filenameInput, convertButton, blankConfigButton, sampleButton, copyButton, downloadButton, exportFormatSelect, formatYamlButton, validateYamlButton, autoFixButton, toggleDiffButton, resetYamlButton, createSubscriptionButton, copySubscriptionButton, openSubscriptionLink, subscriptionExpirySelect, subscriptionUrlInput, subscriptionStatus, errorBanner, yamlEditor, diffPanel, diffSummary, diffViewer, validationBanner,  yamlSectionSelect, yamlSectionPreview,  statTotal, statConverted, statSkipped, nodeList, groupList, groupNameInput, groupTypeInput, addGroupButton, rulesEditor, dnsEnable, dnsListen, dnsCacheAlgorithm, dnsPreferH3, dnsUseHosts, dnsUseSystemHosts, dnsRespectRules, dnsDefault, dnsNameservers, generalPort, generalSocksPort, generalRedirPort, generalTproxyPort, generalMixedPort, generalMode, generalLogLevel, generalBindAddress, generalLanAllowedIps, generalLanDisallowedIps, generalAuthentication, generalSkipAuthPrefixes, generalInterfaceName, generalRoutingMark, generalKeepAliveIdle, generalKeepAliveInterval, generalFindProcessMode, generalController, generalControllerTls, generalControllerUnix, generalControllerPipe, generalControllerCors, generalUi, generalUiName, generalUiUrl, generalSecret, generalClientFingerprint, generalUa, generalTlsCertificate, generalTlsPrivateKey, generalAllowLan, generalIpv6, generalDisableKeepAlive, generalUnifiedDelay, generalTcpConcurrent, generalEtagSupport, profileStoreSelected, profileStoreFakeIp, dnsEnhancedMode, dnsFakeIpRange, dnsFakeIpRange6, dnsFakeIpFilterMode, dnsFakeIpTtl, dnsFakeIpFilter, dnsFallback, dnsFallbackFilter, dnsDirectNameserver, dnsDirectFollowPolicy, dnsProxyServer, dnsProxyPolicy, dnsPolicy, snifferEnable, snifferOverride, snifferParseIp, snifferForceDnsMapping, snifferSniff, snifferForce, snifferSkip, snifferSkipSrc, snifferSkipDst, tunEnable, tunStack, tunDevice, tunAutoRoute, tunAutoRedirect, tunAutoDetect, tunStrictRoute, tunDnsHijack, tunMtu, tunGso, tunGsoMaxSize, tunUdpTimeout, tunIproute2TableIndex, tunIproute2RuleIndex, tunEndpointIndependentNat, tunRouteAddressSet, tunRouteExcludeAddressSet, tunRouteAddress, tunRouteExcludeAddress, tunIncludeInterface, tunExcludeInterface, tunIncludeUid, tunIncludeUidRange, tunExcludeUid, tunExcludeUidRange, tunIncludeAndroidUser, tunIncludePackage, tunExcludePackage, geoGeodataMode, geoAutoUpdate, geoGeodataLoader, geoUpdateInterval, geoUrlGeoip, geoUrlGeosite, geoUrlMmdb, geoUrlAsn, ruleProviderName, ruleProviderUrl, ruleProviderBehavior, ruleProviderTarget, ruleProviderFormat, addRuleProviderButton, addAdsProviderButton, applyLanRulesButton, ruleProviderList, ruleBuilderType, ruleBuilderValue, ruleBuilderTarget, addRuleButton, proxyProviderName, proxyProviderUrl, proxyProviderType, addProxyProviderButton, proxyProviderList,  manualNodeType, manualNodeFields, addManualNodeButton, nodeFilterQuery, nodeFilterType, nodeFilterStatus, openNodeToolsButton, nodeToolsSheet, closeNodeToolsButton, bulkRenamePattern, applyBulkRenameButton, nodeSortField, sortNodesButton, deleteDuplicateNodesButton, nodeKeywordInput, enableKeywordNodesButton, disableKeywordNodesButton, fabCopy, fabDownload, toast, viewTabs, viewPanels, editTabs, editPanels, editorSectionSelect } from './state.js'
+import { state, invalidEditorInput, nodeUiKeys, apiBaseUrl, linkProtocolPattern, input, fileInput, templateSelect, rulesSelect, namePatternInput, filenameInput, convertButton, blankConfigButton, sampleButton, copyButton, downloadButton, exportFormatSelect, formatYamlButton, validateYamlButton, autoFixButton, toggleDiffButton, resetYamlButton, createSubscriptionButton, copySubscriptionButton, openSubscriptionLink, subscriptionExpirySelect, subscriptionUrlInput, subscriptionStatus, errorBanner, yamlEditor, diffPanel, diffSummary, diffViewer, validationBanner,  yamlSectionSelect, yamlSectionPreview,  statTotal, statConverted, statSkipped, nodeList, groupList, groupNameInput, groupTypeInput, addGroupButton, rulesEditor, dnsEnable, dnsListen, dnsCacheAlgorithm, dnsPreferH3, dnsUseHosts, dnsUseSystemHosts, dnsRespectRules, dnsDefault, dnsNameservers, generalPort, generalSocksPort, generalRedirPort, generalTproxyPort, generalMixedPort, generalMode, generalLogLevel, generalBindAddress, generalLanAllowedIps, generalLanDisallowedIps, generalAuthentication, generalSkipAuthPrefixes, generalInterfaceName, generalRoutingMark, generalKeepAliveIdle, generalKeepAliveInterval, generalFindProcessMode, generalController, generalControllerTls, generalControllerUnix, generalControllerPipe, generalControllerCors, generalUi, generalUiName, generalUiUrl, generalSecret, generalClientFingerprint, generalUa, generalTlsCertificate, generalTlsPrivateKey, generalAllowLan, generalIpv6, generalDisableKeepAlive, generalUnifiedDelay, generalTcpConcurrent, generalEtagSupport, profileStoreSelected, profileStoreFakeIp, dnsEnhancedMode, dnsFakeIpRange, dnsFakeIpRange6, dnsFakeIpFilterMode, dnsFakeIpTtl, dnsFakeIpFilter, dnsFallback, dnsFallbackFilter, dnsDirectNameserver, dnsDirectFollowPolicy, dnsProxyServer, dnsProxyPolicy, dnsPolicy, snifferEnable, snifferOverride, snifferParseIp, snifferForceDnsMapping, snifferSniff, snifferForce, snifferSkip, snifferSkipSrc, snifferSkipDst, tunEnable, tunStack, tunDevice, tunAutoRoute, tunAutoRedirect, tunAutoDetect, tunStrictRoute, tunDnsHijack, tunMtu, tunGso, tunGsoMaxSize, tunUdpTimeout, tunIproute2TableIndex, tunIproute2RuleIndex, tunEndpointIndependentNat, tunRouteAddressSet, tunRouteExcludeAddressSet, tunRouteAddress, tunRouteExcludeAddress, tunIncludeInterface, tunExcludeInterface, tunIncludeUid, tunIncludeUidRange, tunExcludeUid, tunExcludeUidRange, tunIncludeAndroidUser, tunIncludePackage, tunExcludePackage, geoGeodataMode, geoAutoUpdate, geoGeodataLoader, geoUpdateInterval, geoUrlGeoip, geoUrlGeosite, geoUrlMmdb, geoUrlAsn, ruleProviderName, ruleProviderUrl, addRuleProviderButton, addAdsProviderButton, applyLanRulesButton, ruleProviderList, ruleBuilderType, addRuleButton, addProxyProviderButton, proxyProviderList,  manualNodeType, manualNodeFields, addManualNodeButton, nodeFilterQuery, nodeFilterType, nodeFilterStatus, openNodeToolsButton, nodeToolsSheet, closeNodeToolsButton, bulkRenamePattern, applyBulkRenameButton, nodeSortField, sortNodesButton, deleteDuplicateNodesButton, nodeKeywordInput, enableKeywordNodesButton, disableKeywordNodesButton, fabCopy, fabDownload, toast, viewTabs, viewPanels, editTabs, editPanels, editorSectionSelect } from './state.js'
 import {
   sampleLinks, MAX_IMPORT_FILE_BYTES, importFilePattern, networkSupportByType,
-  alpnOptions, proxyTypeOptions, providerTypes, proxyTypeLabels,
+  alpnOptions, proxyTypeOptions, proxyTypeLabels,
 } from './constants.ts'
 import {
-  splitLinesOrComma, splitLines, isPlainObject,
-  valueOrEmpty, normalizeProxyType, clone, escapeHtml, escapeAttr,
-  downloadText, normalizeFilename, splitRuleParts,
+  splitLinesOrComma, isPlainObject,
+  normalizeProxyType, clone, escapeHtml, escapeAttr,
+  downloadText, normalizeFilename,
 } from './utils.ts'
 import { modelFromYamlObject, normalizeClientModel } from './model.ts'
 import { renderManualNodeFields, addManualNode, readManualNodeValues, toggleManualTlsFields, compactManualObject } from './manual-node.js'
@@ -23,13 +23,23 @@ import {
   updateTunFromEditor, updateGeoFromEditor,
 } from './editors.js'
 import {
+  renderRuleProviders, renderProxyProviders,
+  addRuleProvider, addProxyProvider, addAdsProviderPreset, applyLanDirectRules,
+} from './providers.js'
+import {
+  renderRules, policyTargetOptions, validPolicyTarget, addRuleFromBuilder,
+  updateRuleBuilderState, replacePolicyTargetName, replacePolicyTargetNames,
+  replaceRemovedPolicyTargets, fallbackPolicyTarget, refreshRenderedRuleProviderTargets,
+  updateRulesFromEditor, presetRules, renderRuleTargetOptions,
+} from './rules.js'
+import {
   updateAlpnSelection, renderTlsFields,
   toggleNodeTlsFields, renderProtocolFields, renderCommonProxyFields, renderNetworkOptions,
   renderTransportFields, renderSelectOptions,
   updateShadowsocksPluginOptsPlaceholder, cleanupProtocolSpecificFields, applyProtocolDefaults,
   cleanupUnsupportedTlsFields, cleanupDisabledTlsFields, setProxyNetwork, updateNestedProxyField,
   updateTransportField, cleanupTransportOptions, isEmptyTransportValue, pruneEmptyTransportParents,
-  textToPolicy, policyToText, parseJsonOrLines, parseJsonObjectInput,
+  textToPolicy, parseJsonObjectInput,
 } from './proxy-fields.js'
 
 
@@ -760,7 +770,7 @@ function filteredNodeEntries() {
     })
 }
 
-function renderGroups() {
+export function renderGroups() {
   groupList.replaceChildren()
   if (!state.model) return
   if (!state.model.groups.length) {
@@ -887,7 +897,7 @@ function groupProxyOptions(group) {
     .map((value) => ({ value }))
 }
 
-function uniqueList(items) {
+export function uniqueList(items) {
   return [...new Set(items.map((item) => String(item || '').trim()).filter(Boolean))]
 }
 
@@ -896,7 +906,7 @@ export function hasDuplicateName(items, name) {
   return Boolean(normalizedName) && items.some((item) => String(item?.name || '').trim() === normalizedName)
 }
 
-function hasDuplicateNameExcept(items, name, index) {
+export function hasDuplicateNameExcept(items, name, index) {
   const normalizedName = String(name || '').trim()
   return Boolean(normalizedName) && items.some((item, itemIndex) => itemIndex !== index && String(item?.name || '').trim() === normalizedName)
 }
@@ -906,18 +916,18 @@ export function hasNameInCollection(items, name) {
   return Boolean(normalizedName) && items.some((item) => String(item?.name || '').trim() === normalizedName)
 }
 
-function rejectEmptyNameInput(target, previousName, label) {
+export function rejectEmptyNameInput(target, previousName, label) {
   if (String(target.value || '').trim()) return false
   target.value = previousName || ''
   showValidation(`${label} name cannot be empty.`, 'error')
   return true
 }
 
-function nameHasRuleSeparator(value) {
+export function nameHasRuleSeparator(value) {
   return String(value || '').includes(',')
 }
 
-function rejectRuleSeparatorNameInput(target, previousName, label) {
+export function rejectRuleSeparatorNameInput(target, previousName, label) {
   if (!nameHasRuleSeparator(target.value)) return false
   target.value = previousName || ''
   showValidation(`${label} name cannot contain commas.`, 'error')
@@ -930,11 +940,11 @@ export function validEditableName(name, label) {
   return ''
 }
 
-function generatedProviderPath(basePath, name) {
+export function generatedProviderPath(basePath, name) {
   return `${basePath}/${name}.yaml`
 }
 
-function syncGeneratedProviderPath(provider, previousName, nextName, basePath) {
+export function syncGeneratedProviderPath(provider, previousName, nextName, basePath) {
   if (!provider || !previousName || !nextName || previousName === nextName) return
   const previousPath = generatedProviderPath(basePath, previousName)
   if (!provider.path || provider.path === previousPath) provider.path = generatedProviderPath(basePath, nextName)
@@ -997,142 +1007,8 @@ function renderGroupProviderPicker(group) {
   `
 }
 
-function renderRules() {
-  rulesEditor.value = state.model?.rules.join('\n') || ''
-}
 
 
-function renderRuleProviders() {
-  ruleProviderList.replaceChildren()
-  if (!state.model?.ruleProviders.length) {
-    ruleProviderList.classList.add('empty-state')
-    ruleProviderList.textContent = 'No custom rule providers yet.'
-    return
-  }
-
-  ruleProviderList.classList.remove('empty-state')
-  state.model.ruleProviders.forEach((provider, index) => {
-    const target = validPolicyTarget(provider.target || 'PROXY')
-    const row = document.createElement('details')
-    row.className = 'editor-field-section provider-row'
-    row.open = index === 0
-    row.innerHTML = `
-      <summary>
-        <span class="provider-summary">
-          <strong>${escapeHtml(provider.name || 'Unnamed provider')}</strong>
-          <em>${escapeHtml(provider.type || 'http')}</em>
-          <em>${escapeHtml(provider.behavior || 'classical')}</em>
-          <em>${escapeHtml(provider.target || 'PROXY')}</em>
-        </span>
-        <small>${escapeHtml(provider.url || provider.path || 'No source configured')}</small>
-      </summary>
-      <div class="form-grid section-grid provider-edit-grid">
-        <label><span>Name</span><input type="text" data-field="name" value="${escapeAttr(valueOrEmpty(provider.name))}"></label>
-        <label><span>Type</span><select data-field="type">
-          ${providerTypes.map((type) => `<option value="${type}" ${type === (provider.type || 'http') ? 'selected' : ''}>${type}</option>`).join('')}
-        </select></label>
-        <label><span>Behavior</span><select data-field="behavior">
-          ${['classical', 'domain', 'ipcidr'].map((type) => `<option value="${type}" ${type === provider.behavior ? 'selected' : ''}>${type}</option>`).join('')}
-        </select></label>
-        <label><span>Target</span><select data-field="target">
-          ${renderSelectOptions(policyTargetOptions(), target)}
-        </select></label>
-        <label><span>Format</span><select data-field="format">
-          ${['', 'yaml', 'text', 'mrs'].map((format) => `<option value="${format}" ${format === (provider.format || '') ? 'selected' : ''}>${format || 'default'}</option>`).join('')}
-        </select></label>
-        <label class="wide-field"><span>URL</span><input type="text" data-field="url" value="${escapeAttr(valueOrEmpty(provider.url))}"></label>
-        <label><span>Path</span><input type="text" data-field="path" value="${escapeAttr(valueOrEmpty(provider.path))}"></label>
-        <label><span>Interval</span><input type="text" data-field="interval" value="${escapeAttr(valueOrEmpty(provider.interval))}"></label>
-        <label><span>Proxy</span><input type="text" data-field="proxy" value="${escapeAttr(provider.proxy || '')}"></label>
-      </div>
-      <div class="form-grid section-grid provider-edit-grid provider-subsection">
-        <label><span>Size Limit</span><input type="text" data-field="sizeLimit" value="${escapeAttr(provider.sizeLimit || '')}"></label>
-        <label><span>Header</span><textarea class="mini-editor" data-field="header">${escapeHtml(policyToText(provider.header))}</textarea></label>
-        <label class="wide-field"><span>Payload</span><textarea class="mini-editor" data-field="payload">${escapeHtml((provider.payload || []).join('\n'))}</textarea></label>
-        <button type="button" class="ghost-button provider-delete-button" data-action="delete">Delete Rule Provider</button>
-      </div>
-    `
-    row.addEventListener('input', (event) => handleRuleProviderInput(event, index))
-    row.addEventListener('change', (event) => handleRuleProviderInput(event, index))
-    row.addEventListener('click', (event) => {
-      if (event.target.closest('[data-action]')?.dataset.action === 'delete') {
-        const previousName = state.model.ruleProviders[index]?.name
-        state.model.ruleProviders.splice(index, 1)
-        if (previousName) removeRuleProviderRules(previousName)
-        updateYamlFromModel()
-      }
-    })
-    ruleProviderList.append(row)
-  })
-  applyPlaceholders(ruleProviderList)
-}
-
-function renderProxyProviders() {
-  proxyProviderList.replaceChildren()
-  if (!state.model?.proxyProviders.length) {
-    proxyProviderList.classList.add('empty-state')
-    proxyProviderList.textContent = 'No proxy providers yet.'
-    return
-  }
-
-  proxyProviderList.classList.remove('empty-state')
-  state.model.proxyProviders.forEach((provider, index) => {
-    const row = document.createElement('details')
-    row.className = 'editor-field-section provider-row'
-    row.open = index === 0
-    row.innerHTML = `
-      <summary>
-        <span class="provider-summary">
-          <strong>${escapeHtml(provider.name || 'Unnamed provider')}</strong>
-          <em>${escapeHtml(provider.type || 'http')}</em>
-        </span>
-        <small>${escapeHtml(provider.url || provider.path || 'No source configured')}</small>
-      </summary>
-      <div class="form-grid section-grid provider-edit-grid">
-        <label><span>Name</span><input type="text" data-field="name" value="${escapeAttr(valueOrEmpty(provider.name))}"></label>
-        <label><span>Type</span><select data-field="type">
-          ${providerTypes.map((type) => `<option value="${type}" ${type === provider.type ? 'selected' : ''}>${type}</option>`).join('')}
-        </select></label>
-        <label class="wide-field"><span>URL</span><input type="text" data-field="url" value="${escapeAttr(valueOrEmpty(provider.url))}"></label>
-        <label><span>Path</span><input type="text" data-field="path" value="${escapeAttr(valueOrEmpty(provider.path))}"></label>
-        <label><span>Interval</span><input type="text" data-field="interval" value="${escapeAttr(valueOrEmpty(provider.interval))}"></label>
-        <label><span>Proxy</span><input type="text" data-field="proxy" value="${escapeAttr(provider.proxy || '')}"></label>
-        <label><span>Size Limit</span><input type="text" data-field="sizeLimit" value="${escapeAttr(provider.sizeLimit || '')}"></label>
-      </div>
-      <div class="form-grid section-grid provider-edit-grid provider-subsection">
-        <label><span>Filter</span><input type="text" data-field="filter" value="${escapeAttr(provider.filter || '')}"></label>
-        <label><span>Exclude Filter</span><input type="text" data-field="excludeFilter" value="${escapeAttr(provider.excludeFilter || '')}"></label>
-        <label><span>Exclude Type</span><input type="text" data-field="excludeType" value="${escapeAttr(provider.excludeType || '')}"></label>
-      </div>
-      <div class="form-grid section-grid provider-edit-grid provider-subsection">
-        <label class="checkbox-row"><input type="checkbox" data-field="healthCheckEnable" ${provider.healthCheck?.enable ? 'checked' : ''}> Health Check</label>
-        <label class="checkbox-row"><input type="checkbox" data-field="healthCheckLazy" ${provider.healthCheck?.lazy !== false ? 'checked' : ''}> Lazy Health Check</label>
-        <label class="wide-field"><span>Health URL</span><input type="text" data-field="healthCheckUrl" value="${escapeAttr(provider.healthCheck?.url || 'https://www.gstatic.com/generate_204')}"></label>
-        <label><span>Health Interval</span><input type="text" data-field="healthCheckInterval" value="${escapeAttr(provider.healthCheck?.interval || 300)}"></label>
-        <label><span>Health Timeout</span><input type="text" data-field="healthCheckTimeout" value="${escapeAttr(provider.healthCheck?.timeout || 5000)}"></label>
-        <label><span>Expected Status</span><input type="text" data-field="healthCheckExpectedStatus" value="${escapeAttr(provider.healthCheck?.expectedStatus || '')}"></label>
-      </div>
-      <div class="form-grid section-grid provider-edit-grid provider-subsection">
-        <label><span>Header</span><textarea class="mini-editor" data-field="header">${escapeHtml(policyToText(provider.header))}</textarea></label>
-        <label><span>Override</span><textarea class="mini-editor" data-field="override">${escapeHtml(policyToText(provider.override))}</textarea></label>
-        <label class="wide-field"><span>Inline Payload</span><textarea class="mini-editor" data-field="payload">${escapeHtml(JSON.stringify(provider.payload || [], null, 2))}</textarea></label>
-        <button type="button" class="ghost-button provider-delete-button" data-action="delete">Delete Provider</button>
-      </div>
-    `
-    row.addEventListener('input', (event) => handleProxyProviderInput(event, index))
-    row.addEventListener('change', (event) => handleProxyProviderInput(event, index))
-    row.addEventListener('click', (event) => {
-      if (event.target.closest('[data-action]')?.dataset.action === 'delete') {
-        const previousName = state.model.proxyProviders[index]?.name
-        state.model.proxyProviders.splice(index, 1)
-        if (previousName) removeGroupProviderName(previousName)
-        updateYamlFromModel()
-      }
-    })
-    proxyProviderList.append(row)
-  })
-  applyPlaceholders(proxyProviderList)
-}
 
 function handleNodeClick(event, index) {
   const actionTarget = event.target.closest('[data-action]')
@@ -1362,341 +1238,7 @@ function readGroupProviderSelection(row) {
     .filter(Boolean)
 }
 
-function handleRuleProviderInput(event, index) {
-  const field = event.target.dataset.field
-  if (!field || !state.model?.ruleProviders[index]) return
-  const provider = state.model.ruleProviders[index]
-  const previousName = provider.name
-  if (field === 'name' && rejectEmptyNameInput(event.target, previousName, 'Rule provider')) return
-  if (field === 'name' && rejectRuleSeparatorNameInput(event.target, previousName, 'Rule provider')) return
-  if (field === 'name' && hasDuplicateNameExcept(state.model.ruleProviders, event.target.value, index)) {
-    const attemptedName = String(event.target.value || '').trim()
-    event.target.value = previousName || ''
-    showValidation(`Rule provider "${attemptedName}" already exists.`, 'error')
-    return
-  }
-  if (field === 'interval') provider.interval = Number(event.target.value) || 86400
-  else if (field === 'sizeLimit') provider.sizeLimit = Number(event.target.value) || 0
-  else if (field === 'header') provider.header = textToPolicy(event.target.value)
-  else if (field === 'payload') provider.payload = splitLines(event.target.value)
-  else if (field === 'type') {
-    provider.type = providerTypes.includes(event.target.value) ? event.target.value : 'http'
-    updateYamlFromModel()
-    return
-  }
-  else if (field === 'target') {
-    provider.target = validPolicyTarget(event.target.value)
-    event.target.value = provider.target
-  }
-  else provider[field] = event.target.value
-  if (field === 'name') {
-    if (provider.name) {
-      syncGeneratedProviderPath(provider, previousName, provider.name, './rules')
-      replaceProviderRuleName(previousName, provider.name)
-    }
-    else removeRuleProviderRules(previousName)
-  }
-  if (field === 'target') syncProviderRule(provider.name, provider.target)
-  updateYamlFromModel(false)
-}
 
-function handleProxyProviderInput(event, index) {
-  const field = event.target.dataset.field
-  if (!field || !state.model?.proxyProviders[index]) return
-  const provider = state.model.proxyProviders[index]
-  const previousName = provider.name
-  if (field === 'name' && rejectEmptyNameInput(event.target, previousName, 'Proxy provider')) return
-  if (field === 'name' && rejectRuleSeparatorNameInput(event.target, previousName, 'Proxy provider')) return
-  if (field === 'name' && hasDuplicateNameExcept(state.model.proxyProviders, event.target.value, index)) {
-    const attemptedName = String(event.target.value || '').trim()
-    event.target.value = previousName || ''
-    showValidation(`Proxy provider "${attemptedName}" already exists.`, 'error')
-    return
-  }
-  provider.healthCheck = provider.healthCheck || {}
-  if (field === 'interval') provider.interval = Number(event.target.value) || 3600
-  else if (field === 'sizeLimit') provider.sizeLimit = Number(event.target.value) || 0
-  else if (field === 'header') provider.header = textToPolicy(event.target.value)
-  else if (field === 'override') provider.override = textToPolicy(event.target.value, { typedValues: true })
-  else if (field === 'payload') provider.payload = parseJsonOrLines(event.target.value)
-  else if (field === 'healthCheckEnable') provider.healthCheck.enable = event.target.checked
-  else if (field === 'healthCheckUrl') provider.healthCheck.url = event.target.value
-  else if (field === 'healthCheckInterval') provider.healthCheck.interval = Number(event.target.value) || 300
-  else if (field === 'healthCheckTimeout') provider.healthCheck.timeout = Number(event.target.value) || 5000
-  else if (field === 'healthCheckExpectedStatus') provider.healthCheck.expectedStatus = event.target.value
-  else if (field === 'healthCheckLazy') provider.healthCheck.lazy = event.target.checked
-  else if (field === 'type') {
-    provider.type = providerTypes.includes(event.target.value) ? event.target.value : 'http'
-    updateYamlFromModel()
-    return
-  }
-  else provider[field] = event.target.value
-  if (field === 'name') {
-    if (provider.name) {
-      syncGeneratedProviderPath(provider, previousName, provider.name, './proxy_providers')
-      replaceGroupProviderName(previousName, provider.name)
-    }
-    else removeGroupProviderName(previousName)
-    renderGroups()
-  }
-  updateYamlFromModel(false)
-}
-
-function upsertRuleProvider(provider) {
-  const existing = state.model.ruleProviders.find((item) => item.name === provider.name)
-  if (existing) Object.assign(existing, provider)
-  else state.model.ruleProviders.push(provider)
-}
-
-function ensureRule(rule, beforeMatch = false) {
-  if (!state.model.rules.includes(rule)) {
-    if (beforeMatch) {
-      const matchIndex = state.model.rules.findIndex((item) => item.startsWith('MATCH,'))
-      if (matchIndex >= 0) state.model.rules.splice(matchIndex, 0, rule)
-      else state.model.rules.push(rule)
-      return
-    }
-    state.model.rules.push(rule)
-  }
-}
-
-function ensureMatchRule() {
-  if (!state.model.rules.some((rule) => rule.startsWith('MATCH,'))) state.model.rules.push('MATCH,PROXY')
-}
-
-function policyTargetOptions() {
-  const groupNames = (state.model?.groups || [])
-    .map((group) => group.name)
-    .filter((name) => name && !nameHasRuleSeparator(name))
-  const proxyNames = (state.model?.proxies || [])
-    .filter((proxy) => proxy.enabled !== false)
-    .map((proxy) => proxy.name)
-    .filter((name) => name && !nameHasRuleSeparator(name))
-  return uniqueList(['PROXY', 'DIRECT', 'REJECT', 'GLOBAL', ...groupNames, ...proxyNames])
-}
-
-function renderRuleTargetOptions() {
-  const options = policyTargetOptions()
-  const ruleTarget = validPolicyTarget(ruleBuilderTarget.value, options)
-  const providerTarget = validPolicyTarget(ruleProviderTarget.value, options)
-  ruleBuilderTarget.innerHTML = renderSelectOptions(options, ruleTarget)
-  ruleProviderTarget.innerHTML = renderSelectOptions(options, providerTarget)
-  updateRuleBuilderState()
-}
-
-function validPolicyTarget(value, options = policyTargetOptions()) {
-  return options.includes(value) ? value : fallbackPolicyTarget()
-}
-
-function addRuleFromBuilder() {
-  if (!state.model) return
-  const type = ruleBuilderType.value
-  const value = ruleBuilderValue.value.trim()
-  const target = validPolicyTarget(ruleBuilderTarget.value)
-  if (type !== 'MATCH' && !value) {
-    showValidation('Rule value is required.', 'error')
-    return
-  }
-  if (type === 'RULE-SET' && nameHasRuleSeparator(value)) {
-    showValidation('RULE-SET provider name cannot contain commas.', 'error')
-    return
-  }
-  if (type !== 'MATCH' && /[\r\n]/.test(value)) {
-    showValidation('Rule value must be a single line.', 'error')
-    return
-  }
-  const rule = type === 'MATCH' ? `MATCH,${target}` : `${type},${value},${target}`
-  ensureRule(rule, type !== 'MATCH')
-  ruleBuilderValue.value = ''
-  updateYamlFromModel()
-  showToast('Rule added.')
-}
-
-function updateRuleBuilderState() {
-  const matchRule = ruleBuilderType.value === 'MATCH'
-  ruleBuilderValue.disabled = matchRule
-  ruleBuilderValue.placeholder = matchRule ? 'MATCH has no value' : rulePlaceholderForType(ruleBuilderType.value)
-}
-
-function rulePlaceholderForType(type) {
-  if (type === 'IP-CIDR') return '1.1.1.0/24'
-  if (type === 'GEOIP') return 'ID'
-  if (type === 'GEOSITE') return 'category-ads-all'
-  if (type === 'RULE-SET') return 'provider-name'
-  return 'example.com'
-}
-
-function syncProviderRule(name, target) {
-  if (!name) return
-  const ruleMatchesProvider = (rule) => {
-    const [type, providerName] = splitRuleParts(rule)
-    return type === 'RULE-SET' && providerName === name
-  }
-  const ruleTarget = validPolicyTarget(target)
-  const index = state.model.rules.findIndex(ruleMatchesProvider)
-  if (index >= 0) state.model.rules[index] = `RULE-SET,${name},${ruleTarget}`
-  else ensureRule(`RULE-SET,${name},${ruleTarget}`, true)
-  renderRules()
-}
-
-function replaceProviderRuleName(previousName, nextName) {
-  if (!previousName || !nextName || previousName === nextName) return
-  state.model.rules = state.model.rules.map((rule) => {
-    const parts = splitRuleParts(rule)
-    if (parts[0] === 'RULE-SET' && parts[1] === previousName) {
-      parts[1] = nextName
-      return parts.join(',')
-    }
-    return rule
-  })
-  mapSubRuleRules((rule) => {
-    const parts = splitRuleParts(rule)
-    if (parts[0] === 'RULE-SET' && parts[1] === previousName) {
-      parts[1] = nextName
-      return parts.join(',')
-    }
-    return rule
-  })
-  renderRules()
-}
-
-function removeRuleProviderRules(name) {
-  if (!name || !state.model) return
-  state.model.rules = state.model.rules.filter((rule) => {
-    const parts = splitRuleParts(rule)
-    return !(parts[0] === 'RULE-SET' && parts[1] === name)
-  })
-  mapSubRuleRules((rule) => {
-    const parts = splitRuleParts(rule)
-    return parts[0] === 'RULE-SET' && parts[1] === name ? '' : rule
-  })
-  renderRules()
-}
-
-function replacePolicyTargetName(previousName, nextName) {
-  if (!previousName || !nextName || previousName === nextName || !state.model) return
-  state.model.rules = state.model.rules.map((rule) => replaceRuleTargetName(rule, previousName, nextName))
-  mapSubRuleRules((rule) => replaceRuleTargetName(rule, previousName, nextName))
-  state.model.proxies.forEach((proxy) => {
-    if (proxy['dialer-proxy'] === previousName) proxy['dialer-proxy'] = nextName
-  })
-  state.model.ruleProviders.forEach((provider) => {
-    if (provider.target === previousName) provider.target = nextName
-    if (provider.proxy === previousName) provider.proxy = nextName
-  })
-  state.model.proxyProviders.forEach((provider) => {
-    if (provider.proxy === previousName) provider.proxy = nextName
-  })
-  state.model.tunnels.forEach((tunnel) => {
-    if (tunnel.proxy === previousName) tunnel.proxy = nextName
-  })
-  renderRules()
-  renderRuleTargetOptions()
-  refreshRenderedRuleProviderTargets()
-}
-
-function replacePolicyTargetNames(renameMap) {
-  if (!state.model || !renameMap.size) return
-  state.model.rules = state.model.rules.map((rule) => {
-    let nextRule = rule
-    for (const [previousName, nextName] of renameMap) {
-      nextRule = replaceRuleTargetName(nextRule, previousName, nextName)
-    }
-    return nextRule
-  })
-  mapSubRuleRules((rule) => {
-    let nextRule = rule
-    for (const [previousName, nextName] of renameMap) {
-      nextRule = replaceRuleTargetName(nextRule, previousName, nextName)
-    }
-    return nextRule
-  })
-  state.model.proxies.forEach((proxy) => {
-    if (renameMap.has(proxy['dialer-proxy'])) proxy['dialer-proxy'] = renameMap.get(proxy['dialer-proxy'])
-  })
-  state.model.ruleProviders.forEach((provider) => {
-    if (renameMap.has(provider.target)) provider.target = renameMap.get(provider.target)
-    if (renameMap.has(provider.proxy)) provider.proxy = renameMap.get(provider.proxy)
-  })
-  state.model.proxyProviders.forEach((provider) => {
-    if (renameMap.has(provider.proxy)) provider.proxy = renameMap.get(provider.proxy)
-  })
-  state.model.tunnels.forEach((tunnel) => {
-    if (renameMap.has(tunnel.proxy)) tunnel.proxy = renameMap.get(tunnel.proxy)
-  })
-  renderRules()
-  renderRuleTargetOptions()
-  refreshRenderedRuleProviderTargets()
-}
-
-function replaceRemovedPolicyTargets(removedNames, nextName) {
-  if (!state.model || !removedNames.size || !nextName) return
-  state.model.rules = state.model.rules.map((rule) => {
-    let nextRule = rule
-    for (const previousName of removedNames) {
-      nextRule = replaceRuleTargetName(nextRule, previousName, nextName)
-    }
-    return nextRule
-  })
-  mapSubRuleRules((rule) => {
-    let nextRule = rule
-    for (const previousName of removedNames) {
-      nextRule = replaceRuleTargetName(nextRule, previousName, nextName)
-    }
-    return nextRule
-  })
-  state.model.proxies.forEach((proxy) => {
-    if (removedNames.has(proxy['dialer-proxy'])) proxy['dialer-proxy'] = nextName
-  })
-  state.model.ruleProviders.forEach((provider) => {
-    if (removedNames.has(provider.target)) provider.target = nextName
-    if (removedNames.has(provider.proxy)) provider.proxy = nextName
-  })
-  state.model.proxyProviders.forEach((provider) => {
-    if (removedNames.has(provider.proxy)) provider.proxy = nextName
-  })
-  state.model.tunnels.forEach((tunnel) => {
-    if (removedNames.has(tunnel.proxy)) tunnel.proxy = nextName
-  })
-  renderRules()
-  renderRuleTargetOptions()
-  refreshRenderedRuleProviderTargets()
-}
-
-function mapSubRuleRules(mapper) {
-  if (!state.model?.subRules) return
-  for (const [name, rules] of Object.entries(state.model.subRules)) {
-    if (!Array.isArray(rules)) continue
-    state.model.subRules[name] = rules.map(mapper).map((rule) => String(rule).trim()).filter(Boolean)
-  }
-}
-
-function replaceRuleTargetName(rule, previousName, nextName) {
-  const parts = splitRuleParts(rule)
-  if (parts[0] === 'SUB-RULE') return rule
-  const targetIndex = parts[0] === 'MATCH' ? 1 : 2
-  if (parts[targetIndex] === previousName) parts[targetIndex] = nextName
-  return parts.join(',')
-}
-
-
-function fallbackPolicyTarget() {
-  if (!state.model) return 'DIRECT'
-  return state.model.groups.find((group) => group.name && !nameHasRuleSeparator(group.name))?.name || 'DIRECT'
-}
-
-function refreshRenderedRuleProviderTargets() {
-  if (!state.model) return
-  const options = policyTargetOptions()
-  ruleProviderList.querySelectorAll('select[data-field="target"]').forEach((select, index) => {
-    const provider = state.model.ruleProviders[index]
-    if (!provider) return
-    const target = provider.target || 'PROXY'
-    const validTarget = validPolicyTarget(target, options)
-    provider.target = validTarget
-    select.innerHTML = renderSelectOptions(options, validTarget)
-  })
-}
 
 export function normalizeEditorModel() {
   if (!state.model) return
@@ -1895,109 +1437,7 @@ function addGroup() {
   updateYamlFromModel()
 }
 
-function addRuleProvider() {
-  if (!state.model) return
-  const name = ruleProviderName.value.trim()
-  const url = ruleProviderUrl.value.trim()
-  if (!name || !url) {
-    showValidation('Rule provider requires name and URL.', 'error')
-    return
-  }
-  const nameIssue = validEditableName(name, 'Rule provider')
-  if (nameIssue) {
-    showValidation(nameIssue, 'error')
-    return
-  }
-  if (hasDuplicateName(state.model.ruleProviders, name)) {
-    showValidation(`Rule provider "${name}" already exists.`, 'error')
-    return
-  }
-  const target = validPolicyTarget(ruleProviderTarget.value)
-  state.model.ruleProviders.push({
-    name,
-    type: 'http',
-    behavior: ruleProviderBehavior.value,
-    path: generatedProviderPath('./rules', name),
-    url,
-    target,
-    format: ruleProviderFormat.value,
-    interval: 86400,
-  })
-  ensureRule(`RULE-SET,${name},${target}`)
-  ruleProviderName.value = ''
-  ruleProviderUrl.value = ''
-  updateYamlFromModel()
-}
 
-function addProxyProvider() {
-  if (!state.model) return
-  const name = proxyProviderName.value.trim()
-  const type = proxyProviderType.value
-  const nameIssue = validEditableName(name, 'Proxy provider')
-  if (nameIssue) {
-    showValidation(nameIssue, 'error')
-    return
-  }
-  if (hasDuplicateName(state.model.proxyProviders, name)) {
-    showValidation(`Proxy provider "${name}" already exists.`, 'error')
-    return
-  }
-  if (type !== 'inline' && !proxyProviderUrl.value.trim()) {
-    showValidation('URL is required for http/file proxy providers.', 'error')
-    return
-  }
-  state.model.proxyProviders.push({
-    name,
-    type,
-    url: proxyProviderUrl.value.trim(),
-    path: generatedProviderPath('./proxy_providers', name),
-    interval: 3600,
-    healthCheck: {
-      enable: true,
-      url: 'https://www.gstatic.com/generate_204',
-      interval: 300,
-      timeout: 5000,
-      lazy: true,
-      expectedStatus: '204',
-    },
-  })
-  proxyProviderName.value = ''
-  proxyProviderUrl.value = ''
-  updateYamlFromModel()
-}
-
-
-function addAdsProviderPreset() {
-  if (!state.model) return
-  upsertRuleProvider({
-    name: 'ads',
-    type: 'http',
-    behavior: 'domain',
-    path: './rules/ads.yaml',
-    url: 'https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-ads-all.yaml',
-    target: 'REJECT',
-    interval: 86400,
-  })
-  syncProviderRule('ads', 'REJECT')
-  updateYamlFromModel()
-  showToast('Ad block rule provider added.')
-}
-
-function applyLanDirectRules() {
-  if (!state.model) return
-  for (const rule of presetRules('lan-direct').filter((item) => item !== 'MATCH,PROXY')) {
-    ensureRule(rule, true)
-  }
-  ensureMatchRule()
-  updateYamlFromModel()
-  showToast('LAN DIRECT rules added.')
-}
-
-function updateRulesFromEditor() {
-  if (!state.model) return
-  state.model.rules = rulesEditor.value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
-  updateYamlFromModel(false)
-}
 
 
 
@@ -2301,20 +1741,6 @@ export function normalizeAlpnValues(value) {
 }
 
 
-function presetRules(value) {
-  if (value === 'lan-direct') {
-    return [
-      'IP-CIDR,10.0.0.0/8,DIRECT',
-      'IP-CIDR,172.16.0.0/12,DIRECT',
-      'IP-CIDR,192.168.0.0/16,DIRECT',
-      'IP-CIDR,127.0.0.0/8,DIRECT',
-      'IP-CIDR,169.254.0.0/16,DIRECT',
-      'MATCH,PROXY',
-    ]
-  }
-  if (value === 'direct') return ['MATCH,DIRECT']
-  return ['MATCH,PROXY']
-}
 
 function replaceGroupProxyName(previousName, nextName) {
   if (!previousName || !nextName || previousName === nextName || !state.model) return
@@ -2338,14 +1764,14 @@ function replaceGroupProxyNames(renameMap) {
   }
 }
 
-function replaceGroupProviderName(previousName, nextName) {
+export function replaceGroupProviderName(previousName, nextName) {
   if (!previousName || !nextName || previousName === nextName || !state.model) return
   for (const group of state.model.groups) {
     group.use = group.use.map((name) => (name === previousName ? nextName : name))
   }
 }
 
-function removeGroupProviderName(name) {
+export function removeGroupProviderName(name) {
   if (!name || !state.model) return
   for (const group of state.model.groups) {
     group.use = group.use.filter((item) => item !== name)
