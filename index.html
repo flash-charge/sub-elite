@@ -192,24 +192,21 @@
               <h3>Subscription URL</h3>
               <p>Generate a secret URL for Mihomo/Clash subscription.</p>
             </div>
-            <label>
-              <span>Expire</span>
-              <select id="subscription-expiry-select" class="compact-select">
-                <option value="never">Never</option>
-                <option value="30d">30 days</option>
-                <option value="7d">7 days</option>
-
-
-
-              </select>
-            </label>
+          </div>
           <div class="subscription-actions">
             <button id="create-subscription-button" type="button" class="primary-button" disabled>Create URL</button>
+            <select id="subscription-expiry-select" class="compact-select">
+              <option value="never">Never</option>
+              <option value="30d">30 days</option>
+              <option value="7d">7 days</option>
+            </select>
             <a id="open-subscription-link" class="ghost-link disabled" href="#" target="_blank" rel="noopener">Open</a>
           </div>
-          <div class="subscription-url-row"><input id="subscription-url-input" type="text" readonly placeholder="https://domain.pages.dev/sub/secret/config.yaml" /><button id="copy-subscription-button" type="button" class="ghost-button" disabled>Copy</button></div>
-          <small id="subscription-status">Checking subscription API...</small>
+          <div class="subscription-url-row">
+            <input id="subscription-url-input" type="text" readonly placeholder="https://domain.pages.dev/sub/secret/config.yaml" />
+            <button id="copy-subscription-button" type="button" class="ghost-button" disabled>Copy</button>
           </div>
+          <small id="subscription-status">Checking subscription API...</small>
         </section>
 
         <div class="sticky-actions action-grid yaml-tool-actions">
