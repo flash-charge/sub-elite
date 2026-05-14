@@ -77,7 +77,6 @@ toggleDiffButton.addEventListener('click', toggleDiffPanel)
 resetYamlButton.addEventListener('click', resetModel)
 createSubscriptionButton.addEventListener('click', createSubscriptionUrl)
 copySubscriptionButton.addEventListener('click', copySubscriptionUrl)
-document.querySelector('#refresh-subscriptions-button').addEventListener('click', loadSubscriptionList)
 input.addEventListener('input', updateSubmitState)
 if (window.matchMedia('(max-width: 719px)').matches) {
   document.querySelectorAll('.edit-panel details[open]').forEach((d) => d.removeAttribute('open'))
@@ -428,6 +427,7 @@ async function createSubscriptionUrl() {
       body: JSON.stringify({
         yaml: state.yaml,
         expiresIn: subscriptionExpirySelect.value,
+        filename: filenameInput.value,
       }),
     })
     const payload = await readJsonResponse(response, 'Subscription URL failed.')
@@ -436,7 +436,6 @@ async function createSubscriptionUrl() {
     state.subscriptionUrl = payload.url
     renderSubscriptionUrl()
     showToast('Subscription URL created.')
-    loadSubscriptionList()
   } catch (error) {
     showToast(error instanceof Error ? error.message : 'Subscription URL failed.', 'error')
   } finally {
@@ -456,39 +455,6 @@ async function copySubscriptionUrl() {
   }
 }
 
-async function loadSubscriptionList() {
-  const panel = document.querySelector('#subscription-list-panel')
-  const list = document.querySelector('#subscription-list')
-  if (!state.subscriptionApiAvailable) { panel.hidden = true; return }
-  try {
-    const response = await fetchWithTimeout(apiUrl('/api/subscriptions'), { headers: { accept: 'application/json' } }, 15000)
-    if (!response.ok) { panel.hidden = true; return }
-    const payload = await response.json()
-    if (!payload.subscriptions?.length) { panel.hidden = true; return }
-    panel.hidden = false
-    list.innerHTML = payload.subscriptions.map((item) => `
-      <div class="subscription-item" style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)">
-        <div style="flex:1;min-width:0">
-          <small style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(item.url)}</small>
-          <small style="color:var(--muted)">${escapeHtml(item.createdAt?.slice(0, 10) || '')} · ${escapeHtml(item.expiresIn)}</small>
-        </div>
-        <button type="button" class="ghost-button" style="min-height:32px;padding:0 8px;font-size:11px" data-delete-secret="${escapeAttr(item.secret)}">Delete</button>
-      </div>
-    `).join('')
-    list.querySelectorAll('[data-delete-secret]').forEach((btn) => {
-      btn.addEventListener('click', () => deleteSubscription(btn.dataset.deleteSecret))
-    })
-  } catch { panel.hidden = true }
-}
-
-async function deleteSubscription(secret) {
-  if (!confirm('Delete this subscription?')) return
-  try {
-    const response = await fetchWithTimeout(apiUrl(`/api/subscriptions/${secret}`), { method: 'DELETE' }, 15000)
-    if (response.ok) { showToast('Subscription deleted.'); loadSubscriptionList() }
-    else showToast('Delete failed.', 'error')
-  } catch { showToast('Delete failed.', 'error') }
-}
 
 export function showToast(message, type = 'ok') {
   toast.textContent = message
@@ -874,7 +840,6 @@ async function checkSubscriptionApiAvailability() {
     state.subscriptionApiAvailable = false
   }
   updateSubscriptionStatus()
-  if (state.subscriptionApiAvailable) loadSubscriptionList()
 }
 
 function setupNetworkStatus() {
@@ -981,7 +946,12 @@ function placeholderForInput(key, label = '') {
   const normalizedKey = String(key || '').replace(/:(number|list|policy|json|boolean-string)$/u, '')
   const examples = {
     'converter-input': 'vmess://...\nvless://...\ntrojan://...\n\nproxies:\n  - name: example\n    type: vless\n    server: example.com\n    port: 443',
-    'filename-input': 'config-1.yaml',
+    'filename-input': 'config.yaml',
+    'general-mixed-port': '7890',
+    'general-bind-address': '*',
+    'dns-listen': '0.0.0.0:1053',
+    'dns-fake-ip-range': '198.18.0.1/16',
+    'geo-update-interval': '24',
     'name-pattern-input': '{nn} - {type} - {name}',
     'bulk-rename-pattern': '{nn} - {type} - {server}',
     'manual-node-name': 'SG VLESS WS',

@@ -84,7 +84,7 @@
           </label>
           <label>
             <span>File Name</span>
-            <input id="filename-input" type="text" value="config-1.yaml" placeholder="config-1.yaml" />
+            <input id="filename-input" type="text" value="config.yaml" placeholder="config.yaml" />
           </label>
           <label class="wide-field">
             <span>Node Name Pattern</span>
@@ -195,23 +195,20 @@
             <label>
               <span>Expire</span>
               <select id="subscription-expiry-select" class="compact-select">
+                <option value="never">Never</option>
                 <option value="30d">30 days</option>
                 <option value="7d">7 days</option>
-                <option value="never">Never</option>
+
+
+
               </select>
             </label>
-          </div>
           <div class="subscription-actions">
             <button id="create-subscription-button" type="button" class="primary-button" disabled>Create URL</button>
-            <button id="copy-subscription-button" type="button" class="ghost-button" disabled>Copy URL</button>
             <a id="open-subscription-link" class="ghost-link disabled" href="#" target="_blank" rel="noopener">Open</a>
           </div>
-          <input id="subscription-url-input" type="text" readonly placeholder="https://domain.pages.dev/sub/secret/config.yaml" />
+          <div class="subscription-url-row"><input id="subscription-url-input" type="text" readonly placeholder="https://domain.pages.dev/sub/secret/config.yaml" /><button id="copy-subscription-button" type="button" class="ghost-button" disabled>Copy</button></div>
           <small id="subscription-status">Checking subscription API...</small>
-          <div id="subscription-list-panel" hidden>
-            <h3 style="margin-top:12px">My Subscriptions</h3>
-            <div id="subscription-list"></div>
-            <button id="refresh-subscriptions-button" type="button" class="ghost-button" style="margin-top:8px;width:100%">Refresh List</button>
           </div>
         </section>
 
@@ -436,10 +433,10 @@
               <details class="editor-field-section wide-field" open>
                 <summary><span>General Core</span><small>Ports, mode, LAN, and process behavior</small></summary>
                 <div class="form-grid section-grid">
-                  <label><span>Mixed Port</span><input id="general-mixed-port" type="text" value="7890" /></label>
+                  <label><span>Mixed Port</span><input id="general-mixed-port" type="text" /></label>
                   <label><span>Mode</span><select id="general-mode"><option value="rule">rule</option><option value="global">global</option><option value="direct">direct</option></select></label>
                   <label><span>Log Level</span><select id="general-log-level"><option value="info">info</option><option value="warning">warning</option><option value="error">error</option><option value="debug">debug</option><option value="silent">silent</option></select></label>
-                  <label><span>Bind Address</span><input id="general-bind-address" type="text" value="*" /></label>
+                  <label><span>Bind Address</span><input id="general-bind-address" type="text" /></label>
                   <label><span>HTTP Port</span><input id="general-port" type="text" /></label>
                   <label><span>SOCKS Port</span><input id="general-socks-port" type="text" /></label>
                   <label><span>Redirect Port</span><input id="general-redir-port" type="text" /></label>
@@ -499,7 +496,7 @@
                 <summary><span>DNS Basic</span><small>Resolver enablement, listen address, and host behavior</small></summary>
                 <div class="form-grid section-grid">
                   <label class="check-row"><input id="dns-enable" type="checkbox" checked /> DNS Enable</label>
-                  <label><span>DNS Listen</span><input id="dns-listen" type="text" value="0.0.0.0:1053" /></label>
+                  <label><span>DNS Listen</span><input id="dns-listen" type="text" /></label>
                   <label><span>Enhanced Mode</span><select id="dns-enhanced-mode"><option value="redir-host">redir-host</option><option value="fake-ip">fake-ip</option></select></label>
                   <label><span>Cache Algorithm</span><select id="dns-cache-algorithm"><option value="">default</option><option value="lru">lru</option><option value="arc">arc</option></select></label>
                   <label class="check-row"><input id="dns-prefer-h3" type="checkbox" /> Prefer H3</label>
@@ -512,7 +509,7 @@
               <details class="editor-field-section wide-field">
                 <summary><span>DNS Fake IP</span><small>Fake IP range, TTL, mode, and filter rules</small></summary>
                 <div class="form-grid section-grid">
-                  <label><span>Fake IP Range</span><input id="dns-fake-ip-range" type="text" value="198.18.0.1/16" /></label>
+                  <label><span>Fake IP Range</span><input id="dns-fake-ip-range" type="text" /></label>
                   <label><span>Fake IP Range v6</span><input id="dns-fake-ip-range6" type="text" /></label>
                   <label><span>Fake IP Filter Mode</span><select id="dns-fake-ip-filter-mode"><option value="">default</option><option value="blacklist">blacklist</option><option value="whitelist">whitelist</option><option value="rule">rule</option></select></label>
                   <label><span>Fake IP TTL</span><input id="dns-fake-ip-ttl" type="text" /></label>
@@ -601,7 +598,7 @@
               <label class="check-row"><input id="geo-geodata-mode" type="checkbox" /> Geodata Mode</label>
               <label class="check-row"><input id="geo-auto-update" type="checkbox" /> Geo Auto Update</label>
               <label><span>Geodata Loader</span><select id="geo-geodata-loader"><option value="">Default</option><option value="standard">standard</option><option value="memconservative">memconservative</option></select></label>
-              <label><span>Geo Update Interval</span><input id="geo-update-interval" type="text" value="24" /></label>
+              <label><span>Geo Update Interval</span><input id="geo-update-interval" type="text" /></label>
               <label><span>GEOIP URL</span><input id="geo-url-geoip" type="text" /></label>
               <label><span>GEOSITE URL</span><input id="geo-url-geosite" type="text" /></label>
               <label><span>MMDB URL</span><input id="geo-url-mmdb" type="text" /></label>

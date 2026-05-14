@@ -371,6 +371,9 @@ export function moveNodeByVisibleOffset(index, offset) {
   const targetIndex = visibleIndexes[visibleIndex + offset]
   if (targetIndex === undefined) return
   moveNode(index, targetIndex)
+  const targetVisibleIndex = visibleIndex + offset
+  const row = nodeList.children[targetVisibleIndex]
+  if (row) { row.classList.add("node-moved"); row.addEventListener("animationend", () => row.classList.remove("node-moved"), { once: true }) }
 }
 
 export function openNodeTools() {

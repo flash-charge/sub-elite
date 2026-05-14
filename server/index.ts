@@ -113,16 +113,18 @@ async function handleCreateSubscription(request, response) {
     return sendJson(response, 413, { error: 'YAML is too large. Maximum size is 256 KB.' })
   }
 
-  const expiresIn = Object.hasOwn(SUBSCRIPTION_EXPIRY, payload.expiresIn) ? payload.expiresIn : '30d'
+  const expiresIn = Object.hasOwn(SUBSCRIPTION_EXPIRY, payload.expiresIn) ? payload.expiresIn : 'never'
+  const filename = normalizeFilename(payload.filename)
   const secret = randomSecret(32)
   const ttl = SUBSCRIPTION_EXPIRY[expiresIn]
   localSubscriptions.set(secret, {
     yaml,
+    filename,
     createdAt: Date.now(),
     expiresAt: ttl ? Date.now() + ttl * 1000 : 0,
   })
 
-  const url = new URL(`/sub/${secret}/config.yaml`, `http://127.0.0.1:${PORT}`)
+  const url = new URL(`/sub/${secret}/${filename}`, `http://127.0.0.1:${PORT}`)
   return sendJson(response, 200, {
     ok: true,
     url: url.toString(),
@@ -150,7 +152,7 @@ function handleListSubscriptions(response) {
     if (record.expiresAt && record.expiresAt <= Date.now()) continue
     items.push({
       secret,
-      url: `http://127.0.0.1:${PORT}/sub/${secret}/config.yaml`,
+      url: `http://127.0.0.1:${PORT}/sub/${secret}/${entry.filename || "config.yaml"}`,
       createdAt: record.createdAt ? new Date(record.createdAt).toISOString() : '',
       expiresIn: record.expiresAt ? (record.expiresAt - record.createdAt > 15 * 24 * 60 * 60 * 1000 ? '30d' : '7d') : 'never',
     })
@@ -288,4 +290,9 @@ function readConvertOptions(payload) {
     namePattern: payload.namePattern,
     namePrefix: payload.namePrefix,
   }
+}
+
+function normalizeFilename(value) {
+  const name = String(value || 'config.yaml').trim().replace(/[^A-Za-z0-9._-]/g, '-')
+  return /\.ya?ml$/i.test(name) ? name : 'config.yaml'
 }

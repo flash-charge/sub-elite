@@ -794,6 +794,17 @@ small {
 .subscription-actions .ghost-link {
   width: 100%;
   min-width: 0;
+.subscription-url-row {
+  display: flex;
+  gap: 8px;
+}
+.subscription-url-row input {
+  flex: 1;
+  min-width: 0;
+}
+.subscription-url-row .ghost-button {
+  flex: 0 0 auto;
+}
 }
 
 #subscription-status {
@@ -2514,4 +2525,12 @@ summary {
 @keyframes shimmer {
   from { background-position: 200% 0; }
   to { background-position: -200% 0; }
+}
+
+@keyframes nodeMoved {
+  0% { background: var(--accent-soft); }
+  100% { background: transparent; }
+}
+.node-row.node-moved {
+  animation: nodeMoved 600ms ease-out;
 }
