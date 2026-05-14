@@ -2440,6 +2440,7 @@ function addRuleProvider() {
 function addProxyProvider() {
   if (!state.model) return
   const name = proxyProviderName.value.trim()
+  const type = proxyProviderType.value
   const nameIssue = validEditableName(name, 'Proxy provider')
   if (nameIssue) {
     showValidation(nameIssue, 'error')
@@ -2449,9 +2450,13 @@ function addProxyProvider() {
     showValidation(`Proxy provider "${name}" already exists.`, 'error')
     return
   }
+  if (type !== 'inline' && !proxyProviderUrl.value.trim()) {
+    showValidation('URL is required for http/file proxy providers.', 'error')
+    return
+  }
   state.model.proxyProviders.push({
     name,
-    type: proxyProviderType.value,
+    type,
     url: proxyProviderUrl.value.trim(),
     path: generatedProviderPath('./proxy_providers', name),
     interval: 3600,
