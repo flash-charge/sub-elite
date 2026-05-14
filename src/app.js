@@ -78,17 +78,11 @@ resetYamlButton.addEventListener('click', resetModel)
 createSubscriptionButton.addEventListener('click', createSubscriptionUrl)
 copySubscriptionButton.addEventListener('click', copySubscriptionUrl)
 document.querySelector('#refresh-subscriptions-button').addEventListener('click', loadSubscriptionList)
-input.addEventListener('input', () => { updateSubmitState(); toggleEmptyState() })
-fileInput.addEventListener('change', importFile)
-
-const emptyState = document.querySelector('#empty-state')
-emptyState.querySelector('[data-action="paste"]').addEventListener('click', () => { emptyState.hidden = true; input.focus() })
-emptyState.querySelector('[data-action="blank"]').addEventListener('click', () => { createBlankConfig() })
-function toggleEmptyState() { emptyState.hidden = input.value.trim().length > 0 }
-
+input.addEventListener('input', updateSubmitState)
 if (window.matchMedia('(max-width: 719px)').matches) {
   document.querySelectorAll('.edit-panel details[open]').forEach((d) => d.removeAttribute('open'))
 }
+fileInput.addEventListener('change', importFile)
 templateSelect.addEventListener('change', updateTemplateFromControl)
 rulesSelect.addEventListener('change', updateRulesPresetFromControl)
 addGroupButton.addEventListener('click', addGroup)
@@ -526,7 +520,6 @@ function useSample() {
   clearConvertedState()
   clearError()
   updateSubmitState()
-  toggleEmptyState()
   showToast('Sample loaded. Review it, then tap Convert.')
 }
 
