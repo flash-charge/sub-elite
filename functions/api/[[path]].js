@@ -12,7 +12,13 @@ export async function onRequest(context) {
 
   if (requestUrl.pathname === '/api/subscriptions' && isJsonResponse(response)) {
     const payload = await response.json()
-    if (typeof payload.url === 'string') {
+    if (context.request.method === 'GET' && Array.isArray(payload.subscriptions)) {
+      payload.subscriptions = payload.subscriptions.map((item) => ({
+        ...item,
+        url: sameOriginSubscriptionUrl(item.url, requestUrl.origin),
+        secret: undefined,
+      }))
+    } else if (typeof payload.url === 'string') {
       payload.url = sameOriginSubscriptionUrl(payload.url, requestUrl.origin)
     }
     delete payload.secret
@@ -29,7 +35,7 @@ export async function onRequest(context) {
 async function proxyToBackend(context) {
   const requestUrl = new URL(context.request.url)
   const backendUrl = backendUrlForRequest(requestUrl, context.env)
-  if (!backendUrl) return backendConfigErrorResponse(context.request, context.env, 'POST,OPTIONS')
+  if (!backendUrl) return backendConfigErrorResponse(context.request, context.env, 'GET,POST,DELETE,OPTIONS')
 
   const headers = cleanProxyHeaders(context.request.headers, context.env, requestUrl.origin)
   const init = {

@@ -45,6 +45,14 @@ const server = createServer(async (request, response) => {
       return handleCreateSubscription(request, response)
     }
 
+    if (request.method === 'GET' && pathname === '/api/subscriptions') {
+      return handleListSubscriptions(response)
+    }
+
+    if (request.method === 'DELETE' && /^\/api\/subscriptions\/[A-Za-z0-9_-]+$/.test(pathname)) {
+      return handleDeleteSubscriptionEndpoint(pathname, response)
+    }
+
     if (request.method === 'GET' && /^\/sub\/[A-Za-z0-9_-]+\/config\.yaml$/.test(pathname)) {
       return handleSubscription(request, response)
     }
@@ -134,6 +142,27 @@ function handleSubscription(request, response) {
 
   response.writeHead(200, subscriptionHeaders())
   return response.end(record.yaml.endsWith('\n') ? record.yaml : `${record.yaml}\n`)
+}
+
+function handleListSubscriptions(response) {
+  const items = []
+  for (const [secret, record] of localSubscriptions) {
+    if (record.expiresAt && record.expiresAt <= Date.now()) continue
+    items.push({
+      secret,
+      url: `http://127.0.0.1:${PORT}/sub/${secret}/config.yaml`,
+      createdAt: record.createdAt ? new Date(record.createdAt).toISOString() : '',
+      expiresIn: record.expiresAt ? (record.expiresAt - record.createdAt > 15 * 24 * 60 * 60 * 1000 ? '30d' : '7d') : 'never',
+    })
+  }
+  return sendJson(response, 200, { ok: true, subscriptions: items })
+}
+
+function handleDeleteSubscriptionEndpoint(pathname, response) {
+  const secret = pathname.split('/')[3]
+  if (!localSubscriptions.has(secret)) return sendJson(response, 404, { error: 'Subscription not found.' })
+  localSubscriptions.delete(secret)
+  return sendJson(response, 200, { ok: true })
 }
 
 async function readBody(request, maxBytes = MAX_INPUT_BYTES) {

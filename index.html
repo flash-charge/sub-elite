@@ -45,6 +45,7 @@
           <div class="quick-actions">
             <label class="ghost-button file-button" for="file-input">Import File</label>
             <input id="file-input" type="file" accept=".txt,.conf,.list,.log,.yaml,.yml,text/plain,text/yaml,application/yaml" hidden />
+            <button id="fetch-url-button" type="button" class="ghost-button">Fetch URL</button>
             <button id="blank-config-button" type="button" class="ghost-button">Blank</button>
             <button id="sample-button" type="button" class="ghost-button">Sample</button>
           </div>
@@ -207,6 +208,11 @@
           </div>
           <input id="subscription-url-input" type="text" readonly placeholder="https://domain.pages.dev/sub/secret/config.yaml" />
           <small id="subscription-status">Checking subscription API...</small>
+          <div id="subscription-list-panel" hidden>
+            <h3 style="margin-top:12px">My Subscriptions</h3>
+            <div id="subscription-list"></div>
+            <button id="refresh-subscriptions-button" type="button" class="ghost-button" style="margin-top:8px;width:100%">Refresh List</button>
+          </div>
         </section>
 
         <div class="sticky-actions action-grid yaml-tool-actions">

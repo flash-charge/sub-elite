@@ -475,6 +475,7 @@ populateNodeFilterTypes()
 checkSubscriptionApiAvailability()
 setupNetworkStatus()
 sampleButton.addEventListener('click', useSample)
+document.querySelector('#fetch-url-button').addEventListener('click', fetchSubscriptionUrl)
 convertButton.addEventListener('click', processInput)
 blankConfigButton.addEventListener('click', createBlankConfig)
 copyButton.addEventListener('click', copyYaml)
@@ -490,6 +491,7 @@ toggleDiffButton.addEventListener('click', toggleDiffPanel)
 resetYamlButton.addEventListener('click', resetModel)
 createSubscriptionButton.addEventListener('click', createSubscriptionUrl)
 copySubscriptionButton.addEventListener('click', copySubscriptionUrl)
+document.querySelector('#refresh-subscriptions-button').addEventListener('click', loadSubscriptionList)
 input.addEventListener('input', updateSubmitState)
 fileInput.addEventListener('change', importFile)
 templateSelect.addEventListener('change', updateTemplateFromControl)
@@ -845,6 +847,7 @@ async function createSubscriptionUrl() {
     state.subscriptionUrl = payload.url
     renderSubscriptionUrl()
     showToast('Subscription URL created.')
+    loadSubscriptionList()
   } catch (error) {
     showToast(error instanceof Error ? error.message : 'Subscription URL failed.', 'error')
   } finally {
@@ -862,6 +865,40 @@ async function copySubscriptionUrl() {
   } catch {
     showToast('Copy URL failed.', 'error')
   }
+}
+
+async function loadSubscriptionList() {
+  const panel = document.querySelector('#subscription-list-panel')
+  const list = document.querySelector('#subscription-list')
+  if (!state.subscriptionApiAvailable) { panel.hidden = true; return }
+  try {
+    const response = await fetchWithTimeout(apiUrl('/api/subscriptions'), { headers: { accept: 'application/json' } }, 15000)
+    if (!response.ok) { panel.hidden = true; return }
+    const payload = await response.json()
+    if (!payload.subscriptions?.length) { panel.hidden = true; return }
+    panel.hidden = false
+    list.innerHTML = payload.subscriptions.map((item) => `
+      <div class="subscription-item" style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)">
+        <div style="flex:1;min-width:0">
+          <small style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(item.url)}</small>
+          <small style="color:var(--muted)">${escapeHtml(item.createdAt?.slice(0, 10) || '')} · ${escapeHtml(item.expiresIn)}</small>
+        </div>
+        <button type="button" class="ghost-button" style="min-height:32px;padding:0 8px;font-size:11px" data-delete-secret="${escapeAttr(item.secret)}">Delete</button>
+      </div>
+    `).join('')
+    list.querySelectorAll('[data-delete-secret]').forEach((btn) => {
+      btn.addEventListener('click', () => deleteSubscription(btn.dataset.deleteSecret))
+    })
+  } catch { panel.hidden = true }
+}
+
+async function deleteSubscription(secret) {
+  if (!confirm('Delete this subscription?')) return
+  try {
+    const response = await fetchWithTimeout(apiUrl(`/api/subscriptions/${secret}`), { method: 'DELETE' }, 15000)
+    if (response.ok) { showToast('Subscription deleted.'); loadSubscriptionList() }
+    else showToast('Delete failed.', 'error')
+  } catch { showToast('Delete failed.', 'error') }
 }
 
 function showToast(message, type = 'ok') {
@@ -923,6 +960,35 @@ async function importFile() {
     showError('File read failed.')
   } finally {
     fileInput.value = ''
+  }
+}
+
+async function fetchSubscriptionUrl() {
+  const url = prompt('Enter subscription URL:')
+  if (!url || !url.trim()) return
+  const trimmed = url.trim()
+  if (!/^https?:\/\//i.test(trimmed)) {
+    showError('URL must start with http:// or https://')
+    return
+  }
+  const fetchBtn = document.querySelector('#fetch-url-button')
+  fetchBtn.disabled = true
+  fetchBtn.textContent = 'Fetching...'
+  clearError()
+  try {
+    const response = await fetchWithTimeout(trimmed, { headers: { 'user-agent': 'clash.meta' } }, 15000)
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    const text = await response.text()
+    if (!text.trim()) throw new Error('Empty response')
+    input.value = text
+    clearConvertedState()
+    updateSubmitState()
+    showToast('URL fetched. Review it, then tap Convert.')
+  } catch (error) {
+    showError(`Fetch failed: ${error.message}`)
+  } finally {
+    fetchBtn.disabled = false
+    fetchBtn.textContent = 'Fetch URL'
   }
 }
 
@@ -4721,6 +4787,7 @@ async function checkSubscriptionApiAvailability() {
     state.subscriptionApiAvailable = false
   }
   updateSubscriptionStatus()
+  if (state.subscriptionApiAvailable) loadSubscriptionList()
 }
 
 function setupNetworkStatus() {
