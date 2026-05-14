@@ -1,5 +1,6 @@
 import { autoFixConfigModel, buildYamlFromModel, createConfigModel, validateConfigModel } from '../lib/converter.ts'
 import { parseDocument, stringify } from 'yaml'
+import { state, invalidEditorInput, nodeUiKeys, apiBaseUrl, linkProtocolPattern, input, fileInput, templateSelect, rulesSelect, namePatternInput, filenameInput, convertButton, blankConfigButton, sampleButton, copyButton, downloadButton, exportFormatSelect, formatYamlButton, validateYamlButton, autoFixButton, toggleDiffButton, resetYamlButton, createSubscriptionButton, copySubscriptionButton, openSubscriptionLink, subscriptionExpirySelect, subscriptionUrlInput, subscriptionStatus, errorBanner, yamlEditor, diffPanel, diffSummary, diffViewer, validationBanner, validationDetails, validationIssuesList, yamlSectionSelect, yamlSectionPreview, warnings, warningsList, statTotal, statConverted, statSkipped, nodeList, groupList, groupNameInput, groupTypeInput, addGroupButton, rulesEditor, dnsEnable, dnsListen, dnsCacheAlgorithm, dnsPreferH3, dnsUseHosts, dnsUseSystemHosts, dnsRespectRules, dnsDefault, dnsNameservers, generalPort, generalSocksPort, generalRedirPort, generalTproxyPort, generalMixedPort, generalMode, generalLogLevel, generalBindAddress, generalLanAllowedIps, generalLanDisallowedIps, generalAuthentication, generalSkipAuthPrefixes, generalInterfaceName, generalRoutingMark, generalKeepAliveIdle, generalKeepAliveInterval, generalFindProcessMode, generalController, generalControllerTls, generalControllerUnix, generalControllerPipe, generalControllerCors, generalUi, generalUiName, generalUiUrl, generalSecret, generalClientFingerprint, generalUa, generalTlsCertificate, generalTlsPrivateKey, generalAllowLan, generalIpv6, generalDisableKeepAlive, generalUnifiedDelay, generalTcpConcurrent, generalEtagSupport, profileStoreSelected, profileStoreFakeIp, dnsEnhancedMode, dnsFakeIpRange, dnsFakeIpRange6, dnsFakeIpFilterMode, dnsFakeIpTtl, dnsFakeIpFilter, dnsFallback, dnsFallbackFilter, dnsDirectNameserver, dnsDirectFollowPolicy, dnsProxyServer, dnsProxyPolicy, dnsPolicy, snifferEnable, snifferOverride, snifferParseIp, snifferForceDnsMapping, snifferSniff, snifferForce, snifferSkip, snifferSkipSrc, snifferSkipDst, tunEnable, tunStack, tunDevice, tunAutoRoute, tunAutoRedirect, tunAutoDetect, tunStrictRoute, tunDnsHijack, tunMtu, tunGso, tunGsoMaxSize, tunUdpTimeout, tunIproute2TableIndex, tunIproute2RuleIndex, tunEndpointIndependentNat, tunRouteAddressSet, tunRouteExcludeAddressSet, tunRouteAddress, tunRouteExcludeAddress, tunIncludeInterface, tunExcludeInterface, tunIncludeUid, tunIncludeUidRange, tunExcludeUid, tunExcludeUidRange, tunIncludeAndroidUser, tunIncludePackage, tunExcludePackage, geoGeodataMode, geoAutoUpdate, geoGeodataLoader, geoUpdateInterval, geoUrlGeoip, geoUrlGeosite, geoUrlMmdb, geoUrlAsn, ruleProviderName, ruleProviderUrl, ruleProviderBehavior, ruleProviderTarget, ruleProviderFormat, addRuleProviderButton, addAdsProviderButton, applyLanRulesButton, ruleProviderList, ruleBuilderType, ruleBuilderValue, ruleBuilderTarget, addRuleButton, proxyProviderName, proxyProviderUrl, proxyProviderType, addProxyProviderButton, proxyProviderList,  manualNodeType, manualNodeFields, addManualNodeButton, nodeFilterQuery, nodeFilterType, nodeFilterStatus, openNodeToolsButton, nodeToolsSheet, closeNodeToolsButton, bulkRenamePattern, applyBulkRenameButton, nodeSortField, sortNodesButton, deleteDuplicateNodesButton, nodeKeywordInput, enableKeywordNodesButton, disableKeywordNodesButton, fabCopy, fabDownload, toast, viewTabs, viewPanels, editTabs, editPanels, editorSectionSelect } from './state.js'
 import {
   sampleLinks, MAX_IMPORT_FILE_BYTES, importFilePattern, networkOptions, networkSupportByType,
   alpnOptions, clientFingerprintOptions, vmessCipherOptions, vlessFlowOptions, packetEncodingOptions,
@@ -17,220 +18,8 @@ import {
   modelFromYamlObject, normalizeClientModel, omitKeys,
   dnsFieldKeys, generalFieldKeys, profileFieldKeys, snifferFieldKeys, tunFieldKeys, geoFieldKeys,
 } from './model.ts'
+import { renderManualNodeFields, addManualNode, readManualNodeValues, toggleManualTlsFields, compactManualObject } from './manual-node.js'
 
-
-const state = {
-  yaml: '',
-  originalYaml: '',
-  model: null,
-  originalModel: null,
-  draggedNode: -1,
-  expandedNodeKeys: new Set(),
-  yamlManualEdit: false,
-  subscriptionUrl: '',
-  subscriptionApiAvailable: false,
-  toastTimer: null,
-}
-
-const invalidEditorInput = Symbol('invalid-editor-input')
-const nodeUiKeys = new WeakMap()
-const apiBaseUrl = readApiBaseUrl()
-
-const linkProtocolPattern = /(?:^|\s)(vmess|vless|trojan|ss|ssr|socks|socks5|hysteria|hysteria2|hy2|tuic|wireguard):\/\//i
-
-const input = document.querySelector('#converter-input')
-const fileInput = document.querySelector('#file-input')
-const templateSelect = document.querySelector('#template-select')
-const rulesSelect = document.querySelector('#rules-select')
-const namePatternInput = document.querySelector('#name-pattern-input')
-const filenameInput = document.querySelector('#filename-input')
-const convertButton = document.querySelector('#convert-button')
-const blankConfigButton = document.querySelector('#blank-config-button')
-const sampleButton = document.querySelector('#sample-button')
-const copyButton = document.querySelector('#copy-button')
-const downloadButton = document.querySelector('#download-button')
-const exportFormatSelect = document.querySelector('#export-format-select')
-const formatYamlButton = document.querySelector('#format-yaml-button')
-const validateYamlButton = document.querySelector('#validate-yaml-button')
-const autoFixButton = document.querySelector('#auto-fix-button')
-const toggleDiffButton = document.querySelector('#toggle-diff-button')
-const resetYamlButton = document.querySelector('#reset-yaml-button')
-const createSubscriptionButton = document.querySelector('#create-subscription-button')
-const copySubscriptionButton = document.querySelector('#copy-subscription-button')
-const openSubscriptionLink = document.querySelector('#open-subscription-link')
-const subscriptionExpirySelect = document.querySelector('#subscription-expiry-select')
-const subscriptionUrlInput = document.querySelector('#subscription-url-input')
-const subscriptionStatus = document.querySelector('#subscription-status')
-const errorBanner = document.querySelector('#error-banner')
-const yamlEditor = document.querySelector('#yaml-editor')
-const diffPanel = document.querySelector('#diff-panel')
-const diffSummary = document.querySelector('#diff-summary')
-const diffViewer = document.querySelector('#diff-viewer')
-const validationBanner = document.querySelector('#validation-banner')
-const validationDetails = document.querySelector('#validation-details')
-const validationIssuesList = document.querySelector('#validation-issues-list')
-const yamlSectionSelect = document.querySelector('#yaml-section-select')
-const yamlSectionPreview = document.querySelector('#yaml-section-preview')
-const warnings = document.querySelector('#warnings')
-const warningsList = document.querySelector('#warnings-list')
-const statTotal = document.querySelector('#stat-total')
-const statConverted = document.querySelector('#stat-converted')
-const statSkipped = document.querySelector('#stat-skipped')
-const nodeList = document.querySelector('#node-list')
-const groupList = document.querySelector('#group-list')
-const groupNameInput = document.querySelector('#group-name-input')
-const groupTypeInput = document.querySelector('#group-type-input')
-const addGroupButton = document.querySelector('#add-group-button')
-const rulesEditor = document.querySelector('#rules-editor')
-const dnsEnable = document.querySelector('#dns-enable')
-const dnsListen = document.querySelector('#dns-listen')
-const dnsCacheAlgorithm = document.querySelector('#dns-cache-algorithm')
-const dnsPreferH3 = document.querySelector('#dns-prefer-h3')
-const dnsUseHosts = document.querySelector('#dns-use-hosts')
-const dnsUseSystemHosts = document.querySelector('#dns-use-system-hosts')
-const dnsRespectRules = document.querySelector('#dns-respect-rules')
-const dnsDefault = document.querySelector('#dns-default')
-const dnsNameservers = document.querySelector('#dns-nameservers')
-const generalPort = document.querySelector('#general-port')
-const generalSocksPort = document.querySelector('#general-socks-port')
-const generalRedirPort = document.querySelector('#general-redir-port')
-const generalTproxyPort = document.querySelector('#general-tproxy-port')
-const generalMixedPort = document.querySelector('#general-mixed-port')
-const generalMode = document.querySelector('#general-mode')
-const generalLogLevel = document.querySelector('#general-log-level')
-const generalBindAddress = document.querySelector('#general-bind-address')
-const generalLanAllowedIps = document.querySelector('#general-lan-allowed-ips')
-const generalLanDisallowedIps = document.querySelector('#general-lan-disallowed-ips')
-const generalAuthentication = document.querySelector('#general-authentication')
-const generalSkipAuthPrefixes = document.querySelector('#general-skip-auth-prefixes')
-const generalInterfaceName = document.querySelector('#general-interface-name')
-const generalRoutingMark = document.querySelector('#general-routing-mark')
-const generalKeepAliveIdle = document.querySelector('#general-keep-alive-idle')
-const generalKeepAliveInterval = document.querySelector('#general-keep-alive-interval')
-const generalFindProcessMode = document.querySelector('#general-find-process-mode')
-const generalController = document.querySelector('#general-controller')
-const generalControllerTls = document.querySelector('#general-controller-tls')
-const generalControllerUnix = document.querySelector('#general-controller-unix')
-const generalControllerPipe = document.querySelector('#general-controller-pipe')
-const generalControllerCors = document.querySelector('#general-controller-cors')
-const generalUi = document.querySelector('#general-ui')
-const generalUiName = document.querySelector('#general-ui-name')
-const generalUiUrl = document.querySelector('#general-ui-url')
-const generalSecret = document.querySelector('#general-secret')
-const generalClientFingerprint = document.querySelector('#general-client-fingerprint')
-const generalUa = document.querySelector('#general-ua')
-const generalTlsCertificate = document.querySelector('#general-tls-certificate')
-const generalTlsPrivateKey = document.querySelector('#general-tls-private-key')
-const generalAllowLan = document.querySelector('#general-allow-lan')
-const generalIpv6 = document.querySelector('#general-ipv6')
-const generalDisableKeepAlive = document.querySelector('#general-disable-keep-alive')
-const generalUnifiedDelay = document.querySelector('#general-unified-delay')
-const generalTcpConcurrent = document.querySelector('#general-tcp-concurrent')
-const generalEtagSupport = document.querySelector('#general-etag-support')
-const profileStoreSelected = document.querySelector('#profile-store-selected')
-const profileStoreFakeIp = document.querySelector('#profile-store-fake-ip')
-const dnsEnhancedMode = document.querySelector('#dns-enhanced-mode')
-const dnsFakeIpRange = document.querySelector('#dns-fake-ip-range')
-const dnsFakeIpRange6 = document.querySelector('#dns-fake-ip-range6')
-const dnsFakeIpFilterMode = document.querySelector('#dns-fake-ip-filter-mode')
-const dnsFakeIpTtl = document.querySelector('#dns-fake-ip-ttl')
-const dnsFakeIpFilter = document.querySelector('#dns-fake-ip-filter')
-const dnsFallback = document.querySelector('#dns-fallback')
-const dnsFallbackFilter = document.querySelector('#dns-fallback-filter')
-const dnsDirectNameserver = document.querySelector('#dns-direct-nameserver')
-const dnsDirectFollowPolicy = document.querySelector('#dns-direct-follow-policy')
-const dnsProxyServer = document.querySelector('#dns-proxy-server')
-const dnsProxyPolicy = document.querySelector('#dns-proxy-policy')
-const dnsPolicy = document.querySelector('#dns-policy')
-const snifferEnable = document.querySelector('#sniffer-enable')
-const snifferOverride = document.querySelector('#sniffer-override')
-const snifferParseIp = document.querySelector('#sniffer-parse-ip')
-const snifferForceDnsMapping = document.querySelector('#sniffer-force-dns-mapping')
-const snifferSniff = document.querySelector('#sniffer-sniff')
-const snifferForce = document.querySelector('#sniffer-force')
-const snifferSkip = document.querySelector('#sniffer-skip')
-const snifferSkipSrc = document.querySelector('#sniffer-skip-src')
-const snifferSkipDst = document.querySelector('#sniffer-skip-dst')
-const tunEnable = document.querySelector('#tun-enable')
-const tunStack = document.querySelector('#tun-stack')
-const tunDevice = document.querySelector('#tun-device')
-const tunAutoRoute = document.querySelector('#tun-auto-route')
-const tunAutoRedirect = document.querySelector('#tun-auto-redirect')
-const tunAutoDetect = document.querySelector('#tun-auto-detect')
-const tunStrictRoute = document.querySelector('#tun-strict-route')
-const tunDnsHijack = document.querySelector('#tun-dns-hijack')
-const tunMtu = document.querySelector('#tun-mtu')
-const tunGso = document.querySelector('#tun-gso')
-const tunGsoMaxSize = document.querySelector('#tun-gso-max-size')
-const tunUdpTimeout = document.querySelector('#tun-udp-timeout')
-const tunIproute2TableIndex = document.querySelector('#tun-iproute2-table-index')
-const tunIproute2RuleIndex = document.querySelector('#tun-iproute2-rule-index')
-const tunEndpointIndependentNat = document.querySelector('#tun-endpoint-independent-nat')
-const tunRouteAddressSet = document.querySelector('#tun-route-address-set')
-const tunRouteExcludeAddressSet = document.querySelector('#tun-route-exclude-address-set')
-const tunRouteAddress = document.querySelector('#tun-route-address')
-const tunRouteExcludeAddress = document.querySelector('#tun-route-exclude-address')
-const tunIncludeInterface = document.querySelector('#tun-include-interface')
-const tunExcludeInterface = document.querySelector('#tun-exclude-interface')
-const tunIncludeUid = document.querySelector('#tun-include-uid')
-const tunIncludeUidRange = document.querySelector('#tun-include-uid-range')
-const tunExcludeUid = document.querySelector('#tun-exclude-uid')
-const tunExcludeUidRange = document.querySelector('#tun-exclude-uid-range')
-const tunIncludeAndroidUser = document.querySelector('#tun-include-android-user')
-const tunIncludePackage = document.querySelector('#tun-include-package')
-const tunExcludePackage = document.querySelector('#tun-exclude-package')
-const geoGeodataMode = document.querySelector('#geo-geodata-mode')
-const geoAutoUpdate = document.querySelector('#geo-auto-update')
-const geoGeodataLoader = document.querySelector('#geo-geodata-loader')
-const geoUpdateInterval = document.querySelector('#geo-update-interval')
-const geoUrlGeoip = document.querySelector('#geo-url-geoip')
-const geoUrlGeosite = document.querySelector('#geo-url-geosite')
-const geoUrlMmdb = document.querySelector('#geo-url-mmdb')
-const geoUrlAsn = document.querySelector('#geo-url-asn')
-const ruleProviderName = document.querySelector('#rule-provider-name')
-const ruleProviderUrl = document.querySelector('#rule-provider-url')
-const ruleProviderBehavior = document.querySelector('#rule-provider-behavior')
-const ruleProviderTarget = document.querySelector('#rule-provider-target')
-const ruleProviderFormat = document.querySelector('#rule-provider-format')
-const addRuleProviderButton = document.querySelector('#add-rule-provider-button')
-const addAdsProviderButton = document.querySelector('#add-ads-provider-button')
-const applyLanRulesButton = document.querySelector('#apply-lan-rules-button')
-const ruleProviderList = document.querySelector('#rule-provider-list')
-const ruleBuilderType = document.querySelector('#rule-builder-type')
-const ruleBuilderValue = document.querySelector('#rule-builder-value')
-const ruleBuilderTarget = document.querySelector('#rule-builder-target')
-const addRuleButton = document.querySelector('#add-rule-button')
-const proxyProviderName = document.querySelector('#proxy-provider-name')
-const proxyProviderUrl = document.querySelector('#proxy-provider-url')
-const proxyProviderType = document.querySelector('#proxy-provider-type')
-const addProxyProviderButton = document.querySelector('#add-proxy-provider-button')
-const proxyProviderList = document.querySelector('#proxy-provider-list')
-const manualNodeName = document.querySelector('#manual-node-name')
-const manualNodeType = document.querySelector('#manual-node-type')
-const manualNodeFields = document.querySelector('#manual-node-fields')
-const addManualNodeButton = document.querySelector('#add-manual-node-button')
-const nodeFilterQuery = document.querySelector('#node-filter-query')
-const nodeFilterType = document.querySelector('#node-filter-type')
-const nodeFilterStatus = document.querySelector('#node-filter-status')
-const openNodeToolsButton = document.querySelector('#open-node-tools-button')
-const nodeToolsSheet = document.querySelector('#node-tools-sheet')
-const closeNodeToolsButton = document.querySelector('#close-node-tools-button')
-const bulkRenamePattern = document.querySelector('#bulk-rename-pattern')
-const applyBulkRenameButton = document.querySelector('#apply-bulk-rename-button')
-const nodeSortField = document.querySelector('#node-sort-field')
-const sortNodesButton = document.querySelector('#sort-nodes-button')
-const deleteDuplicateNodesButton = document.querySelector('#delete-duplicate-nodes-button')
-const nodeKeywordInput = document.querySelector('#node-keyword-input')
-const enableKeywordNodesButton = document.querySelector('#enable-keyword-nodes-button')
-const disableKeywordNodesButton = document.querySelector('#disable-keyword-nodes-button')
-const fabCopy = document.querySelector('#fab-copy')
-const fabDownload = document.querySelector('#fab-download')
-const toast = document.querySelector('#toast')
-const viewTabs = document.querySelectorAll('[data-view-target]')
-const viewPanels = document.querySelectorAll('.view-panel')
-const editTabs = document.querySelectorAll('[data-edit-target]')
-const editPanels = document.querySelectorAll('[data-edit-panel]')
-const editorSectionSelect = document.querySelector('#editor-section-select')
 
 viewTabs.forEach((tab) => tab.addEventListener('click', () => setActiveView(tab.dataset.viewTarget)))
 editTabs.forEach((tab) => tab.addEventListener('click', () => setActiveEdit(tab.dataset.editTarget)))
@@ -665,7 +454,7 @@ async function deleteSubscription(secret) {
   } catch { showToast('Delete failed.', 'error') }
 }
 
-function showToast(message, type = 'ok') {
+export function showToast(message, type = 'ok') {
   toast.textContent = message
   toast.className = `toast ${type}`
   toast.classList.remove('hidden')
@@ -832,7 +621,7 @@ function proxyTypeLabel(type) {
   return proxyTypeLabels[type] || type
 }
 
-function renderNodes() {
+export function renderNodes() {
   nodeList.replaceChildren()
   if (!state.model?.proxies.length) {
     nodeList.textContent = 'No nodes yet. Convert config links first.'
@@ -923,7 +712,7 @@ function renderNodes() {
   nodeList.querySelectorAll('.node-row').forEach((row) => updateShadowsocksPluginOptsPlaceholder(row))
 }
 
-function nodeExpansionKey(proxy) {
+export function nodeExpansionKey(proxy) {
   if (proxy.id) return `id:${proxy.id}`
   if (!nodeUiKeys.has(proxy)) {
     const randomPart = Math.random().toString(36).slice(2, 9)
@@ -1090,7 +879,7 @@ function uniqueList(items) {
   return [...new Set(items.map((item) => String(item || '').trim()).filter(Boolean))]
 }
 
-function hasDuplicateName(items, name) {
+export function hasDuplicateName(items, name) {
   const normalizedName = String(name || '').trim()
   return Boolean(normalizedName) && items.some((item) => String(item?.name || '').trim() === normalizedName)
 }
@@ -1100,7 +889,7 @@ function hasDuplicateNameExcept(items, name, index) {
   return Boolean(normalizedName) && items.some((item, itemIndex) => itemIndex !== index && String(item?.name || '').trim() === normalizedName)
 }
 
-function hasNameInCollection(items, name) {
+export function hasNameInCollection(items, name) {
   const normalizedName = String(name || '').trim()
   return Boolean(normalizedName) && items.some((item) => String(item?.name || '').trim() === normalizedName)
 }
@@ -1123,7 +912,7 @@ function rejectRuleSeparatorNameInput(target, previousName, label) {
   return true
 }
 
-function validEditableName(name, label) {
+export function validEditableName(name, label) {
   if (!String(name || '').trim()) return `${label} name cannot be empty.`
   if (nameHasRuleSeparator(name)) return `${label} name cannot contain commas.`
   return ''
@@ -2289,720 +2078,6 @@ function addProxyProvider() {
   updateYamlFromModel()
 }
 
-function renderManualNodeFields(values = {}) {
-  manualNodeFields.replaceChildren()
-  for (const field of manualNodeFieldDefinitions(manualNodeType.value, values)) {
-    manualNodeFields.insertAdjacentHTML('beforeend', renderManualNodeField(field, values))
-  }
-  applyPlaceholders(manualNodeFields)
-}
-
-function manualNodeFieldDefinitions(type, values = {}) {
-  const fields = []
-  if (needsManualEndpoint(type)) {
-    fields.push(
-      { key: 'server', label: 'Server', required: true },
-      { key: 'port', label: 'Port', required: true },
-    )
-  }
-
-  const byType = {
-    vless: [
-      { key: 'uuid', label: 'UUID', required: true },
-      { key: 'flow', label: 'Flow', type: 'select', options: vlessFlowOptions, defaultValue: '' },
-      { key: 'packet-encoding', label: 'Packet Encoding', type: 'select', options: packetEncodingOptions, defaultValue: '' },
-      { key: 'encryption', label: 'Encryption', placeholder: 'none or advanced VLESS encryption string' },
-      ...manualTransportFields(type, values),
-      ...manualTlsFields(),
-      ...manualCommonProxyFields(type),
-    ],
-    vmess: [
-      { key: 'uuid', label: 'UUID', required: true },
-      { key: 'cipher', label: 'Cipher', type: 'select', options: vmessCipherOptions, defaultValue: 'auto' },
-      { key: 'alterId', label: 'Alter ID', defaultValue: '0' },
-      { key: 'packet-encoding', label: 'Packet Encoding', type: 'select', options: packetEncodingOptions, defaultValue: '' },
-      { key: 'global-padding', label: 'Global Padding', type: 'checkbox' },
-      { key: 'authenticated-length', label: 'Authenticated Length', type: 'checkbox' },
-      ...manualTransportFields(type, values),
-      ...manualTlsFields(),
-      ...manualCommonProxyFields(type),
-    ],
-    trojan: [
-      { key: 'password', label: 'Password', required: true },
-      { key: 'ss.enabled', label: 'ss-opts.enabled', type: 'checkbox' },
-      { key: 'ss.method', label: 'ss-opts.method', type: 'select', options: trojanSsMethodOptions, defaultValue: '' },
-      { key: 'ss.password', label: 'ss-opts.password' },
-      ...manualTransportFields(type, values),
-      ...manualTlsFields(),
-      ...manualCommonProxyFields(type),
-    ],
-    ss: [
-      { key: 'cipher', label: 'Cipher', type: 'select', options: shadowsocksCipherOptions, defaultValue: 'aes-128-gcm', required: true },
-      { key: 'password', label: 'Password', required: true },
-      { key: 'udp-over-tcp', label: 'UDP over TCP', type: 'checkbox' },
-      { key: 'udp-over-tcp-version', label: 'UDP over TCP Version', type: 'select', options: ['', '1', '2'], defaultValue: '' },
-      { key: 'plugin', label: 'Plugin', type: 'select', options: shadowsocksPluginOptions, defaultValue: '' },
-      { key: 'plugin-opts', label: 'Plugin opts', type: 'textarea', wide: true, placeholder: shadowsocksPluginOptExample(values.plugin) },
-      ...manualCommonProxyFields(type, { udpChecked: true }),
-    ],
-    ssr: [
-      { key: 'cipher', label: 'Cipher', type: 'select', options: ssrCipherOptions, defaultValue: 'chacha20-ietf', required: true },
-      { key: 'password', label: 'Password', required: true },
-      { key: 'protocol', label: 'Protocol', type: 'select', options: ssrProtocolOptions, defaultValue: 'auth_sha1_v4', required: true },
-      { key: 'obfs', label: 'Obfs', type: 'select', options: ssrObfsOptions, defaultValue: 'tls1.2_ticket_auth', required: true },
-      { key: 'protocol-param', label: 'Protocol Param' },
-      { key: 'obfs-param', label: 'Obfs Param' },
-      ...manualCommonProxyFields(type),
-    ],
-    snell: [
-      { key: 'psk', label: 'PSK', required: true },
-      { key: 'version', label: 'Version', defaultValue: '3' },
-      ...manualCommonProxyFields(type),
-    ],
-    anytls: [
-      { key: 'password', label: 'Password', required: true },
-      { key: 'idle-session-check-interval', label: 'idle-session-check-interval', type: 'number', defaultValue: '30' },
-      { key: 'idle-session-timeout', label: 'idle-session-timeout', type: 'number', defaultValue: '30' },
-      { key: 'min-idle-session', label: 'min-idle-session', type: 'number', defaultValue: '0' },
-      ...manualTlsFields(),
-      { key: 'udp', label: 'UDP', type: 'checkbox', checked: true },
-      ...manualCommonProxyFields(type, { includeUdp: false }),
-    ],
-    mieru: [
-      { key: 'username', label: 'Username', required: true },
-      { key: 'password', label: 'Password', required: true },
-      { key: 'transport', label: 'Transport', type: 'select', options: mieruTransportOptions, defaultValue: 'TCP' },
-      ...manualCommonProxyFields(type),
-    ],
-    sudoku: [
-      { key: 'key', label: 'Key', required: true },
-      { key: 'aead-method', label: 'AEAD Method', defaultValue: 'chacha20-poly1305' },
-      ...manualCommonProxyFields(type),
-    ],
-    hysteria: [
-      { key: 'auth-str', label: 'Auth String', required: true },
-      { key: 'protocol', label: 'Protocol', type: 'select', options: hysteriaProtocolOptions, defaultValue: 'udp' },
-      { key: 'up', label: 'Up' },
-      { key: 'down', label: 'Down' },
-      ...manualTlsFields(),
-      ...manualCommonProxyFields(type, { includeUdp: false, includeTcp: false }),
-    ],
-    hysteria2: [
-      { key: 'password', label: 'Password', required: true },
-      { key: 'up', label: 'Up' },
-      { key: 'down', label: 'Down' },
-      { key: 'obfs', label: 'Obfs' },
-      { key: 'obfs-password', label: 'Obfs Password' },
-      ...manualTlsFields(['h3']),
-      ...manualCommonProxyFields(type, { includeUdp: false, includeTcp: false }),
-    ],
-    tuic: [
-      { key: 'uuid', label: 'UUID', required: true },
-      { key: 'password', label: 'Password', required: true },
-      { key: 'udp-relay-mode', label: 'UDP Relay Mode', type: 'select', options: tuicUdpRelayModeOptions, defaultValue: 'native' },
-      { key: 'congestion-controller', label: 'Congestion Controller', type: 'select', options: tuicCongestionControllerOptions, defaultValue: '' },
-      ...manualTlsFields(['h3']),
-      ...manualCommonProxyFields(type, { includeUdp: false, includeTcp: false }),
-    ],
-    masque: [
-      { key: 'public-key', label: 'Public Key', required: true },
-      { key: 'private-key', label: 'Private Key', required: true },
-      { key: 'ip', label: 'IP', defaultValue: '172.16.0.2/32' },
-      { key: 'mtu', label: 'MTU', defaultValue: '1280' },
-      ...manualCommonProxyFields(type, { includeUdp: false, includeTcp: false }),
-    ],
-    trusttunnel: [
-      { key: 'username', label: 'Username', required: true },
-      { key: 'password', label: 'Password', required: true },
-      ...manualCommonProxyFields(type, { udpChecked: true }),
-    ],
-    socks5: [
-      { key: 'username', label: 'Username' },
-      { key: 'password', label: 'Password' },
-      { key: 'udp', label: 'UDP', type: 'checkbox' },
-      ...manualTlsFields(),
-      ...manualCommonProxyFields(type, { includeUdp: false }),
-    ],
-    http: [
-      { key: 'username', label: 'Username' },
-      { key: 'password', label: 'Password' },
-      ...manualTlsFields(),
-      ...manualCommonProxyFields(type),
-    ],
-    wireguard: [
-      { key: 'ip', label: 'IP' },
-      { key: 'ipv6', label: 'IPv6' },
-      { key: 'private-key', label: 'Private Key', required: true },
-      { key: 'public-key', label: 'Public Key', required: true },
-      { key: 'pre-shared-key', label: 'Preshared Key' },
-      { key: 'reserved', label: 'Reserved', placeholder: '209,98,59' },
-      { key: 'allowed-ips', label: 'Allowed IPs', type: 'textarea', wide: true },
-      { key: 'mtu', label: 'MTU' },
-      { key: 'persistent-keepalive', label: 'Keepalive' },
-      { key: 'remote-dns-resolve', label: 'Remote DNS Resolve', type: 'checkbox' },
-      { key: 'dns', label: 'DNS', placeholder: '1.1.1.1,8.8.8.8' },
-      ...manualCommonProxyFields(type, { includeUdp: false, includeTcp: false }),
-    ],
-    ssh: [
-      { key: 'username', label: 'Username', required: true },
-      { key: 'password', label: 'Password' },
-      ...manualCommonProxyFields(type),
-    ],
-  }
-
-  return [...fields, ...(byType[type] || [])]
-}
-
-function manualTlsFields(defaultAlpn = []) {
-  const type = manualNodeType?.value || ''
-  const capability = tlsCapabilityByType[type]
-  if (!capability) return []
-  const fields = new Set(capability.fields)
-  const basicFields = [
-    ...(fields.has('sni') ? [{ key: 'sni', label: 'SNI / servername' }] : []),
-    ...(fields.has('alpn') ? [{ key: 'alpn', label: 'ALPN', type: 'alpn', selected: defaultAlpn }] : []),
-    ...(fields.has('skip-cert-verify') ? [{ key: 'skip-cert-verify', label: 'Skip Cert Verify', type: 'checkbox' }] : []),
-  ]
-  const advancedFields = [
-    ...(fields.has('client-fingerprint') ? [{ key: 'client-fingerprint', label: 'Client Fingerprint', type: 'select', options: clientFingerprintOptions, defaultValue: '' }] : []),
-    ...(fields.has('fingerprint') ? [{ key: 'fingerprint', label: 'Fingerprint' }] : []),
-    ...(fields.has('certificate') ? [{ key: 'certificate', label: 'Certificate', type: 'textarea', wide: true }] : []),
-    ...(fields.has('private-key') ? [{ key: 'private-key', label: 'Private Key', type: 'textarea', wide: true }] : []),
-    ...(fields.has('reality') ? [
-      { key: 'reality.public-key', label: 'reality-opts.public-key' },
-      { key: 'reality.short-id', label: 'reality-opts.short-id' },
-      { key: 'reality.support-x25519mlkem768', label: 'reality-opts.support-x25519mlkem768', type: 'select', options: ['', 'false', 'true'], defaultValue: '' },
-    ] : []),
-    ...(fields.has('ech') ? [
-      { key: 'ech.enable', label: 'ech-opts.enable', type: 'select', options: ['', 'false', 'true'], defaultValue: '' },
-      { key: 'ech.config', label: 'ech-opts.config', type: 'textarea', wide: true },
-      { key: 'ech.query-server-name', label: 'ech-opts.query-server-name' },
-    ] : []),
-  ]
-  return [{
-    key: 'tls-options',
-    type: 'tls-section',
-    title: 'TLS',
-    toggle: capability.toggle,
-    checked: false,
-    basicFields,
-    advancedFields,
-  }]
-}
-
-function manualCommonProxyFields(type, options = {}) {
-  if (!needsManualEndpoint(type)) return []
-  const includeUdp = options.includeUdp !== false
-  const includeTcp = options.includeTcp !== false
-  const udpChecked = options.udpChecked || false
-  return [
-    ...(includeUdp ? [{ key: 'udp', label: 'UDP', type: 'checkbox', checked: udpChecked }] : []),
-    { key: 'ip-version', label: 'IP Version', type: 'select', options: ipVersionOptions, defaultValue: '' },
-    { key: 'interface-name', label: 'Interface Name' },
-    { key: 'routing-mark', label: 'Routing Mark', type: 'number' },
-    ...(includeTcp ? [
-      { key: 'tfo', label: 'TFO', type: 'checkbox' },
-      { key: 'mptcp', label: 'MPTCP', type: 'checkbox' },
-    ] : []),
-    { key: 'dialer-proxy', label: 'Dialer Proxy' },
-  ]
-}
-
-function manualTransportFields(type, values = {}) {
-  const supported = supportedNetworksForType(type)
-  const network = supported.includes(values.network) ? values.network : ''
-  const fields = [
-    { key: 'network', label: 'Network', type: 'select', options: supported, defaultValue: '' },
-  ]
-  if (!network) return fields
-  if (network === 'http') {
-    return fields.concat(manualFieldGroup('Transport', [
-      { key: 'http.method', label: 'http-opts.method', type: 'select', options: httpMethodOptions, defaultValue: '' },
-      { key: 'http.path', label: 'http-opts.path', type: 'list' },
-      { key: 'http.headers', label: 'http-opts.headers', type: 'policy', wide: true },
-    ]))
-  }
-  if (network === 'h2') {
-    return fields.concat(manualFieldGroup('Transport', [
-      { key: 'h2.host', label: 'h2-opts.host', type: 'list' },
-      { key: 'h2.path', label: 'h2-opts.path', defaultValue: '/' },
-    ]))
-  }
-  if (network === 'grpc') {
-    return fields.concat(manualFieldGroup('Transport', [
-      { key: 'grpc.grpc-service-name', label: 'grpc-opts.grpc-service-name' },
-      { key: 'grpc.grpc-user-agent', label: 'grpc-opts.grpc-user-agent' },
-    ], [
-      { key: 'grpc.ping-interval', label: 'grpc-opts.ping-interval', type: 'number' },
-      { key: 'grpc.max-connections', label: 'grpc-opts.max-connections', type: 'number' },
-      { key: 'grpc.min-streams', label: 'grpc-opts.min-streams', type: 'number' },
-      { key: 'grpc.max-streams', label: 'grpc-opts.max-streams', type: 'number' },
-    ]))
-  }
-  if (network === 'ws') {
-    return fields.concat(manualFieldGroup('Transport', [
-      { key: 'ws.path', label: 'ws-opts.path', defaultValue: '/' },
-      { key: 'ws.headers', label: 'ws-opts.headers', type: 'policy', wide: true },
-    ], [
-      { key: 'ws.max-early-data', label: 'ws-opts.max-early-data', type: 'number' },
-      { key: 'ws.early-data-header-name', label: 'ws-opts.early-data-header-name' },
-      { key: 'ws.v2ray-http-upgrade', label: 'ws-opts.v2ray-http-upgrade', type: 'boolean-select', defaultValue: 'false' },
-      { key: 'ws.v2ray-http-upgrade-fast-open', label: 'ws-opts.v2ray-http-upgrade-fast-open', type: 'boolean-select', defaultValue: 'false' },
-    ]))
-  }
-  if (network === 'xhttp') {
-    return fields.concat(manualFieldGroup('Transport', [
-      { key: 'xhttp.path', label: 'xhttp-opts.path', defaultValue: '/' },
-      { key: 'xhttp.host', label: 'xhttp-opts.host' },
-      { key: 'xhttp.mode', label: 'xhttp-opts.mode', type: 'select', options: ['', 'auto', 'stream-one', 'stream-up', 'packet-up'], defaultValue: '' },
-      { key: 'xhttp.headers', label: 'xhttp-opts.headers', type: 'policy', wide: true },
-    ], [
-      { key: 'xhttp.no-grpc-header', label: 'xhttp-opts.no-grpc-header', type: 'boolean-select', defaultValue: 'false' },
-      { key: 'xhttp.x-padding-bytes', label: 'xhttp-opts.x-padding-bytes' },
-      { key: 'xhttp.x-padding-obfs-mode', label: 'xhttp-opts.x-padding-obfs-mode', type: 'boolean-select', defaultValue: 'false' },
-      { key: 'xhttp.x-padding-key', label: 'xhttp-opts.x-padding-key' },
-      { key: 'xhttp.x-padding-header', label: 'xhttp-opts.x-padding-header' },
-      { key: 'xhttp.x-padding-placement', label: 'xhttp-opts.x-padding-placement', type: 'select', options: ['', 'queryInHeader', 'cookie', 'header', 'query'], defaultValue: '' },
-      { key: 'xhttp.x-padding-method', label: 'xhttp-opts.x-padding-method', type: 'select', options: ['', 'repeat-x', 'tokenish'], defaultValue: '' },
-      { key: 'xhttp.uplink-http-method', label: 'xhttp-opts.uplink-http-method', type: 'select', options: ['', 'POST', 'PUT', 'PATCH', 'DELETE'], defaultValue: '' },
-      { key: 'xhttp.session-placement', label: 'xhttp-opts.session-placement', type: 'select', options: ['', 'path', 'query', 'cookie', 'header'], defaultValue: '' },
-      { key: 'xhttp.session-key', label: 'xhttp-opts.session-key' },
-      { key: 'xhttp.seq-placement', label: 'xhttp-opts.seq-placement', type: 'select', options: ['', 'path', 'query', 'cookie', 'header'], defaultValue: '' },
-      { key: 'xhttp.seq-key', label: 'xhttp-opts.seq-key' },
-      { key: 'xhttp.uplink-data-placement', label: 'xhttp-opts.uplink-data-placement', type: 'select', options: ['', 'body', 'cookie', 'header'], defaultValue: '' },
-      { key: 'xhttp.uplink-data-key', label: 'xhttp-opts.uplink-data-key' },
-      { key: 'xhttp.uplink-chunk-size', label: 'xhttp-opts.uplink-chunk-size', type: 'number' },
-      { key: 'xhttp.sc-max-each-post-bytes', label: 'xhttp-opts.sc-max-each-post-bytes', type: 'number' },
-      { key: 'xhttp.sc-min-posts-interval-ms', label: 'xhttp-opts.sc-min-posts-interval-ms', type: 'number' },
-      { key: 'xhttp.reuse-settings.max-concurrency', label: 'xhttp-opts.reuse-settings.max-concurrency' },
-      { key: 'xhttp.reuse-settings.max-connections', label: 'xhttp-opts.reuse-settings.max-connections' },
-      { key: 'xhttp.reuse-settings.c-max-reuse-times', label: 'xhttp-opts.reuse-settings.c-max-reuse-times' },
-      { key: 'xhttp.reuse-settings.h-max-request-times', label: 'xhttp-opts.reuse-settings.h-max-request-times' },
-      { key: 'xhttp.reuse-settings.h-max-reusable-secs', label: 'xhttp-opts.reuse-settings.h-max-reusable-secs' },
-      { key: 'xhttp.reuse-settings.h-keep-alive-period', label: 'xhttp-opts.reuse-settings.h-keep-alive-period', type: 'number' },
-      { key: 'xhttp.download-settings', label: 'xhttp-opts.download-settings', type: 'json', wide: true, defaultValue: '{}' },
-    ]))
-  }
-  return fields
-}
-
-function manualFieldGroup(title, basicFields, advancedFields = []) {
-  return [{ key: `${title.toLowerCase()}-options`, type: 'field-group', title, basicFields, advancedFields }]
-}
-
-function renderManualNodeField(field, values = {}) {
-  if (field.type === 'field-group') {
-    return renderManualOptionDetails(field.title, field.basicFields, field.advancedFields, values)
-  }
-  if (field.type === 'tls-section') {
-    const tlsEnabled = field.toggle
-      ? (Object.hasOwn(values, 'tls') ? Boolean(values.tls) : Boolean(field.checked))
-      : true
-    return `
-      <div class="wide-field tls-fields">
-        ${field.toggle ? `<label class="check-row tls-toggle"><input type="checkbox" data-manual-field="tls" ${tlsEnabled ? 'checked' : ''}> TLS</label>` : ''}
-        <div class="nested-node-fields tls-config-panel" data-manual-tls-field ${tlsEnabled ? '' : 'hidden'}>
-          ${renderManualOptionDetails(field.title, field.basicFields, field.advancedFields, values)}
-        </div>
-      </div>
-    `
-  }
-  const value = Object.hasOwn(values, field.key) ? values[field.key] : (field.defaultValue ?? '')
-  const label = `${escapeHtml(field.label)}${field.required ? ' *' : ''}`
-  const className = field.wide || ['textarea', 'policy', 'json', 'alpn'].includes(field.type) ? ' class="wide-field"' : ''
-  const placeholder = field.placeholder ? ` placeholder="${escapeAttr(field.placeholder)}"` : ''
-  const tlsEnabled = Object.hasOwn(values, 'tls')
-    ? Boolean(values.tls)
-    : Boolean(manualNodeFieldDefinitions(manualNodeType.value, values).find((item) => item.key === 'tls')?.checked)
-  const hidden = field.tlsOnly && !tlsEnabled ? ' hidden' : ''
-  const tlsOnly = field.tlsOnly ? ' data-manual-tls-field' : ''
-  if (field.type === 'checkbox') {
-    const checked = Object.hasOwn(values, field.key) ? Boolean(values[field.key]) : Boolean(field.checked)
-    return `<label class="check-row"${tlsOnly}${hidden}><input type="checkbox" data-manual-field="${escapeAttr(field.key)}" ${checked ? 'checked' : ''}> ${label}</label>`
-  }
-  if (field.type === 'select' || field.type === 'boolean-select') {
-    const options = field.type === 'boolean-select' ? ['false', 'true'] : (field.options || [])
-    const optionHtml = field.key === 'network'
-      ? renderManualNetworkOptions(options, String(value))
-      : renderSelectOptions(options, String(value))
-    return `<label${className}${tlsOnly}${hidden}><span>${label}</span><select data-manual-field="${escapeAttr(field.key)}">${optionHtml}</select></label>`
-  }
-  if (['textarea', 'policy', 'json'].includes(field.type)) {
-    return `<label${className}${tlsOnly}${hidden}><span>${label}</span><textarea class="mini-editor" data-manual-field="${escapeAttr(field.key)}"${placeholder}>${escapeHtml(String(value))}</textarea></label>`
-  }
-  if (field.type === 'alpn') {
-    const selected = new Set(Array.isArray(values.alpn) ? values.alpn : (field.selected || []))
-    return `
-      ${renderAlpnCheckboxGroup({
-        label,
-        selected,
-        inputAttribute: 'data-manual-alpn',
-        extraAttributes: `${tlsOnly}${hidden}`,
-      })}
-    `
-  }
-  return `<label${className}${tlsOnly}${hidden}><span>${label}</span><input type="text" data-manual-field="${escapeAttr(field.key)}" value="${escapeAttr(value)}"${placeholder}></label>`
-}
-
-function renderManualOptionDetails(title, basicFields, advancedFields = [], values = {}) {
-  const basic = basicFields.map((field) => renderManualNodeField(field, values)).filter(Boolean).join('')
-  const advanced = advancedFields.map((field) => renderManualNodeField(field, values)).filter(Boolean).join('')
-  if (!basic && !advanced) return ''
-  return `
-    <div class="node-option-block wide-field manual-option-block">
-      ${basic ? `<details class="node-option-section" open><summary>${escapeHtml(title)} Basic</summary><div class="nested-node-fields">${basic}</div></details>` : ''}
-      ${advanced ? `<details class="node-option-section"><summary>${escapeHtml(title)} Advanced</summary><div class="nested-node-fields">${advanced}</div></details>` : ''}
-    </div>
-  `
-}
-
-function renderManualNetworkOptions(options, value) {
-  const allowed = new Set(options)
-  return networkOptions
-    .filter((option) => allowed.has(option.value))
-    .map((option) => `<option value="${escapeAttr(option.value)}" ${option.value === value ? 'selected' : ''}>${escapeHtml(option.label)}</option>`)
-    .join('')
-}
-
-function readManualNodeValues() {
-  const values = {}
-  manualNodeFields.querySelectorAll('[data-manual-field]').forEach((field) => {
-    if (field.closest('[data-manual-tls-field][hidden]')) return
-    values[field.dataset.manualField] = field.type === 'checkbox' ? field.checked : field.value.trim()
-  })
-  const alpn = [...manualNodeFields.querySelectorAll('[data-manual-alpn]:checked')]
-    .filter((field) => !field.closest('[data-manual-tls-field][hidden]'))
-    .map((field) => field.value)
-  if (alpn.length) values.alpn = alpn
-  return values
-}
-
-function validateManualNodeValues(type, values) {
-  for (const field of manualNodeFieldDefinitions(type).filter((item) => item.required)) {
-    if (!values[field.key]) return `${field.label} is required for ${type}.`
-  }
-  if (needsManualEndpoint(type) && (!values.server || !values.port)) return `Server and Port are required for ${type}.`
-  if (needsManualEndpoint(type) && !isValidPortValue(values.port)) return `Port must be a number between 1 and 65535 for ${type}.`
-  if (values.network === 'xhttp' && parseJsonObjectInput(values['xhttp.download-settings'], 'xhttp-opts.download-settings') === invalidEditorInput) {
-    return 'xhttp-opts.download-settings must be a valid JSON object.'
-  }
-  return ''
-}
-
-function needsManualEndpoint(type) {
-  return !['direct', 'dns'].includes(type)
-}
-
-function supportedNetworksForType(type) {
-  return ['', ...(networkSupportByType[type] || [])]
-}
-
-function parseManualNumber(value) {
-  const text = String(value || '').trim()
-  if (!text) return ''
-  const number = Number(text)
-  return Number.isFinite(number) ? number : ''
-}
-
-function parseReservedField(value) {
-  const text = String(value || '').trim()
-  if (!text) return undefined
-  const parts = text.split(',').map((s) => s.trim())
-  if (parts.every((p) => /^\d+$/.test(p))) return parts.map(Number)
-  return text
-}
-
-function isValidPortValue(value) {
-  const port = Number(String(value || '').trim())
-  return Number.isInteger(port) && port >= 1 && port <= 65535
-}
-
-function parseBooleanSelect(value) {
-  if (value === 'true') return true
-  if (value === 'false') return false
-  return ''
-}
-
-function applyManualCommonOptions(proxy, values) {
-  const capability = tlsCapabilityByType[normalizeProxyType(proxy.type)]
-  const tlsFields = new Set(capability?.fields || [])
-  if (Array.isArray(values.alpn) && values.alpn.length) proxy.alpn = values.alpn
-  if (values.udp !== undefined) proxy.udp = values.udp
-  if (values['ip-version']) proxy['ip-version'] = values['ip-version']
-  if (values['interface-name']) proxy['interface-name'] = values['interface-name']
-  if (values['routing-mark'] !== undefined && values['routing-mark'] !== '') proxy['routing-mark'] = parseManualNumber(values['routing-mark'])
-  if (values.tfo !== undefined) proxy.tfo = values.tfo
-  if (values.mptcp !== undefined) proxy.mptcp = values.mptcp
-  if (values['dialer-proxy']) proxy['dialer-proxy'] = values['dialer-proxy']
-  if (tlsFields.has('fingerprint') && values.fingerprint) proxy.fingerprint = values.fingerprint
-  if (tlsFields.has('client-fingerprint') && values['client-fingerprint']) proxy['client-fingerprint'] = values['client-fingerprint']
-  if (tlsFields.has('skip-cert-verify') && values['skip-cert-verify'] !== undefined) proxy['skip-cert-verify'] = values['skip-cert-verify']
-  if (tlsFields.has('certificate') && values.certificate) proxy.certificate = values.certificate
-  if (tlsFields.has('private-key') && values['private-key']) proxy['private-key'] = values['private-key']
-  if (tlsFields.has('reality')) {
-    proxy['reality-opts'] = compactManualObject({
-      'public-key': values['reality.public-key'],
-      'short-id': values['reality.short-id'],
-      'support-x25519mlkem768': parseBooleanSelect(values['reality.support-x25519mlkem768']),
-    })
-  }
-  if (tlsFields.has('ech')) {
-    proxy['ech-opts'] = compactManualObject({
-      enable: parseBooleanSelect(values['ech.enable']),
-      config: values['ech.config'],
-      'query-server-name': values['ech.query-server-name'],
-    })
-  }
-  if (tlsFields.has('sni') && values.sni) {
-    proxy.sni = values.sni
-    proxy.servername = values.sni
-  }
-  if (!values.network) return
-
-  setProxyNetwork(proxy, values.network)
-  if (values.network === 'ws') {
-    proxy['ws-opts'] = compactManualObject({
-      path: values['ws.path'] || '/',
-      headers: textToPolicy(values['ws.headers']),
-      'max-early-data': parseManualNumber(values['ws.max-early-data']),
-      'early-data-header-name': values['ws.early-data-header-name'],
-      'v2ray-http-upgrade': values['ws.v2ray-http-upgrade'] === 'true',
-      'v2ray-http-upgrade-fast-open': values['ws.v2ray-http-upgrade-fast-open'] === 'true',
-    })
-  } else if (values.network === 'grpc') {
-    proxy['grpc-opts'] = compactManualObject({
-      'grpc-service-name': values['grpc.grpc-service-name'],
-      'grpc-user-agent': values['grpc.grpc-user-agent'],
-      'ping-interval': parseManualNumber(values['grpc.ping-interval']),
-      'max-connections': parseManualNumber(values['grpc.max-connections']),
-      'min-streams': parseManualNumber(values['grpc.min-streams']),
-      'max-streams': parseManualNumber(values['grpc.max-streams']),
-    })
-  } else if (values.network === 'h2') {
-    proxy['h2-opts'] = compactManualObject({
-      host: splitLinesOrComma(values['h2.host']),
-      path: values['h2.path'] || '/',
-    })
-  } else if (values.network === 'http') {
-    proxy['http-opts'] = compactManualObject({
-      method: values['http.method'],
-      path: splitLinesOrComma(values['http.path']),
-      headers: textToPolicy(values['http.headers']),
-    })
-  } else if (values.network === 'xhttp') {
-    const reuseSettings = compactManualObject({
-      'max-concurrency': values['xhttp.reuse-settings.max-concurrency'],
-      'max-connections': values['xhttp.reuse-settings.max-connections'],
-      'c-max-reuse-times': values['xhttp.reuse-settings.c-max-reuse-times'],
-      'h-max-request-times': values['xhttp.reuse-settings.h-max-request-times'],
-      'h-max-reusable-secs': values['xhttp.reuse-settings.h-max-reusable-secs'],
-      'h-keep-alive-period': parseManualNumber(values['xhttp.reuse-settings.h-keep-alive-period']),
-    })
-    proxy['xhttp-opts'] = compactManualObject({
-      ...(proxy['xhttp-opts'] || {}),
-      path: values['xhttp.path'] || '/',
-      host: values['xhttp.host'] || values.sni,
-      mode: values['xhttp.mode'],
-      headers: textToPolicy(values['xhttp.headers']),
-      'no-grpc-header': values['xhttp.no-grpc-header'] === 'true',
-      'x-padding-bytes': values['xhttp.x-padding-bytes'],
-      'x-padding-obfs-mode': values['xhttp.x-padding-obfs-mode'] === 'true',
-      'x-padding-key': values['xhttp.x-padding-key'],
-      'x-padding-header': values['xhttp.x-padding-header'],
-      'x-padding-placement': values['xhttp.x-padding-placement'],
-      'x-padding-method': values['xhttp.x-padding-method'],
-      'uplink-http-method': values['xhttp.uplink-http-method'],
-      'session-placement': values['xhttp.session-placement'],
-      'session-key': values['xhttp.session-key'],
-      'seq-placement': values['xhttp.seq-placement'],
-      'seq-key': values['xhttp.seq-key'],
-      'uplink-data-placement': values['xhttp.uplink-data-placement'],
-      'uplink-data-key': values['xhttp.uplink-data-key'],
-      'uplink-chunk-size': parseManualNumber(values['xhttp.uplink-chunk-size']),
-      'sc-max-each-post-bytes': parseManualNumber(values['xhttp.sc-max-each-post-bytes']),
-      'sc-min-posts-interval-ms': parseManualNumber(values['xhttp.sc-min-posts-interval-ms']),
-      'reuse-settings': reuseSettings,
-      'download-settings': parseJsonObjectInput(values['xhttp.download-settings'], 'xhttp-opts.download-settings'),
-    })
-  }
-}
-
-function cleanupManualProxy(proxy) {
-  for (const [key, value] of Object.entries(proxy)) {
-    if (value === '' || value === undefined || value === null) delete proxy[key]
-    else if (Array.isArray(value) && !value.length) delete proxy[key]
-    else if (isPlainObject(value) && !Object.keys(value).length) delete proxy[key]
-  }
-  if (Array.isArray(proxy.peers)) {
-    proxy.peers = proxy.peers.map((peer) => compactManualObject(peer))
-  }
-}
-
-function compactManualObject(object) {
-  return Object.fromEntries(
-    Object.entries(object).filter(([, value]) => {
-      if (value === '' || value === undefined || value === null) return false
-      if (Array.isArray(value) && !value.length) return false
-      if (isPlainObject(value) && !Object.keys(value).length) return false
-      return true
-    }),
-  )
-}
-
-function addManualNode() {
-  if (!state.model) return
-  const name = manualNodeName.value.trim()
-  const type = manualNodeType.value
-  const values = readManualNodeValues()
-  const nameIssue = validEditableName(name, 'Node')
-  if (nameIssue) {
-    showValidation(nameIssue, 'error')
-    return
-  }
-  if (hasDuplicateName(state.model.proxies, name)) {
-    showValidation(`Node "${name}" already exists.`, 'error')
-    return
-  }
-  if (hasNameInCollection(state.model.groups, name)) {
-    showValidation(`Node name "${name}" conflicts with a group name.`, 'error')
-    return
-  }
-  const issue = validateManualNodeValues(type, values)
-  if (issue) {
-    showValidation(issue, 'error')
-    return
-  }
-  const proxy = compactObject({
-    name,
-    type,
-    server: values.server,
-    port: parseManualNumber(values.port) || values.port,
-    enabled: true,
-  })
-  if (type === 'wireguard') {
-    proxy['private-key'] = values['private-key']
-    proxy['public-key'] = values['public-key']
-    proxy['pre-shared-key'] = values['pre-shared-key']
-    proxy.ip = values.ip
-    proxy.ipv6 = values.ipv6
-    proxy.reserved = parseReservedField(values.reserved)
-    proxy.mtu = parseManualNumber(values.mtu)
-    proxy['persistent-keepalive'] = parseManualNumber(values['persistent-keepalive'])
-    proxy['remote-dns-resolve'] = values['remote-dns-resolve'] || undefined
-    proxy.dns = values.dns ? values.dns.split(',').map((s) => s.trim()).filter(Boolean) : undefined
-    proxy.peers = [{
-      server: values.server,
-      port: parseManualNumber(values.port) || values.port,
-      'public-key': values['public-key'],
-      'pre-shared-key': values['pre-shared-key'] || undefined,
-      reserved: parseReservedField(values.reserved),
-      'allowed-ips': splitLinesOrComma(values['allowed-ips']),
-    }]
-  } else if (type === 'vless') {
-    proxy.uuid = values.uuid
-    proxy.flow = values.flow
-    proxy.tls = values.tls
-    proxy.servername = values.sni
-    proxy.encryption = values.encryption
-    proxy['packet-encoding'] = values['packet-encoding']
-  } else if (type === 'vmess') {
-    proxy.uuid = values.uuid
-    proxy.alterId = parseManualNumber(values.alterId) || 0
-    proxy.cipher = values.cipher || 'auto'
-    proxy['packet-encoding'] = values['packet-encoding']
-    proxy['global-padding'] = values['global-padding']
-    proxy['authenticated-length'] = values['authenticated-length']
-    proxy.tls = values.tls
-    proxy.servername = values.sni
-  } else if (type === 'trojan') {
-    proxy.password = values.password
-    proxy.tls = values.tls
-    proxy.sni = values.sni
-    proxy['ss-opts'] = compactManualObject({
-      enabled: values['ss.enabled'],
-      method: values['ss.method'],
-      password: values['ss.password'],
-    })
-  } else if (type === 'anytls') {
-    proxy.password = values.password
-    proxy.udp = true
-    proxy['idle-session-check-interval'] = parseManualNumber(values['idle-session-check-interval'])
-    proxy['idle-session-timeout'] = parseManualNumber(values['idle-session-timeout'])
-    proxy['min-idle-session'] = parseManualNumber(values['min-idle-session'])
-  } else if (type === 'hysteria2') {
-    proxy.password = values.password
-    proxy.tls = values.tls
-    proxy.sni = values.sni
-    proxy.up = values.up
-    proxy.down = values.down
-    proxy.obfs = values.obfs
-    proxy['obfs-password'] = values['obfs-password']
-  } else if (type === 'hysteria') {
-    proxy['auth-str'] = values['auth-str']
-    proxy.protocol = values.protocol || 'udp'
-    proxy.up = values.up
-    proxy.down = values.down
-    proxy.sni = values.sni
-  } else if (type === 'ss') {
-    proxy.cipher = values.cipher || 'aes-128-gcm'
-    proxy.password = values.password
-    proxy['udp-over-tcp'] = values['udp-over-tcp']
-    proxy['udp-over-tcp-version'] = parseManualNumber(values['udp-over-tcp-version'])
-    proxy.plugin = values.plugin
-    proxy['plugin-opts'] = textToPolicy(values['plugin-opts'])
-    proxy.udp = true
-  } else if (type === 'ssr') {
-    proxy.cipher = values.cipher || 'chacha20-ietf'
-    proxy.password = values.password
-    proxy.obfs = values.obfs || 'tls1.2_ticket_auth'
-    proxy.protocol = values.protocol || 'auth_sha1_v4'
-    proxy['protocol-param'] = values['protocol-param']
-    proxy['obfs-param'] = values['obfs-param']
-  } else if (type === 'tuic') {
-    proxy.uuid = values.uuid
-    proxy.password = values.password
-    proxy.sni = values.sni
-    proxy['udp-relay-mode'] = values['udp-relay-mode'] || 'native'
-    proxy['congestion-controller'] = values['congestion-controller']
-    proxy.udp = true
-  } else if (type === 'snell') {
-    proxy.psk = values.psk
-    proxy.version = parseManualNumber(values.version) || 3
-  } else if (type === 'mieru') {
-    proxy.username = values.username
-    proxy.password = values.password
-    proxy.transport = values.transport || 'TCP'
-  } else if (type === 'sudoku') {
-    proxy.key = values.key
-    proxy['aead-method'] = values['aead-method'] || 'chacha20-poly1305'
-  } else if (type === 'masque') {
-    proxy['public-key'] = values['public-key']
-    proxy['private-key'] = values['private-key']
-    proxy.ip = values.ip || '172.16.0.2/32'
-    proxy.mtu = parseManualNumber(values.mtu) || 1280
-    proxy.udp = true
-  } else if (type === 'trusttunnel') {
-    proxy.username = values.username
-    proxy.password = values.password
-    proxy.udp = true
-  } else if (type === 'ssh') {
-    proxy.username = values.username
-    proxy.password = values.password
-  } else {
-    proxy.username = values.username
-    proxy.password = values.password
-  }
-  applyManualCommonOptions(proxy, values)
-  cleanupManualProxy(proxy)
-  state.model.proxies.push(proxy)
-  state.expandedNodeKeys.add(nodeExpansionKey(proxy))
-  for (const group of state.model.groups) {
-    if (group.name === 'PROXY' && !group.proxies.includes(name)) group.proxies.push(name)
-  }
-  manualNodeName.value = ''
-  renderManualNodeFields()
-  updateYamlFromModel()
-}
 
 function addAdsProviderPreset() {
   if (!state.model) return
@@ -3203,7 +2278,7 @@ function updateGeoFromEditor() {
   updateYamlFromModel(false)
 }
 
-function updateYamlFromModel(rerender = true) {
+export function updateYamlFromModel(rerender = true) {
   if (!state.model) return
   state.yamlManualEdit = false
   normalizeEditorModel()
@@ -3679,13 +2754,6 @@ function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
   }).finally(() => clearTimeout(id))
 }
 
-function readApiBaseUrl() {
-  const runtimeValue = typeof window !== 'undefined' ? window.SUB_ELITE_API_BASE_URL || '' : ''
-  const metaValue = document.querySelector('meta[name="sub-elite-api-base-url"]')?.content || ''
-  const value = String(runtimeValue || metaValue || '').trim().replace(/\/+$/u, '')
-  if (value && !value.includes('%SUB_ELITE_API_BASE_URL%')) return value
-  return ''
-}
 
 function updateSubscriptionStatus() {
   const offline = typeof navigator !== 'undefined' && navigator.onLine === false
@@ -3715,7 +2783,7 @@ function showConvertSkeleton(show) {
   yamlEditor.hidden = show
 }
 
-function showValidation(message, type) {
+export function showValidation(message, type) {
   validationBanner.textContent = message
   validationBanner.className = `validation-banner ${type}`
   validationBanner.hidden = false
@@ -3748,7 +2816,7 @@ function normalizeAlpnValues(value) {
   return alpnOptions.filter((option) => selected.has(option))
 }
 
-function renderAlpnCheckboxGroup({ label = 'ALPN', selected = new Set(), inputAttribute, extraAttributes = '' }) {
+export function renderAlpnCheckboxGroup({ label = 'ALPN', selected = new Set(), inputAttribute, extraAttributes = '' }) {
   return `
     <div class="alpn-field conditional-checkbox-group wide-field" data-conditional-checkbox-group="alpn"${extraAttributes}>
       <span>${label}</span>
@@ -3825,11 +2893,6 @@ function toggleNodeTlsFields(container, enabled) {
   container?.querySelector('.tls-config-panel')?.toggleAttribute('hidden', !enabled)
 }
 
-function toggleManualTlsFields(enabled) {
-  manualNodeFields.querySelectorAll('[data-manual-tls-field]').forEach((field) => {
-    field.toggleAttribute('hidden', !enabled)
-  })
-}
 
 function renderProtocolFields(proxy) {
   const type = normalizeProxyType(proxy.type)
@@ -4082,7 +3145,7 @@ function renderTransportFields(proxy) {
   return ''
 }
 
-function renderSelectOptions(options, value) {
+export function renderSelectOptions(options, value) {
   return options
     .map((option) => `<option value="${escapeAttr(option)}" ${option === value ? 'selected' : ''}>${escapeHtml(option || 'default')}</option>`)
     .join('')
@@ -4098,7 +3161,7 @@ function selectOptionsWithCurrent(options, value) {
   return value && !options.includes(value) ? [value, ...options] : options
 }
 
-function shadowsocksPluginOptExample(plugin) {
+export function shadowsocksPluginOptExample(plugin) {
   return shadowsocksPluginOptExamples[plugin] || 'mode=websocket\nhost=example.com\npath=/'
 }
 
@@ -4222,7 +3285,7 @@ function cleanupDisabledTlsFields(proxy) {
   delete proxy['ech-opts']
 }
 
-function setProxyNetwork(proxy, value) {
+export function setProxyNetwork(proxy, value) {
   cleanupTransportOptions(proxy)
   if (!value) {
     delete proxy.network
@@ -4352,7 +3415,7 @@ function pruneEmptyTransportParents(root, parents) {
   }
 }
 
-function textToPolicy(value, { typedValues = false } = {}) {
+export function textToPolicy(value, { typedValues = false } = {}) {
   return Object.fromEntries(
     String(value || '')
       .split(/\r?\n/)
@@ -4396,7 +3459,7 @@ function parseJsonOrLines(value) {
   }
 }
 
-function parseJsonObjectInput(value, label = 'JSON') {
+export function parseJsonObjectInput(value, label = 'JSON') {
   const text = String(value || '').trim()
   if (!text) return {}
   try {
@@ -4551,7 +3614,7 @@ function stripEnabled(proxy) {
 }
 
 
-function applyPlaceholders(root = document) {
+export function applyPlaceholders(root = document) {
   root.querySelectorAll('input[type="text"], textarea').forEach((field) => {
     if (field.placeholder) return
     const label = field.closest('label')?.querySelector('span')?.textContent?.trim() || ''
