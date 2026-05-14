@@ -2236,18 +2236,18 @@ function normalizeEditorModel() {
 
 function syncWireGuardPeerField(proxy, field) {
   if (normalizeProxyType(proxy?.type) !== 'wireguard') return
-  if (!['server', 'port', 'public-key', 'presharedKey', 'allowedIPs'].includes(field)) return
+  if (!['server', 'port', 'public-key', 'pre-shared-key', 'allowed-ips'].includes(field)) return
   proxy.peers = Array.isArray(proxy.peers) && proxy.peers.length ? proxy.peers : [{}]
   const peer = proxy.peers[0]
   if (field === 'server') peer.server = proxy.server
   else if (field === 'port') peer.port = proxy.port
   else if (field === 'public-key') peer['public-key'] = proxy['public-key']
-  else if (field === 'presharedKey') {
-    if (proxy.presharedKey) peer.presharedKey = proxy.presharedKey
-    else delete peer.presharedKey
-  } else if (field === 'allowedIPs') {
-    if (Array.isArray(proxy.allowedIPs) && proxy.allowedIPs.length) peer.allowedIPs = proxy.allowedIPs
-    else delete peer.allowedIPs
+  else if (field === 'pre-shared-key') {
+    if (proxy['pre-shared-key']) peer['pre-shared-key'] = proxy['pre-shared-key']
+    else delete peer['pre-shared-key']
+  } else if (field === 'allowed-ips') {
+    if (Array.isArray(proxy['allowed-ips']) && proxy['allowed-ips'].length) peer['allowed-ips'] = proxy['allowed-ips']
+    else delete peer['allowed-ips']
   }
   proxy.peers[0] = compactManualObject(peer)
 }
@@ -2523,7 +2523,7 @@ function manualNodeFieldDefinitions(type, values = {}) {
       { key: 'udp-over-tcp-version', label: 'UDP over TCP Version', type: 'select', options: ['', '1', '2'], defaultValue: '' },
       { key: 'plugin', label: 'Plugin', type: 'select', options: shadowsocksPluginOptions, defaultValue: '' },
       { key: 'plugin-opts', label: 'Plugin opts', type: 'textarea', wide: true, placeholder: shadowsocksPluginOptExample(values.plugin) },
-      ...manualCommonProxyFields(type),
+      ...manualCommonProxyFields(type, { udpChecked: true }),
     ],
     ssr: [
       { key: 'cipher', label: 'Cipher', type: 'select', options: ssrCipherOptions, defaultValue: 'chacha20-ietf', required: true },
@@ -2594,7 +2594,7 @@ function manualNodeFieldDefinitions(type, values = {}) {
     trusttunnel: [
       { key: 'username', label: 'Username', required: true },
       { key: 'password', label: 'Password', required: true },
-      ...manualCommonProxyFields(type),
+      ...manualCommonProxyFields(type, { udpChecked: true }),
     ],
     socks5: [
       { key: 'username', label: 'Username' },
@@ -2613,8 +2613,8 @@ function manualNodeFieldDefinitions(type, values = {}) {
       { key: 'ip', label: 'IP' },
       { key: 'private-key', label: 'Private Key', required: true },
       { key: 'public-key', label: 'Public Key', required: true },
-      { key: 'presharedKey', label: 'Preshared Key' },
-      { key: 'allowedIPs', label: 'Allowed IPs', type: 'textarea', wide: true },
+      { key: 'pre-shared-key', label: 'Preshared Key' },
+      { key: 'allowed-ips', label: 'Allowed IPs', type: 'textarea', wide: true },
       { key: 'mtu', label: 'MTU' },
       ...manualCommonProxyFields(type, { includeUdp: false, includeTcp: false }),
     ],
@@ -2669,8 +2669,9 @@ function manualCommonProxyFields(type, options = {}) {
   if (!needsManualEndpoint(type)) return []
   const includeUdp = options.includeUdp !== false
   const includeTcp = options.includeTcp !== false
+  const udpChecked = options.udpChecked || false
   return [
-    ...(includeUdp ? [{ key: 'udp', label: 'UDP', type: 'checkbox' }] : []),
+    ...(includeUdp ? [{ key: 'udp', label: 'UDP', type: 'checkbox', checked: udpChecked }] : []),
     { key: 'ip-version', label: 'IP Version', type: 'select', options: ipVersionOptions, defaultValue: '' },
     { key: 'interface-name', label: 'Interface Name' },
     { key: 'routing-mark', label: 'Routing Mark', type: 'number' },
@@ -3048,15 +3049,15 @@ function addManualNode() {
   if (type === 'wireguard') {
     proxy['private-key'] = values['private-key']
     proxy['public-key'] = values['public-key']
-    proxy['pre-shared-key'] = values.presharedKey
+    proxy['pre-shared-key'] = values['pre-shared-key']
     proxy.ip = values.ip
     proxy.mtu = parseManualNumber(values.mtu)
     proxy.peers = [{
       server: values.server,
       port: parseManualNumber(values.port) || values.port,
       'public-key': values['public-key'],
-      'pre-shared-key': values.presharedKey || undefined,
-      'allowed-ips': splitLinesOrComma(values.allowedIPs),
+      'pre-shared-key': values['pre-shared-key'] || undefined,
+      'allowed-ips': splitLinesOrComma(values['allowed-ips']),
     }]
   } else if (type === 'vless') {
     proxy.uuid = values.uuid
@@ -5011,8 +5012,8 @@ function renderProtocolFields(proxy) {
       <label><span>IP</span><input type="text" data-field="ip" value="${escapeAttr(proxy.ip || '')}"></label>
       <label><span>Private Key</span><input type="text" data-field="private-key" value="${escapeAttr(proxy['private-key'] || '')}"></label>
       <label><span>Public Key</span><input type="text" data-field="public-key" value="${escapeAttr(proxy['public-key'] || '')}"></label>
-      <label><span>Preshared Key</span><input type="text" data-field="presharedKey" value="${escapeAttr(proxy.presharedKey || '')}"></label>
-      <label class="wide-field"><span>Allowed IPs</span><textarea class="mini-editor" data-field="allowedIPs:list">${escapeHtml(listForInput(proxy.allowedIPs || proxy.peers?.[0]?.allowedIPs))}</textarea></label>
+      <label><span>Preshared Key</span><input type="text" data-field="pre-shared-key" value="${escapeAttr(proxy['pre-shared-key'] || '')}"></label>
+      <label class="wide-field"><span>Allowed IPs</span><textarea class="mini-editor" data-field="allowed-ips:list">${escapeHtml(listForInput(proxy['allowed-ips'] || proxy.peers?.[0]?.['allowed-ips']))}</textarea></label>
       <label><span>MTU</span><input type="text" data-field="mtu:number" value="${escapeAttr(proxy.mtu || '')}"></label>
     `
   }
@@ -5222,8 +5223,8 @@ function cleanupProtocolSpecificFields(proxy) {
     'aead-method',
     'public-key',
     'private-key',
-    'presharedKey',
-    'allowedIPs',
+    'pre-shared-key',
+    'allowed-ips',
     'peers',
     'ip',
     'mtu',
