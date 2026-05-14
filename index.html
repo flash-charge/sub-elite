@@ -53,6 +53,24 @@
 
         <div id="error-banner" class="notice error" hidden></div>
 
+        <div id="empty-state" class="empty-state">
+          <p class="empty-state-title">Get started</p>
+          <div class="empty-state-actions">
+            <button type="button" class="empty-state-btn" data-action="paste">
+              <svg class="icon"><use href="/icons.svg#icon-input"></use></svg>
+              <span>Paste Links</span>
+            </button>
+            <label class="empty-state-btn" for="file-input">
+              <svg class="icon"><use href="/icons.svg#icon-format"></use></svg>
+              <span>Import File</span>
+            </label>
+            <button type="button" class="empty-state-btn" data-action="blank">
+              <svg class="icon"><use href="/icons.svg#icon-edit"></use></svg>
+              <span>Start Blank</span>
+            </button>
+          </div>
+        </div>
+
         <label class="field-stack" for="converter-input">
           <span>Paste config links or existing Mihomo YAML</span>
           <textarea
