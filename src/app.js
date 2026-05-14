@@ -638,13 +638,17 @@ dnsNameservers.addEventListener('input', updateDnsFromEditor)
   geoUrlMmdb,
   geoUrlAsn,
 ].forEach((field) => field.addEventListener(field.type === 'checkbox' ? 'change' : 'input', updateGeoFromEditor))
+let yamlEditorDebounce = 0
 yamlEditor.addEventListener('input', () => {
   state.yaml = yamlEditor.value
   state.yamlManualEdit = true
   resetSubscriptionUrl()
-  validateCurrentYaml(false)
-  renderDiff()
-  renderSectionPreview()
+  clearTimeout(yamlEditorDebounce)
+  yamlEditorDebounce = setTimeout(() => {
+    validateCurrentYaml(false)
+    renderDiff()
+    renderSectionPreview()
+  }, 300)
 })
 
 async function processInput() {
@@ -1065,6 +1069,9 @@ function renderNodes() {
 
     row.addEventListener('dragstart', () => {
       state.draggedNode = index
+    })
+    row.addEventListener('dragend', () => {
+      state.draggedNode = -1
     })
     row.addEventListener('dragover', (event) => event.preventDefault())
     row.addEventListener('drop', (event) => {
@@ -3711,12 +3718,12 @@ function setOutputEnabled(enabled) {
 
 function updateSubmitState() {
   const hasInput = input.value.trim().length > 0
-  convertButton.disabled = !hasInput || convertButton.textContent === 'Converting...'
+  convertButton.disabled = !hasInput || convertButton.classList.contains('is-loading')
 }
 
 function hasHttpUrl(value) {
   return String(value || '')
-    .split(/\s+/)
+    .split(/[\s,]+/)
     .some((item) => /^https?:\/\//i.test(item.trim()))
 }
 
@@ -3730,16 +3737,9 @@ function detectInputType(value) {
 }
 
 function looksLikeYamlConfig(text) {
-  if (!/^[\s\S]*:\s*/.test(text)) return false
-  try {
-    const doc = parseDocument(text)
-    if (doc.errors.length) return false
-    const raw = doc.toJS()
-    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return false
-    return ['proxies', 'proxy-groups', 'rules', 'dns', 'sniffer', 'tun', 'ntp', 'mixed-port', 'proxy-providers', 'rule-providers'].some((key) => Object.hasOwn(raw, key))
-  } catch {
-    return false
-  }
+  if (text.length < 10 || !/:\s/m.test(text)) return false
+  const yamlKeys = /^(?:proxies|proxy-groups|rules|dns|sniffer|tun|ntp|mixed-port|proxy-providers|rule-providers)\s*:/m
+  return yamlKeys.test(text)
 }
 
 function updateRulesState() {
@@ -5588,12 +5588,19 @@ function formatNodeName(proxy, index, pattern) {
 }
 
 function makeLocalUniqueNames(proxies) {
+  const assigned = new Set()
   const seen = new Map()
   for (const proxy of proxies) {
     const base = proxy.name || `${proxy.type || 'proxy'}-${proxy.server || 'node'}`
     const count = seen.get(base) || 0
     seen.set(base, count + 1)
-    proxy.name = count === 0 ? base : `${base} ${count + 1}`
+    let candidate = count === 0 ? base : `${base} ${count + 1}`
+    while (assigned.has(candidate)) {
+      seen.set(base, seen.get(base) + 1)
+      candidate = `${base} ${seen.get(base)}`
+    }
+    proxy.name = candidate
+    assigned.add(candidate)
   }
 }
 

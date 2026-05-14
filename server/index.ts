@@ -21,8 +21,10 @@ const distDir = join(rootDir, 'dist')
 
 setInterval(() => {
   const now = Date.now()
+  const maxAge = 30 * 24 * 60 * 60 * 1000
   for (const [key, record] of localSubscriptions) {
     if (record.expiresAt && record.expiresAt <= now) localSubscriptions.delete(key)
+    else if (!record.expiresAt && record.createdAt && now - record.createdAt > maxAge) localSubscriptions.delete(key)
   }
 }, 60_000)
 
@@ -108,10 +110,11 @@ async function handleCreateSubscription(request, response) {
   const ttl = SUBSCRIPTION_EXPIRY[expiresIn]
   localSubscriptions.set(secret, {
     yaml,
+    createdAt: Date.now(),
     expiresAt: ttl ? Date.now() + ttl * 1000 : 0,
   })
 
-  const url = new URL(`/sub/${secret}/config.yaml`, `http://${request.headers.host || `127.0.0.1:${PORT}`}`)
+  const url = new URL(`/sub/${secret}/config.yaml`, `http://127.0.0.1:${PORT}`)
   return sendJson(response, 200, {
     ok: true,
     url: url.toString(),
@@ -245,7 +248,7 @@ function httpError(statusCode, message) {
 
 function hasHttpUrl(input) {
   return input
-    .split(/\s+/)
+    .split(/[\s,]+/)
     .some((item) => /^https?:\/\//i.test(item.trim()))
 }
 
