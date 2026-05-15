@@ -27,6 +27,10 @@ export function renderGroups() {
           <em>${escapeHtml(group.type || 'select')}</em>
         </span>
         <small>${escapeHtml(groupSummaryText(group))}</small>
+        <span class="group-move-buttons">
+          <button type="button" class="ghost-button node-action-button" data-action="move-up" aria-label="Move up">↑</button>
+          <button type="button" class="ghost-button node-action-button" data-action="move-down" aria-label="Move down">↓</button>
+        </span>
       </summary>
       <div class="form-grid section-grid group-edit-grid">
         <label><span>Name</span><input type="text" data-field="name" value="${escapeAttr(group.name)}"></label>
@@ -66,14 +70,14 @@ export function renderGroups() {
         <label class="checkbox-row"><input type="checkbox" data-field="disableUdp" ${group.disableUdp ? 'checked' : ''}> Disable UDP</label>
         <label class="checkbox-row"><input type="checkbox" data-field="hidden" ${group.hidden ? 'checked' : ''}> Hidden</label>
         <button type="button" class="ghost-button group-delete-button" data-action="delete">Delete Group</button>
-        <button type="button" class="ghost-button" data-action="move-up">↑ Up</button>
-        <button type="button" class="ghost-button" data-action="move-down">↓ Down</button>
       </div>
     `
     row.addEventListener('input', (event) => handleGroupInput(event, index))
     row.addEventListener('change', (event) => handleGroupInput(event, index))
     row.addEventListener('click', (event) => {
       const action = event.target.closest('[data-action]')?.dataset.action
+      if (!action) return
+      if (action === 'move-up' || action === 'move-down') event.preventDefault()
       if (action === 'select-all-group-proxies') {
         group.proxies = groupProxyOptions(group).map((option) => option.value)
         updateYamlFromModel()

@@ -1423,6 +1423,22 @@ small {
   list-style: none;
 }
 
+.group-move-buttons {
+  display: flex;
+  gap: 4px;
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  margin-right: 24px;
+}
+.group-move-buttons .node-action-button {
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
 .editor-field-section summary::-webkit-details-marker {
   display: none;
 }
@@ -1867,7 +1883,7 @@ summary {
 
   .node-toolbar {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) repeat(3, 38px);
+    grid-template-columns: 1fr 1fr auto;
     gap: 6px;
     align-items: center;
   }
