@@ -74,10 +74,27 @@ export function renderGroups() {
     `
     row.addEventListener('input', (event) => handleGroupInput(event, index))
     row.addEventListener('change', (event) => handleGroupInput(event, index))
+    row.querySelectorAll('.group-move-buttons button').forEach((btn) => {
+      btn.addEventListener('click', (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        const action = btn.dataset.action
+        if (action === 'move-up' && index > 0) {
+          const [item] = state.model.groups.splice(index, 1)
+          state.model.groups.splice(index - 1, 0, item)
+          updateYamlFromModel()
+        }
+        if (action === 'move-down' && index < state.model.groups.length - 1) {
+          const [item] = state.model.groups.splice(index, 1)
+          state.model.groups.splice(index + 1, 0, item)
+          updateYamlFromModel()
+        }
+      })
+    })
     row.addEventListener('click', (event) => {
       const action = event.target.closest('[data-action]')?.dataset.action
       if (!action) return
-      if (action === 'move-up' || action === 'move-down') event.preventDefault()
+      if (action === 'move-up' || action === 'move-down') return
       if (action === 'select-all-group-proxies') {
         group.proxies = groupProxyOptions(group).map((option) => option.value)
         updateYamlFromModel()
@@ -95,18 +112,6 @@ export function renderGroups() {
       }
       if (action === 'clear-group-providers') {
         group.use = []
-        updateYamlFromModel()
-        return
-      }
-      if (action === 'move-up' && index > 0) {
-        const [item] = state.model.groups.splice(index, 1)
-        state.model.groups.splice(index - 1, 0, item)
-        updateYamlFromModel()
-        return
-      }
-      if (action === 'move-down' && index < state.model.groups.length - 1) {
-        const [item] = state.model.groups.splice(index, 1)
-        state.model.groups.splice(index + 1, 0, item)
         updateYamlFromModel()
         return
       }
