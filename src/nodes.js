@@ -1,4 +1,4 @@
-import { state, nodeList, nodeUiKeys, nodeFilterQuery, nodeFilterType, nodeFilterStatus, nodeToolsSheet, bulkRenamePattern, nodeSortField, nodeKeywordInput, invalidEditorInput } from './state.js'
+import { state, nodeList, nodeUiKeys, nodeFilterQuery, nodeFilterType, nodeToolsSheet, bulkRenamePattern, nodeSortField, invalidEditorInput } from './state.js'
 import { escapeHtml, escapeAttr, normalizeProxyType, isPlainObject, clone, splitLinesOrComma } from './utils.ts'
 import { proxyTypeOptions } from './constants.ts'
 import { renderTlsFields, renderProtocolFields, renderCommonProxyFields, renderTransportFields, renderNetworkOptions, renderSelectOptions, updateShadowsocksPluginOptsPlaceholder, cleanupProtocolSpecificFields, applyProtocolDefaults, cleanupUnsupportedTlsFields, cleanupDisabledTlsFields, setProxyNetwork, updateNestedProxyField, updateTransportField, cleanupTransportOptions, isEmptyTransportValue, pruneEmptyTransportParents, updateAlpnSelection, toggleNodeTlsFields, textToPolicy, parseJsonObjectInput } from './proxy-fields.js'
@@ -118,7 +118,6 @@ export function nodeSummaryParts(proxy) {
 export function filteredNodeEntries() {
   const query = nodeFilterQuery.value.trim().toLowerCase()
   const type = nodeFilterType.value
-  const status = nodeFilterStatus.value
   return (state.model?.proxies || [])
     .map((proxy, index) => ({ proxy, index }))
     .filter(({ proxy }) => {
