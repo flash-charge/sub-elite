@@ -1424,14 +1424,12 @@ small {
 }
 
 .group-editor-row > summary {
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 .group-move-buttons {
   display: flex;
   gap: 4px;
   align-self: center;
-  grid-column: 2;
-  grid-row: 1 / span 2;
 }
 .group-move-buttons .node-action-button {
   min-width: 36px;
@@ -1445,7 +1443,7 @@ small {
 }
 .group-editor-row > summary::before,
 .group-editor-row > summary::after {
-  grid-column: 3;
+  display: none;
 }
 
 .editor-field-section summary::-webkit-details-marker {
