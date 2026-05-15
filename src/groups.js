@@ -18,7 +18,7 @@ export function renderGroups() {
   state.model.groups.forEach((group, index) => {
     const row = document.createElement('details')
     row.className = 'editor-field-section group-editor-row'
-    row.open = index === 0
+    row.open = false
     const healthFields = groupSupportsHealth(group)
     row.innerHTML = `
       <summary>
