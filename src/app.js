@@ -413,34 +413,57 @@ async function createSubscriptionUrl() {
     showToast('Subscription API is not available on this deployment.', 'error')
     return
   }
+  const savedSecret = localStorage.getItem('sub-elite-secret')
+  const isUpdate = Boolean(savedSecret)
   createSubscriptionButton.disabled = true
   createSubscriptionButton.classList.add('is-loading')
-  createSubscriptionButton.textContent = 'Creating...'
+  createSubscriptionButton.textContent = isUpdate ? 'Updating...' : 'Creating...'
 
   try {
-    const response = await fetchWithTimeout(apiUrl('/api/subscriptions'), {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        yaml: state.yaml,
-        expiresIn: 'never',
-        filename: filenameInput.value,
-      }),
-    })
-    const payload = await readJsonResponse(response, 'Subscription URL failed.')
-    if (!response.ok) throw new Error(payload.error || 'Subscription URL failed.')
-
-    state.subscriptionUrl = payload.url
-    renderSubscriptionUrl()
-    showToast('Subscription URL created.')
+    if (isUpdate) {
+      const response = await fetchWithTimeout(apiUrl(`/api/subscriptions/${savedSecret}`), {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ yaml: state.yaml }),
+      })
+      const payload = await readJsonResponse(response, 'Update failed.')
+      if (!response.ok) throw new Error(payload.error || 'Update failed.')
+      showToast('Subscription URL updated.')
+    } else {
+      const response = await fetchWithTimeout(apiUrl('/api/subscriptions'), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ yaml: state.yaml, expiresIn: 'never', filename: filenameInput.value }),
+      })
+      const payload = await readJsonResponse(response, 'Subscription URL failed.')
+      if (!response.ok) throw new Error(payload.error || 'Subscription URL failed.')
+      state.subscriptionUrl = payload.url
+      const secret = payload.url.split('/sub/')[1]?.split('/')[0]
+      if (secret) localStorage.setItem('sub-elite-secret', secret)
+      renderSubscriptionUrl()
+      showToast('Subscription URL created.')
+    }
   } catch (error) {
     showToast(error instanceof Error ? error.message : 'Subscription URL failed.', 'error')
   } finally {
     createSubscriptionButton.classList.remove('is-loading')
-    createSubscriptionButton.textContent = 'Create URL'
-    createSubscriptionButton.disabled = !state.yaml || !state.subscriptionApiAvailable
+    updateSubscriptionButton()
   }
 }
+
+function updateSubscriptionButton() {
+  const hasSecret = Boolean(localStorage.getItem('sub-elite-secret'))
+  createSubscriptionButton.textContent = hasSecret ? 'Update URL' : 'Create URL'
+  createSubscriptionButton.disabled = !state.yaml || !state.subscriptionApiAvailable
+  document.querySelector('#new-subscription-button').hidden = !hasSecret
+}
+document.querySelector('#new-subscription-button').addEventListener('click', () => {
+  localStorage.removeItem('sub-elite-secret')
+  state.subscriptionUrl = ''
+  renderSubscriptionUrl()
+  updateSubscriptionButton()
+  showToast('Ready to create a new subscription URL.')
+})
 
 async function copySubscriptionUrl() {
   if (!state.subscriptionUrl) return
@@ -836,7 +859,12 @@ async function checkSubscriptionApiAvailability() {
   } catch {
     state.subscriptionApiAvailable = false
   }
-  
+  updateSubscriptionButton()
+  const savedSecret = localStorage.getItem('sub-elite-secret')
+  if (savedSecret && state.subscriptionApiAvailable) {
+    state.subscriptionUrl = `${location.origin}/sub/${savedSecret}/${filenameInput.value || 'config.yaml'}`
+    renderSubscriptionUrl()
+  }
 }
 
 function setupNetworkStatus() {
