@@ -364,7 +364,7 @@ function manualTransportFields(type, values = {}) {
 }
 
 function manualFieldGroup(title, basicFields, advancedFields = []) {
-  return [{ key: `${title.toLowerCase()}-options`, type: 'field-group', title, basicFields, advancedFields }]
+  return { key: `${title.toLowerCase()}-options`, type: 'field-group', title, basicFields, advancedFields }
 }
 
 function renderManualNodeField(field, values = {}) {
