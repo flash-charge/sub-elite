@@ -279,6 +279,7 @@ function parseHysteria(link) {
 function parseHysteria2(link) {
   const url = toUrl(link.replace(/^hy2:\/\//i, 'hysteria2://'))
   const params = url.searchParams
+  const stunServers = params.get('stun-servers') || params.get('stunServers')
 
   return compact({
     name: cleanName(url.hash ? decodeText(url.hash.slice(1)) : url.hostname || 'hysteria2'),
@@ -286,12 +287,30 @@ function parseHysteria2(link) {
     server: required(url.hostname, 'server'),
     port: toPort(url.port),
     password: required(decodeText(url.username), 'password'),
+    ports: params.get('ports') || undefined,
+    'hop-interval': params.get('hop-interval') || params.get('hopInterval') || undefined,
     up: params.get('up') || undefined,
     down: params.get('down') || undefined,
+    'bbr-profile': params.get('bbr-profile') || params.get('bbrProfile') || undefined,
     sni: params.get('sni') || undefined,
-    'skip-cert-verify': boolParam(params.get('insecure')),
+    alpn: params.get('alpn')?.split(',') || undefined,
+    fingerprint: params.get('fingerprint') || params.get('fp') || undefined,
+    'skip-cert-verify': boolParam(params.get('allowInsecure') || params.get('insecure')),
     obfs: params.get('obfs') || undefined,
     'obfs-password': params.get('obfs-password') || params.get('obfsPassword') || undefined,
+    'realm-opts': compact({
+      enable: boolParam(params.get('realm-enable') || params.get('realmEnable')),
+      'server-url': params.get('realm-server-url') || params.get('realmServerUrl') || undefined,
+      token: params.get('realm-token') || params.get('realmToken') || undefined,
+      'realm-id': params.get('realm-id') || params.get('realmId') || undefined,
+      'stun-servers': stunServers ? stunServers.split(',').map((item) => item.trim()).filter(Boolean) : undefined,
+      sni: params.get('realm-sni') || params.get('realmSni') || undefined,
+      'skip-cert-verify': boolParam(params.get('realm-skip-cert-verify') || params.get('realmSkipCertVerify')),
+      fingerprint: params.get('realm-fingerprint') || params.get('realmFingerprint') || undefined,
+      certificate: params.get('realm-certificate') || params.get('realmCertificate') || undefined,
+      'private-key': params.get('realm-private-key') || params.get('realmPrivateKey') || undefined,
+      alpn: (params.get('realm-alpn') || params.get('realmAlpn'))?.split(',') || undefined,
+    }),
   })
 }
 

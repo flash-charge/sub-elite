@@ -268,7 +268,7 @@ export function handleNodeInput(event, index) {
     setProxyNetwork(proxy, event.target.value)
     updateYamlFromModel()
     return
-  } else if (['flow', 'udp-relay-mode', 'congestion-controller'].includes(field) && !event.target.value) {
+  } else if (['flow', 'udp-relay-mode', 'congestion-controller', 'ports', 'hop-interval', 'bbr-profile', 'up', 'down', 'obfs', 'obfs-password'].includes(field) && !event.target.value) {
     delete proxy[field]
   } else if (['certificate', 'private-key', 'fingerprint', 'client-fingerprint'].includes(field)) {
     if (event.target.value) proxy[field] = event.target.value

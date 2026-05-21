@@ -117,11 +117,27 @@ function manualNodeFieldDefinitions(type, values = {}) {
     ],
     hysteria2: [
       { key: 'password', label: 'Password', required: true },
+      { key: 'ports', label: 'Ports', placeholder: '443-8443' },
+      { key: 'hop-interval', label: 'Hop Interval', placeholder: '30 or 15-30' },
       { key: 'up', label: 'Up' },
       { key: 'down', label: 'Down' },
-      { key: 'obfs', label: 'Obfs' },
-      { key: 'obfs-password', label: 'Obfs Password' },
+      { key: 'bbr-profile', label: 'BBR Profile', type: 'select', options: ['', 'standard', 'conservative', 'aggressive'], defaultValue: '' },
+      { key: 'obfs', label: 'Obfs', type: 'select', options: ['', 'salamander'], defaultValue: '' },
+      { key: 'obfs-password', label: 'Obfs Password', placeholder: 'obfs-password' },
       ...manualTlsFields(['h3']),
+      manualFieldGroup('Realm', [
+        { key: 'realm.enable', label: 'realm-opts.enable', type: 'checkbox' },
+        { key: 'realm.server-url', label: 'realm-opts.server-url', placeholder: 'https://realm.hy2.io' },
+        { key: 'realm.token', label: 'realm-opts.token', placeholder: 'public' },
+        { key: 'realm.realm-id', label: 'realm-opts.realm-id', placeholder: 'my-cabin-1f3a8c2e9b' },
+        { key: 'realm.stun-servers', label: 'realm-opts.stun-servers', type: 'textarea', wide: true, placeholder: 'stun.nextcloud.com:3478\nstun.sip.us:3478' },
+        { key: 'realm.sni', label: 'realm-opts.sni', placeholder: 'realm.hy2.io' },
+        { key: 'realm.skip-cert-verify', label: 'realm-opts.skip-cert-verify', type: 'checkbox' },
+        { key: 'realm.fingerprint', label: 'realm-opts.fingerprint', placeholder: 'xxxx' },
+        { key: 'realm.certificate', label: 'realm-opts.certificate', type: 'textarea', wide: true, placeholder: '-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----' },
+        { key: 'realm.private-key', label: 'realm-opts.private-key', type: 'textarea', wide: true, placeholder: '-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----' },
+        { key: 'realm.alpn', label: 'realm-opts.alpn', placeholder: 'h3' },
+      ]),
       ...manualCommonProxyFields(type, { includeUdp: false, includeTcp: false }),
     ],
     tuic: [
@@ -708,10 +724,28 @@ export function addManualNode() {
     proxy.password = values.password
     proxy.tls = values.tls
     proxy.sni = values.sni
+    proxy.ports = values.ports
+    proxy['hop-interval'] = values['hop-interval']
     proxy.up = values.up
     proxy.down = values.down
+    proxy['bbr-profile'] = values['bbr-profile']
     proxy.obfs = values.obfs
     proxy['obfs-password'] = values['obfs-password']
+    const realmStunServers = splitLinesOrComma(values['realm.stun-servers'])
+    const realmAlpn = splitLinesOrComma(values['realm.alpn'])
+    proxy['realm-opts'] = compactObject({
+      enable: values['realm.enable'] || undefined,
+      'server-url': values['realm.server-url'],
+      token: values['realm.token'],
+      'realm-id': values['realm.realm-id'],
+      'stun-servers': realmStunServers.length ? realmStunServers : undefined,
+      sni: values['realm.sni'],
+      'skip-cert-verify': values['realm.skip-cert-verify'] || undefined,
+      fingerprint: values['realm.fingerprint'],
+      certificate: values['realm.certificate'],
+      'private-key': values['realm.private-key'],
+      alpn: realmAlpn.length ? realmAlpn : undefined,
+    })
   } else if (type === 'hysteria') {
     proxy['auth-str'] = values['auth-str']
     proxy.protocol = values.protocol || 'udp'

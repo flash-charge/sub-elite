@@ -128,10 +128,24 @@ export function renderProtocolFields(proxy) {
   if (type === 'hysteria2') {
     return `
       <label><span>Password</span><input type="text" data-field="password" value="${escapeAttr(proxy.password || '')}"></label>
+      <label><span>Ports</span><input type="text" data-field="ports" value="${escapeAttr(proxy.ports || '')}" placeholder="443-8443"></label>
+      <label><span>Hop Interval</span><input type="text" data-field="hop-interval" value="${escapeAttr(proxy['hop-interval'] || '')}" placeholder="30 or 15-30"></label>
       <label><span>Up</span><input type="text" data-field="up" value="${escapeAttr(proxy.up || '')}"></label>
       <label><span>Down</span><input type="text" data-field="down" value="${escapeAttr(proxy.down || '')}"></label>
-      <label><span>Obfs</span><input type="text" data-field="obfs" value="${escapeAttr(proxy.obfs || '')}"></label>
+      <label><span>BBR Profile</span><select data-field="bbr-profile">${renderSelectOptions(['', 'standard', 'conservative', 'aggressive'], proxy['bbr-profile'] || '')}</select></label>
+      <label><span>Obfs</span><select data-field="obfs">${renderSelectOptions(['', 'salamander'], proxy.obfs || '')}</select></label>
       <label><span>Obfs Password</span><input type="text" data-field="obfs-password" value="${escapeAttr(proxy['obfs-password'] || '')}"></label>
+      <label class="checkbox-row"><input type="checkbox" data-field="nested:realm-opts.enable:boolean" ${proxy['realm-opts']?.enable ? 'checked' : ''}> realm-opts.enable</label>
+      <label><span>realm-opts.server-url</span><input type="text" data-field="nested:realm-opts.server-url" value="${escapeAttr(proxy['realm-opts']?.['server-url'] || '')}" placeholder="https://realm.hy2.io"></label>
+      <label><span>realm-opts.token</span><input type="text" data-field="nested:realm-opts.token" value="${escapeAttr(proxy['realm-opts']?.token || '')}" placeholder="public"></label>
+      <label><span>realm-opts.realm-id</span><input type="text" data-field="nested:realm-opts.realm-id" value="${escapeAttr(proxy['realm-opts']?.['realm-id'] || '')}" placeholder="my-cabin-1f3a8c2e9b"></label>
+      <label class="wide-field"><span>realm-opts.stun-servers</span><textarea class="mini-editor" data-field="nested:realm-opts.stun-servers:list" placeholder="stun.nextcloud.com:3478&#10;stun.sip.us:3478">${escapeHtml(listForInput(proxy['realm-opts']?.['stun-servers']))}</textarea></label>
+      <label><span>realm-opts.sni</span><input type="text" data-field="nested:realm-opts.sni" value="${escapeAttr(proxy['realm-opts']?.sni || '')}" placeholder="realm.hy2.io"></label>
+      <label class="checkbox-row"><input type="checkbox" data-field="nested:realm-opts.skip-cert-verify:boolean" ${proxy['realm-opts']?.['skip-cert-verify'] ? 'checked' : ''}> realm-opts.skip-cert-verify</label>
+      <label><span>realm-opts.fingerprint</span><input type="text" data-field="nested:realm-opts.fingerprint" value="${escapeAttr(proxy['realm-opts']?.fingerprint || '')}" placeholder="xxxx"></label>
+      <label class="wide-field"><span>realm-opts.certificate</span><textarea class="mini-editor" data-field="nested:realm-opts.certificate">${escapeHtml(proxy['realm-opts']?.certificate || '')}</textarea></label>
+      <label class="wide-field"><span>realm-opts.private-key</span><textarea class="mini-editor" data-field="nested:realm-opts.private-key">${escapeHtml(proxy['realm-opts']?.['private-key'] || '')}</textarea></label>
+      <label><span>realm-opts.alpn</span><input type="text" data-field="nested:realm-opts.alpn:list" value="${escapeAttr(listForInput(proxy['realm-opts']?.alpn))}" placeholder="h3"></label>
     `
   }
   if (type === 'ss') {
@@ -392,9 +406,13 @@ export function cleanupProtocolSpecificFields(proxy) {
     'version',
     'username',
     'auth-str',
+    'ports',
+    'hop-interval',
     'up',
     'down',
+    'bbr-profile',
     'obfs-password',
+    'realm-opts',
     'udp-relay-mode',
     'congestion-controller',
     'transport',

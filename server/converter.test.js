@@ -114,12 +114,27 @@ test('convertToClashMeta supports rules presets', () => {
 test('parseLink supports alpn and bandwidth parameters', () => {
   const vless = parseLink('vless://uuid@example.com:443?security=tls&alpn=h2,http/1.1#V')
   const tuic = parseLink('tuic://uuid:pass@example.com:443?alpn=h3#T')
-  const hy2 = parseLink('hy2://pass@example.com:443?up=100&down=100#H')
+  const hy2 = parseLink('hy2://pass@example.com:443?up=100&down=100&alpn=h3&ports=443-8443&hop-interval=15-30&bbr-profile=standard&realm-enable=1&realm-server-url=https%3A%2F%2Frealm.hy2.io&realm-token=public&realm-id=my-realm&stun-servers=stun.nextcloud.com%3A3478,stun.sip.us%3A3478&realm-sni=realm.hy2.io&realm-skip-cert-verify=1&realm-fingerprint=abcd&realm-alpn=h3#H')
 
   assert.deepEqual(vless.alpn, ['h2', 'http/1.1'])
   assert.deepEqual(tuic.alpn, ['h3'])
   assert.equal(hy2.up, '100')
   assert.equal(hy2.down, '100')
+  assert.deepEqual(hy2.alpn, ['h3'])
+  assert.equal(hy2.ports, '443-8443')
+  assert.equal(hy2['hop-interval'], '15-30')
+  assert.equal(hy2['bbr-profile'], 'standard')
+  assert.deepEqual(hy2['realm-opts'], {
+    enable: true,
+    'server-url': 'https://realm.hy2.io',
+    token: 'public',
+    'realm-id': 'my-realm',
+    'stun-servers': ['stun.nextcloud.com:3478', 'stun.sip.us:3478'],
+    sni: 'realm.hy2.io',
+    'skip-cert-verify': true,
+    fingerprint: 'abcd',
+    alpn: ['h3'],
+  })
 })
 
 test('parseLink supports advanced transports', () => {
@@ -277,7 +292,7 @@ test('manual-only mihomo proxy types can be emitted', () => {
       { name: 'SS', type: 'ss', server: 'example.com', port: 443, cipher: 'aes-128-gcm', password: 'pass', udp: true, enabled: true },
       { name: 'SSR', type: 'ssr', server: 'example.com', port: 443, cipher: 'chacha20-ietf', password: 'pass', obfs: 'tls1.2_ticket_auth', protocol: 'auth_sha1_v4', enabled: true },
       { name: 'Hysteria', type: 'hysteria', server: 'example.com', port: 443, 'auth-str': 'pass', protocol: 'udp', alpn: ['h3'], enabled: true },
-      { name: 'Hysteria2', type: 'hysteria2', server: 'example.com', port: 443, password: 'pass', alpn: ['h3'], enabled: true },
+      { name: 'Hysteria2', type: 'hysteria2', server: 'example.com', port: 443, password: 'pass', ports: '443-8443', 'hop-interval': '15-30', alpn: ['h3'], 'bbr-profile': 'standard', 'realm-opts': { enable: true, 'server-url': 'https://realm.hy2.io', token: 'public', 'realm-id': 'my-realm', 'stun-servers': ['stun.nextcloud.com:3478'], sni: 'realm.hy2.io', 'skip-cert-verify': true, fingerprint: 'abcd', alpn: ['h3'] }, enabled: true },
       { name: 'TUIC', type: 'tuic', server: 'example.com', port: 443, uuid: 'uuid', password: 'pass', alpn: ['h3'], 'udp-relay-mode': 'native', udp: true, enabled: true },
       { name: 'MASQUE', type: 'masque', server: 'example.com', port: 443, 'private-key': 'private', 'public-key': 'public', ip: '172.16.0.2/32', mtu: 1280, udp: true, enabled: true },
       { name: 'TrustTunnel', type: 'trusttunnel', server: 'example.com', port: 443, username: 'user', password: 'pass', udp: true, enabled: true },
@@ -300,6 +315,14 @@ test('manual-only mihomo proxy types can be emitted', () => {
   assert.equal(anytlsBlock.includes('idle-session-check-interval: 30'), true)
   assert.equal(anytlsBlock.includes('idle-session-timeout: 30'), true)
   assert.equal(anytlsBlock.includes('min-idle-session: 0'), true)
+  assert.match(yaml, /ports: "443-8443"/)
+  assert.match(yaml, /hop-interval: "15-30"/)
+  assert.match(yaml, /bbr-profile: "standard"/)
+  assert.match(yaml, /realm-opts:/)
+  assert.match(yaml, /server-url: "https:\/\/realm\.hy2\.io"/)
+  assert.match(yaml, /stun\.nextcloud\.com:3478/)
+  assert.match(yaml, /sni: "realm\.hy2\.io"/)
+  assert.match(yaml, /fingerprint: "abcd"/)
   const masqueStart = yaml.indexOf('name: "MASQUE"')
   const trustTunnelStart = yaml.indexOf('name: "TrustTunnel"', masqueStart)
   const masqueBlock = yaml.slice(masqueStart, trustTunnelStart)
