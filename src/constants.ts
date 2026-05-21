@@ -151,13 +151,13 @@ export const ssrObfsOptions = [
 
 export const hysteriaProtocolOptions = ['udp', 'wechat-video', 'faketcp']
 export const hysteria2BbrProfileOptions = [
-  { value: '', label: 'Unset (Mihomo default)' },
+  { value: '', label: 'Default' },
   { value: 'standard', label: 'standard' },
   { value: 'conservative', label: 'conservative' },
   { value: 'aggressive', label: 'aggressive' },
 ]
 export const hysteria2ObfsOptions = [
-  { value: '', label: 'Unset (no obfs)' },
+  { value: '', label: 'None' },
   { value: 'salamander', label: 'salamander' },
 ]
 export const tuicUdpRelayModeOptions = ['', 'native', 'quic']
