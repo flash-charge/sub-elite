@@ -25,9 +25,12 @@ export function renderManualNodeFields(values = {}) {
 function manualNodeFieldDefinitions(type, values = {}) {
   const fields = []
   if (needsManualEndpoint(type)) {
+    const endpointExample = {
+      openvpn: { server: 'vpn.example.com', port: '1194' },
+    }[type] || {}
     fields.push(
-      { key: 'server', label: 'Server', required: true },
-      { key: 'port', label: 'Port', required: true },
+      { key: 'server', label: 'Server', required: true, placeholder: endpointExample.server },
+      { key: 'port', label: 'Port', required: true, placeholder: endpointExample.port },
     )
   }
 
@@ -190,12 +193,12 @@ function manualNodeFieldDefinitions(type, values = {}) {
     ],
     openvpn: [
       { key: 'proto', label: 'Proto', type: 'select', options: ['udp', 'tcp'], defaultValue: 'udp' },
-      { key: 'username', label: 'Username' },
-      { key: 'password', label: 'Password' },
-      { key: 'ca', label: 'CA', type: 'textarea', wide: true, required: true },
-      { key: 'cert', label: 'Cert', type: 'textarea', wide: true },
-      { key: 'key', label: 'Key', type: 'textarea', wide: true },
-      { key: 'tls-crypt', label: 'TLS Crypt', type: 'textarea', wide: true, required: true },
+      { key: 'username', label: 'Username', placeholder: 'vpn-user' },
+      { key: 'password', label: 'Password', placeholder: 'vpn-password' },
+      { key: 'ca', label: 'CA', type: 'textarea', wide: true, required: true, placeholder: '-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----' },
+      { key: 'cert', label: 'Cert', type: 'textarea', wide: true, placeholder: '-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----' },
+      { key: 'key', label: 'Key', type: 'textarea', wide: true, placeholder: '-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----' },
+      { key: 'tls-crypt', label: 'TLS Crypt', type: 'textarea', wide: true, required: true, placeholder: '-----BEGIN OpenVPN Static key V1-----\n...\n-----END OpenVPN Static key V1-----' },
       { key: 'dev', label: 'Dev', type: 'select', options: ['tun'], defaultValue: 'tun' },
       { key: 'cipher', label: 'Cipher', type: 'select', options: ['AES-128-GCM', 'AES-256-GCM', 'CHACHA20-POLY1305'], defaultValue: 'AES-128-GCM' },
       { key: 'auth', label: 'Auth', type: 'select', options: ['SHA256'], defaultValue: 'SHA256' },

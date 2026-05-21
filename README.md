@@ -90,6 +90,35 @@ npm run lint      # eslint
 npm run mihomo:check # validate generated sample YAML with local mihomo
 ```
 
+## OpenVPN Manual Node Example
+
+In the Editor tab, choose `Node` > `Manual Node` > `OpenVPN`. Fill `Server`,
+`Port`, `CA`, and `TLS Crypt`. Authentication can use `Username`/`Password`
+or a `Cert`/`Key` pair.
+
+```yaml
+proxies:
+  - name: "OpenVPN Example"
+    type: "openvpn"
+    server: "vpn.example.com"
+    port: 1194
+    proto: "udp"
+    username: "vpn-user"
+    password: "vpn-password"
+    ca: |
+      -----BEGIN CERTIFICATE-----
+      ...
+      -----END CERTIFICATE-----
+    tls-crypt: |
+      -----BEGIN OpenVPN Static key V1-----
+      ...
+      -----END OpenVPN Static key V1-----
+    dev: "tun"
+    cipher: "AES-128-GCM"
+    auth: "SHA256"
+    udp: true
+```
+
 ## Deploy Order
 
 1. Deploy `sub-elite-api` Worker first
