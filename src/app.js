@@ -1,17 +1,13 @@
 import { buildYamlFromModel, createConfigModel } from '../lib/converter.ts'
 import { parseDocument } from 'yaml'
-import { state, invalidEditorInput, nodeUiKeys, apiBaseUrl, linkProtocolPattern, input, fileInput, templateSelect, rulesSelect, namePatternInput, filenameInput, convertButton, blankConfigButton, sampleButton, copyButton, downloadButton, exportFormatSelect, formatYamlButton, validateYamlButton, autoFixButton, toggleDiffButton, resetYamlButton, createSubscriptionButton, copySubscriptionButton, openSubscriptionLink, subscriptionUrlInput, errorBanner, yamlEditor, diffPanel, diffSummary, diffViewer, validationBanner,  yamlSectionSelect, yamlSectionPreview,  statTotal, statConverted, statSkipped, nodeList, groupList, groupNameInput, groupTypeInput, addGroupButton, rulesEditor, dnsEnable, dnsListen, dnsCacheAlgorithm, dnsPreferH3, dnsUseHosts, dnsUseSystemHosts, dnsRespectRules, dnsDefault, dnsNameservers, generalPort, generalSocksPort, generalRedirPort, generalTproxyPort, generalMixedPort, generalMode, generalLogLevel, generalBindAddress, generalLanAllowedIps, generalLanDisallowedIps, generalAuthentication, generalSkipAuthPrefixes, generalInterfaceName, generalRoutingMark, generalKeepAliveIdle, generalKeepAliveInterval, generalFindProcessMode, generalController, generalControllerTls, generalControllerUnix, generalControllerPipe, generalControllerCors, generalUi, generalUiName, generalUiUrl, generalSecret, generalClientFingerprint, generalUa, generalTlsCertificate, generalTlsPrivateKey, generalAllowLan, generalIpv6, generalDisableKeepAlive, generalUnifiedDelay, generalTcpConcurrent, generalEtagSupport, profileStoreSelected, profileStoreFakeIp, dnsEnhancedMode, dnsFakeIpRange, dnsFakeIpRange6, dnsFakeIpFilterMode, dnsFakeIpTtl, dnsFakeIpFilter, dnsFallback, dnsFallbackFilter, dnsDirectNameserver, dnsDirectFollowPolicy, dnsProxyServer, dnsProxyPolicy, dnsPolicy, snifferEnable, snifferOverride, snifferParseIp, snifferForceDnsMapping, snifferSniff, snifferForce, snifferSkip, snifferSkipSrc, snifferSkipDst, tunEnable, tunStack, tunDevice, tunAutoRoute, tunAutoRedirect, tunAutoDetect, tunStrictRoute, tunDnsHijack, tunMtu, tunGso, tunGsoMaxSize, tunUdpTimeout, tunIproute2TableIndex, tunIproute2RuleIndex, tunEndpointIndependentNat, tunRouteAddressSet, tunRouteExcludeAddressSet, tunRouteAddress, tunRouteExcludeAddress, tunIncludeInterface, tunExcludeInterface, tunIncludeUid, tunIncludeUidRange, tunExcludeUid, tunExcludeUidRange, tunIncludeAndroidUser, tunIncludePackage, tunExcludePackage, geoGeodataMode, geoAutoUpdate, geoGeodataLoader, geoUpdateInterval, geoUrlGeoip, geoUrlGeosite, geoUrlMmdb, geoUrlAsn, ruleProviderName, ruleProviderUrl, addRuleProviderButton, addAdsProviderButton, applyLanRulesButton, ruleProviderList, ruleBuilderType, addRuleButton, addProxyProviderButton, proxyProviderList,  manualNodeType, manualNodeFields, addManualNodeButton, nodeFilterQuery, nodeFilterType, openNodeToolsButton, nodeToolsSheet, closeNodeToolsButton, bulkRenamePattern, applyBulkRenameButton, nodeSortField, sortNodesButton, deleteDuplicateNodesButton, fabCopy, fabDownload, toast, viewTabs, viewPanels, editTabs, editPanels, editorSectionSelect } from './state.js'
+import { state, apiBaseUrl, linkProtocolPattern, input, fileInput, templateSelect, rulesSelect, namePatternInput, filenameInput, convertButton, blankConfigButton, sampleButton, copyButton, downloadButton, exportFormatSelect, formatYamlButton, validateYamlButton, autoFixButton, toggleDiffButton, resetYamlButton, createSubscriptionButton, copySubscriptionButton, openSubscriptionLink, subscriptionUrlInput, errorBanner, yamlEditor, diffPanel, diffSummary, diffViewer, validationBanner,  yamlSectionSelect, yamlSectionPreview,  statTotal, statConverted, statSkipped, nodeList, groupList, groupNameInput, addGroupButton, rulesEditor, dnsEnable, dnsListen, dnsCacheAlgorithm, dnsPreferH3, dnsUseHosts, dnsUseSystemHosts, dnsRespectRules, dnsDefault, dnsNameservers, generalPort, generalSocksPort, generalRedirPort, generalTproxyPort, generalMixedPort, generalMode, generalLogLevel, generalBindAddress, generalLanAllowedIps, generalLanDisallowedIps, generalAuthentication, generalSkipAuthPrefixes, generalInterfaceName, generalRoutingMark, generalKeepAliveIdle, generalKeepAliveInterval, generalFindProcessMode, generalController, generalControllerTls, generalControllerUnix, generalControllerPipe, generalControllerCors, generalUi, generalUiName, generalUiUrl, generalSecret, generalClientFingerprint, generalUa, generalTlsCertificate, generalTlsPrivateKey, generalAllowLan, generalIpv6, generalDisableKeepAlive, generalUnifiedDelay, generalTcpConcurrent, generalEtagSupport, profileStoreSelected, profileStoreFakeIp, dnsEnhancedMode, dnsFakeIpRange, dnsFakeIpRange6, dnsFakeIpFilterMode, dnsFakeIpTtl, dnsFakeIpFilter, dnsFallback, dnsFallbackFilter, dnsDirectNameserver, dnsDirectFollowPolicy, dnsProxyServer, dnsProxyPolicy, dnsPolicy, snifferEnable, snifferOverride, snifferParseIp, snifferForceDnsMapping, snifferSniff, snifferForce, snifferSkip, snifferSkipSrc, snifferSkipDst, tunEnable, tunStack, tunDevice, tunAutoRoute, tunAutoRedirect, tunAutoDetect, tunStrictRoute, tunDnsHijack, tunMtu, tunGso, tunGsoMaxSize, tunUdpTimeout, tunIproute2TableIndex, tunIproute2RuleIndex, tunEndpointIndependentNat, tunRouteAddressSet, tunRouteExcludeAddressSet, tunRouteAddress, tunRouteExcludeAddress, tunIncludeInterface, tunExcludeInterface, tunIncludeUid, tunIncludeUidRange, tunExcludeUid, tunExcludeUidRange, tunIncludeAndroidUser, tunIncludePackage, tunExcludePackage, geoGeodataMode, geoAutoUpdate, geoGeodataLoader, geoUpdateInterval, geoUrlGeoip, geoUrlGeosite, geoUrlMmdb, geoUrlAsn, ruleProviderName, ruleProviderUrl, addRuleProviderButton, addAdsProviderButton, applyLanRulesButton, ruleProviderList, ruleBuilderType, addRuleButton, addProxyProviderButton, proxyProviderList,  manualNodeType, manualNodeFields, addManualNodeButton, nodeFilterQuery, nodeFilterType, openNodeToolsButton, nodeToolsSheet, closeNodeToolsButton, applyBulkRenameButton, sortNodesButton, deleteDuplicateNodesButton, fabCopy, fabDownload, toast, viewTabs, viewPanels, editTabs, editPanels, editorSectionSelect } from './state.js'
 import {
   sampleLinks, MAX_IMPORT_FILE_BYTES, importFilePattern, networkSupportByType,
   alpnOptions, proxyTypeOptions, proxyTypeLabels,
 } from './constants.ts'
-import {
-  splitLinesOrComma, isPlainObject,
-  normalizeProxyType, clone, escapeHtml, escapeAttr,
-  downloadText, normalizeFilename,
-} from './utils.ts'
+import { normalizeProxyType, clone, escapeHtml, escapeAttr, downloadText, normalizeFilename } from './utils.ts'
 import { modelFromYamlObject, normalizeClientModel } from './model.ts'
-import { renderManualNodeFields, addManualNode, readManualNodeValues, toggleManualTlsFields, compactManualObject } from './manual-node.js'
+import { renderManualNodeFields, addManualNode, readManualNodeValues, toggleManualTlsFields } from './manual-node.js'
 import {
   updateYamlFromModel, formatCurrentYaml, resetModel, autoFixCurrentModel,
   toggleDiffPanel, renderDiff, renderSectionPreview, buildExportYaml,
@@ -26,32 +22,10 @@ import {
   renderRuleProviders, renderProxyProviders,
   addRuleProvider, addProxyProvider, addAdsProviderPreset, applyLanDirectRules,
 } from './providers.js'
-import {
-  renderRules, policyTargetOptions, validPolicyTarget, addRuleFromBuilder,
-  updateRuleBuilderState, replacePolicyTargetName, replacePolicyTargetNames,
-  replaceRemovedPolicyTargets, fallbackPolicyTarget, refreshRenderedRuleProviderTargets,
-  updateRulesFromEditor, presetRules, renderRuleTargetOptions,
-} from './rules.js'
-import {
-  renderNodes, nodeExpansionKey, handleNodeClick, handleNodeInput,
-  moveNode, openNodeTools, closeNodeTools, applyBulkRename, handleTokenClick,
-  sortNodes, deleteDuplicateNodes, formatNodeName,
-  makeLocalUniqueNames, proxySignature, stripEnabled, normalizeEditorModel,
-} from './nodes.js'
-import {
-  renderGroups, addGroup, replaceGroupProxyName, removeGroupProxyName,
-  replaceGroupProxyNames, replaceGroupProviderName, removeGroupProviderName,
-  pruneGroupProxyRefs, groupReferenceCreatesCycle,
-} from './groups.js'
-import {
-  updateAlpnSelection, renderTlsFields,
-  toggleNodeTlsFields, renderProtocolFields, renderCommonProxyFields, renderNetworkOptions,
-  renderTransportFields, renderSelectOptions,
-  updateShadowsocksPluginOptsPlaceholder, cleanupProtocolSpecificFields, applyProtocolDefaults,
-  cleanupUnsupportedTlsFields, cleanupDisabledTlsFields, setProxyNetwork, updateNestedProxyField,
-  updateTransportField, cleanupTransportOptions, isEmptyTransportValue, pruneEmptyTransportParents,
-  textToPolicy, parseJsonObjectInput,
-} from './proxy-fields.js'
+import { renderRules, addRuleFromBuilder, updateRuleBuilderState, updateRulesFromEditor, presetRules, renderRuleTargetOptions } from './rules.js'
+import { renderNodes, openNodeTools, closeNodeTools, applyBulkRename, handleTokenClick, sortNodes, deleteDuplicateNodes, normalizeEditorModel } from './nodes.js'
+import { renderGroups, addGroup } from './groups.js'
+import { updateShadowsocksPluginOptsPlaceholder } from './proxy-fields.js'
 
 
 viewTabs.forEach((tab) => tab.addEventListener('click', () => setActiveView(tab.dataset.viewTarget)))
@@ -960,11 +934,6 @@ function placeholderForInput(key, label = '') {
   const examples = {
     'converter-input': 'vmess://...\nvless://...\ntrojan://...\n\nproxies:\n  - name: example\n    type: vless\n    server: example.com\n    port: 443',
     'filename-input': 'config.yaml',
-    'general-mixed-port': '7890',
-    'general-bind-address': '*',
-    'dns-listen': '0.0.0.0:1053',
-    'dns-fake-ip-range': '198.18.0.1/16',
-    'geo-update-interval': '24',
     'name-pattern-input': '{nn} - {type} - {name}',
     'bulk-rename-pattern': '{nn} - {type} - {server}',
     'manual-node-name': 'SG VLESS WS',

@@ -1,9 +1,9 @@
 import { state, groupList, groupNameInput, groupTypeInput } from './state.js'
 import { escapeHtml, escapeAttr, splitLinesOrComma } from './utils.ts'
-import { renderSelectOptions, isEmptyTransportValue, pruneEmptyTransportParents } from './proxy-fields.js'
+import { isEmptyTransportValue, pruneEmptyTransportParents } from './proxy-fields.js'
 import { updateYamlFromModel } from './yaml-tools.js'
 import { replacePolicyTargetName, fallbackPolicyTarget, renderRuleTargetOptions } from './rules.js'
-import { showValidation, clearValidation, applyPlaceholders } from './app.js'
+import { showValidation, applyPlaceholders } from './app.js'
 
 export function renderGroups() {
   groupList.replaceChildren()
