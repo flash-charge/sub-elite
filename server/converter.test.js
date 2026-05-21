@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { autoFixConfigModel, buildYamlFromModel, convertToClashMeta, extractLinks, parseLink, validateConfigModel } from '../lib/converter.ts'
+import { normalizeClientModel, normalizeSniffForText } from '../src/model.ts'
 
 test('extractLinks decodes base64 subscription text', () => {
   const source = [
@@ -280,14 +281,16 @@ test('manual-only mihomo proxy types can be emitted', () => {
       { name: 'TUIC', type: 'tuic', server: 'example.com', port: 443, uuid: 'uuid', password: 'pass', alpn: ['h3'], 'udp-relay-mode': 'native', udp: true, enabled: true },
       { name: 'MASQUE', type: 'masque', server: 'example.com', port: 443, 'private-key': 'private', 'public-key': 'public', ip: '172.16.0.2/32', mtu: 1280, udp: true, enabled: true },
       { name: 'TrustTunnel', type: 'trusttunnel', server: 'example.com', port: 443, username: 'user', password: 'pass', udp: true, enabled: true },
+      { name: 'Tailscale', type: 'tailscale', hostname: 'mihomo', 'auth-key': 'tskey-auth-example', 'state-dir': './tailscale', udp: true, 'accept-routes': true, 'exit-node': 'auto:any', enabled: true },
+      { name: 'OpenVPN', type: 'openvpn', server: 'vpn.example.com', port: 1194, proto: 'udp', username: 'user', password: 'pass', ca: 'ca', 'tls-crypt': 'tlscrypt', udp: true, enabled: true },
       { name: 'DirectOut', type: 'direct', enabled: true },
       { name: 'DnsOut', type: 'dns', enabled: true },
     ],
-    groups: [{ name: 'PROXY', type: 'select', proxies: ['Snell', 'AnyTLS', 'Mieru', 'Sudoku', 'SS', 'SSR', 'Hysteria', 'Hysteria2', 'TUIC', 'MASQUE', 'TrustTunnel', 'DirectOut', 'DnsOut'] }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['Snell', 'AnyTLS', 'Mieru', 'Sudoku', 'SS', 'SSR', 'Hysteria', 'Hysteria2', 'TUIC', 'MASQUE', 'TrustTunnel', 'Tailscale', 'OpenVPN', 'DirectOut', 'DnsOut'] }],
     rules: ['MATCH,PROXY'],
   })
 
-  for (const type of ['snell', 'anytls', 'mieru', 'sudoku', 'ss', 'ssr', 'hysteria', 'hysteria2', 'tuic', 'masque', 'trusttunnel', 'direct', 'dns']) {
+  for (const type of ['snell', 'anytls', 'mieru', 'sudoku', 'ss', 'ssr', 'hysteria', 'hysteria2', 'tuic', 'masque', 'trusttunnel', 'tailscale', 'openvpn', 'direct', 'dns']) {
     assert.match(yaml, new RegExp(`type: "${type}"`))
   }
   const anytlsStart = yaml.indexOf('name: "AnyTLS"')
@@ -301,6 +304,9 @@ test('manual-only mihomo proxy types can be emitted', () => {
   const trustTunnelStart = yaml.indexOf('name: "TrustTunnel"', masqueStart)
   const masqueBlock = yaml.slice(masqueStart, trustTunnelStart)
   assert.equal(masqueBlock.includes('private-key: "private"'), true)
+  assert.match(yaml, /hostname: "mihomo"/)
+  assert.match(yaml, /state-dir: "\.\/tailscale"/)
+  assert.match(yaml, /tls-crypt: "tlscrypt"/)
 })
 
 test('blank builder config is exportable with warnings only', () => {
@@ -1866,6 +1872,25 @@ test('buildYamlFromModel accepts object-shaped sniffer sniff config', () => {
   assert.match(yaml, /TLS:/)
   assert.match(yaml, /- 8443/)
   assert.match(yaml, /8080-8880/)
+})
+
+test('client sniffer normalization keeps editor text fields render-safe', () => {
+  assert.deepEqual(normalizeSniffForText(undefined), [])
+  assert.deepEqual(normalizeSniffForText({
+    TLS: { ports: [443, 8443] },
+    HTTP: { ports: ['80', '8080-8880'] },
+    QUIC: { ports: 443 },
+  }), ['TLS:443,8443', 'HTTP:80,8080-8880', 'QUIC:443'])
+
+  const model = normalizeClientModel({
+    sniffer: {
+      enable: true,
+      sniff: { TLS: { ports: [443] } },
+    },
+  })
+
+  assert.deepEqual(model.sniffer.sniff, ['TLS:443'])
+  assert.doesNotThrow(() => model.sniffer.sniff.join('\n'))
 })
 
 test('convert warnings include protocol and input snippet', () => {

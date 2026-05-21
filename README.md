@@ -87,6 +87,7 @@ npm run dev       # build + start dev server on :8787
 npm run build     # build static files to dist/
 npm test          # run tests
 npm run lint      # eslint
+npm run mihomo:check # validate generated sample YAML with local mihomo
 ```
 
 ## Deploy Order

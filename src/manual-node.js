@@ -168,10 +168,42 @@ function manualNodeFieldDefinitions(type, values = {}) {
       { key: 'dns', label: 'DNS', placeholder: '1.1.1.1,8.8.8.8' },
       ...manualCommonProxyFields(type, { includeUdp: false, includeTcp: false }),
     ],
+    tailscale: [
+      { key: 'hostname', label: 'Hostname' },
+      { key: 'auth-key', label: 'Auth Key' },
+      { key: 'control-url', label: 'Control URL', placeholder: 'https://controlplane.tailscale.com' },
+      { key: 'state-dir', label: 'State Dir', defaultValue: './tailscale' },
+      { key: 'exit-node', label: 'Exit Node', placeholder: '100.64.0.1 or auto:any' },
+      { key: 'ephemeral', label: 'Ephemeral', type: 'checkbox' },
+      { key: 'udp', label: 'UDP', type: 'checkbox', checked: true },
+      { key: 'accept-routes', label: 'Accept Routes', type: 'checkbox' },
+      { key: 'exit-node-allow-lan-access', label: 'Exit Node LAN Access', type: 'checkbox' },
+      { key: 'ip-version', label: 'IP Version', type: 'select', options: ipVersionOptions, defaultValue: '' },
+      { key: 'interface-name', label: 'Interface Name' },
+      { key: 'routing-mark', label: 'Routing Mark', type: 'number' },
+      { key: 'dialer-proxy', label: 'Dialer Proxy' },
+    ],
     ssh: [
       { key: 'username', label: 'Username', required: true },
       { key: 'password', label: 'Password' },
       ...manualCommonProxyFields(type),
+    ],
+    openvpn: [
+      { key: 'proto', label: 'Proto', type: 'select', options: ['udp', 'tcp'], defaultValue: 'udp' },
+      { key: 'username', label: 'Username' },
+      { key: 'password', label: 'Password' },
+      { key: 'ca', label: 'CA', type: 'textarea', wide: true, required: true },
+      { key: 'cert', label: 'Cert', type: 'textarea', wide: true },
+      { key: 'key', label: 'Key', type: 'textarea', wide: true },
+      { key: 'tls-crypt', label: 'TLS Crypt', type: 'textarea', wide: true, required: true },
+      { key: 'dev', label: 'Dev', type: 'select', options: ['tun'], defaultValue: 'tun' },
+      { key: 'cipher', label: 'Cipher', type: 'select', options: ['AES-128-GCM', 'AES-256-GCM', 'CHACHA20-POLY1305'], defaultValue: 'AES-128-GCM' },
+      { key: 'auth', label: 'Auth', type: 'select', options: ['SHA256'], defaultValue: 'SHA256' },
+      { key: 'udp', label: 'UDP', type: 'checkbox', checked: true },
+      { key: 'mtu', label: 'MTU', type: 'number', defaultValue: '1500' },
+      { key: 'remote-dns-resolve', label: 'Remote DNS Resolve', type: 'checkbox' },
+      { key: 'dns', label: 'DNS', placeholder: '1.1.1.1,8.8.8.8' },
+      ...manualCommonProxyFields(type, { includeUdp: false, includeTcp: false }),
     ],
   }
 
@@ -411,11 +443,14 @@ function validateManualNodeValues(type, values) {
   if (values.network === 'xhttp' && parseJsonObjectInput(values['xhttp.download-settings'], 'xhttp-opts.download-settings') === invalidEditorInput) {
     return 'xhttp-opts.download-settings must be a valid JSON object.'
   }
+  if (type === 'openvpn' && !((values.username && values.password) || (values.cert && values.key))) {
+    return 'OpenVPN requires username/password or cert/key authentication.'
+  }
   return ''
 }
 
 function needsManualEndpoint(type) {
-  return !['direct', 'dns'].includes(type)
+  return !['direct', 'dns', 'tailscale'].includes(type)
 }
 
 function supportedNetworksForType(type) {
@@ -623,6 +658,18 @@ export function addManualNode() {
       reserved: parseReservedField(values.reserved),
       'allowed-ips': splitLinesOrComma(values['allowed-ips']),
     }]
+  } else if (type === 'tailscale') {
+    delete proxy.server
+    delete proxy.port
+    proxy.hostname = values.hostname
+    proxy['auth-key'] = values['auth-key']
+    proxy['control-url'] = values['control-url']
+    proxy['state-dir'] = values['state-dir'] || './tailscale'
+    proxy.ephemeral = values.ephemeral
+    proxy.udp = values.udp
+    proxy['accept-routes'] = values['accept-routes']
+    proxy['exit-node'] = values['exit-node']
+    proxy['exit-node-allow-lan-access'] = values['exit-node-allow-lan-access']
   } else if (type === 'vless') {
     proxy.uuid = values.uuid
     proxy.flow = values.flow
@@ -713,6 +760,21 @@ export function addManualNode() {
   } else if (type === 'ssh') {
     proxy.username = values.username
     proxy.password = values.password
+  } else if (type === 'openvpn') {
+    proxy.proto = values.proto || 'udp'
+    proxy.username = values.username
+    proxy.password = values.password
+    proxy.ca = values.ca
+    proxy.cert = values.cert
+    proxy.key = values.key
+    proxy['tls-crypt'] = values['tls-crypt']
+    proxy.dev = values.dev || 'tun'
+    proxy.cipher = values.cipher || 'AES-128-GCM'
+    proxy.auth = values.auth || 'SHA256'
+    proxy.udp = values.udp
+    proxy.mtu = parseManualNumber(values.mtu) || 1500
+    proxy['remote-dns-resolve'] = values['remote-dns-resolve']
+    proxy.dns = values.dns ? values.dns.split(',').map((s) => s.trim()).filter(Boolean) : undefined
   } else {
     proxy.username = values.username
     proxy.password = values.password

@@ -809,7 +809,7 @@ const ntpFieldKeys = [
   'interval',
 ]
 
-export function normalizeSniffForText(value, fallback) {
+export function normalizeSniffForText(value, fallback = []) {
   if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean)
   if (typeof value === 'string') return splitLines(value)
   if (!isPlainObject(value)) return fallback
@@ -875,4 +875,3 @@ export const profileFieldKeys = [
   'storeFakeIp',
   'store-fake-ip',
 ]
-

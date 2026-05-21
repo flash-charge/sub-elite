@@ -229,7 +229,9 @@ export const proxyTypeOptions = [
   'socks5',
   'http',
   'wireguard',
+  'tailscale',
   'ssh',
+  'openvpn',
   'direct',
   'dns',
 ]
@@ -247,7 +249,9 @@ export const proxyTypeLabels = {
   socks5: 'SOCKS5',
   http: 'HTTP',
   wireguard: 'WireGuard',
+  tailscale: 'Tailscale',
   ssh: 'SSH',
+  openvpn: 'OpenVPN',
   dns: 'DNS',
   direct: 'DIRECT',
 }

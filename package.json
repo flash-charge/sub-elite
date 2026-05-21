@@ -11,7 +11,8 @@
     "archive:cloudflare": "npm run build && node scripts/make-zip.mjs dist sub-elite-cloudflare-pages.zip",
     "pages:dev": "npm run build && wrangler pages dev dist",
     "preview": "npm run build && node --experimental-strip-types server/index.ts",
-    "test": "node --experimental-strip-types --test server/converter.test.js"
+    "test": "node --experimental-strip-types --test server/converter.test.js",
+    "mihomo:check": "node --experimental-strip-types scripts/validate-mihomo.mjs"
   },
   "dependencies": {
     "yaml": "^2.8.4"

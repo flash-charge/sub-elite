@@ -33,7 +33,9 @@ export const REQUIRED_PROXY_FIELDS: Record<string, string[]> = {
   hysteria2: ['server', 'port', 'password'],
   tuic: ['server', 'port', 'uuid', 'password'],
   wireguard: ['server', 'port', 'private-key', 'public-key'],
+  tailscale: [],
   ssh: ['server', 'port', 'username'],
+  openvpn: ['server', 'port', 'ca', 'tls-crypt'],
 }
 
 export function formatKey(key) {
