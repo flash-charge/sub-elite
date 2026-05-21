@@ -6,6 +6,7 @@ import {
   ssrObfsOptions, hysteriaProtocolOptions, tuicUdpRelayModeOptions,
   tuicCongestionControllerOptions, mieruTransportOptions, httpMethodOptions,
   shadowsocksCipherOptions, shadowsocksPluginOptions,
+  hysteria2BbrProfileOptions, hysteria2ObfsOptions,
 } from './constants.ts'
 import { escapeHtml, escapeAttr, isPlainObject, compactObject, splitLinesOrComma, normalizeProxyType } from './utils.ts'
 import { applyPlaceholders, showValidation } from './app.js'
@@ -121,11 +122,11 @@ function manualNodeFieldDefinitions(type, values = {}) {
       { key: 'hop-interval', label: 'Hop Interval', placeholder: '30 or 15-30' },
       { key: 'up', label: 'Up' },
       { key: 'down', label: 'Down' },
-      { key: 'bbr-profile', label: 'BBR Profile', type: 'select', options: ['', 'standard', 'conservative', 'aggressive'], defaultValue: '' },
-      { key: 'obfs', label: 'Obfs', type: 'select', options: ['', 'salamander'], defaultValue: '' },
+      { key: 'bbr-profile', label: 'BBR Profile', type: 'select', options: hysteria2BbrProfileOptions, defaultValue: '' },
+      { key: 'obfs', label: 'Obfs', type: 'select', options: hysteria2ObfsOptions, defaultValue: '' },
       { key: 'obfs-password', label: 'Obfs Password', placeholder: 'obfs-password' },
       ...manualTlsFields(['h3']),
-      manualFieldGroup('Realm', [
+      manualFieldGroup('realm-opts', [
         { key: 'realm.enable', label: 'realm-opts.enable', type: 'checkbox' },
         { key: 'realm.server-url', label: 'realm-opts.server-url', placeholder: 'https://realm.hy2.io' },
         { key: 'realm.token', label: 'realm-opts.token', placeholder: 'public' },
