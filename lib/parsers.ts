@@ -277,7 +277,8 @@ function parseHysteria(link) {
 }
 
 function parseHysteria2(link) {
-  const url = toUrl(link.replace(/^hy2:\/\//i, 'hysteria2://'))
+  const { link: normalizedLink, authorityPorts } = normalizeHysteria2PortHoppingUrl(link)
+  const url = toUrl(normalizedLink)
   const params = url.searchParams
   const stunServers = params.get('stun-servers') || params.get('stunServers')
 
@@ -287,7 +288,7 @@ function parseHysteria2(link) {
     server: required(url.hostname, 'server'),
     port: toPort(url.port),
     password: required(decodeText(url.username), 'password'),
-    ports: params.get('ports') || undefined,
+    ports: params.get('ports') || authorityPorts || undefined,
     'hop-interval': params.get('hop-interval') || params.get('hopInterval') || undefined,
     up: params.get('up') || undefined,
     down: params.get('down') || undefined,
@@ -312,6 +313,43 @@ function parseHysteria2(link) {
       alpn: (params.get('realm-alpn') || params.get('realmAlpn'))?.split(',') || undefined,
     }),
   })
+}
+
+function normalizeHysteria2PortHoppingUrl(link) {
+  const normalizedLink = link.replace(/^hy2:\/\//i, 'hysteria2://')
+  const match = normalizedLink.match(/^(hysteria2:\/\/)([^/?#]*)(.*)$/i)
+  if (!match) return { link: normalizedLink, authorityPorts: '' }
+
+  const [, scheme, authority, suffix] = match
+  const atIndex = authority.lastIndexOf('@')
+  const userinfo = atIndex >= 0 ? authority.slice(0, atIndex + 1) : ''
+  const hostPort = atIndex >= 0 ? authority.slice(atIndex + 1) : authority
+  const parsed = splitHysteria2HostPort(hostPort)
+  if (!parsed?.portText || !isPortRangeText(parsed.portText)) return { link: normalizedLink, authorityPorts: '' }
+
+  const firstPort = parsed.portText.match(/\d+/)?.[0] || ''
+  if (!firstPort || parsed.portText === firstPort) return { link: normalizedLink, authorityPorts: '' }
+
+  return {
+    link: `${scheme}${userinfo}${parsed.host}:${firstPort}${suffix}`,
+    authorityPorts: parsed.portText,
+  }
+}
+
+function splitHysteria2HostPort(hostPort) {
+  if (hostPort.startsWith('[')) {
+    const end = hostPort.indexOf(']')
+    if (end === -1 || hostPort[end + 1] !== ':') return null
+    return { host: hostPort.slice(0, end + 1), portText: hostPort.slice(end + 2) }
+  }
+
+  const colon = hostPort.lastIndexOf(':')
+  if (colon === -1) return null
+  return { host: hostPort.slice(0, colon), portText: hostPort.slice(colon + 1) }
+}
+
+function isPortRangeText(value) {
+  return /^\d+(?:-\d+)?(?:,\d+(?:-\d+)?)*$/.test(String(value || '').trim())
 }
 
 function parseTuic(link) {

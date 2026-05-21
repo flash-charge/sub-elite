@@ -122,6 +122,7 @@ test('parseLink supports alpn and bandwidth parameters', () => {
   const vless = parseLink('vless://uuid@example.com:443?security=tls&alpn=h2,http/1.1#V')
   const tuic = parseLink('tuic://uuid:pass@example.com:443?alpn=h3#T')
   const hy2 = parseLink('hy2://pass@example.com:443?up=100&down=100&alpn=h3&ports=443-8443&hop-interval=15-30&bbr-profile=standard&realm-enable=1&realm-server-url=https%3A%2F%2Frealm.hy2.io&realm-token=public&realm-id=my-realm&stun-servers=stun.nextcloud.com%3A3478,stun.sip.us%3A3478&realm-sni=realm.hy2.io&realm-skip-cert-verify=1&realm-fingerprint=abcd&realm-alpn=h3#H')
+  const hy2PortHop = parseLink('hysteria2://superdecrypt-dev@hy2.vsx.qzz.io:443,20000-50000/?obfs=salamander&obfs-password=superdecrypt-dev&sni=hy2.vsx.qzz.io&insecure=0')
 
   assert.deepEqual(vless.alpn, ['h2', 'http/1.1'])
   assert.deepEqual(tuic.alpn, ['h3'])
@@ -142,6 +143,13 @@ test('parseLink supports alpn and bandwidth parameters', () => {
     fingerprint: 'abcd',
     alpn: ['h3'],
   })
+  assert.equal(hy2PortHop.server, 'hy2.vsx.qzz.io')
+  assert.equal(hy2PortHop.port, 443)
+  assert.equal(hy2PortHop.ports, '443,20000-50000')
+  assert.equal(hy2PortHop.obfs, 'salamander')
+  assert.equal(hy2PortHop['obfs-password'], 'superdecrypt-dev')
+  assert.equal(hy2PortHop.sni, 'hy2.vsx.qzz.io')
+  assert.equal(hy2PortHop['skip-cert-verify'], false)
 })
 
 test('parseLink supports advanced transports', () => {
