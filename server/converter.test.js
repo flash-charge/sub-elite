@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { autoFixConfigModel, buildYamlFromModel, convertToClashMeta, extractLinks, parseLink, validateConfigModel } from '../lib/converter.ts'
 import { normalizeClientModel, normalizeSniffForText } from '../src/model.ts'
+import { escapeAttr, escapeHtml } from '../src/utils.ts'
 
 test('extractLinks decodes base64 subscription text', () => {
   const source = [
@@ -11,6 +12,12 @@ test('extractLinks decodes base64 subscription text', () => {
   const encoded = Buffer.from(source).toString('base64')
 
   assert.deepEqual(extractLinks(encoded), source.split('\n'))
+})
+
+test('editor escaping never renders missing values as undefined text', () => {
+  assert.equal(escapeHtml(undefined), '')
+  assert.equal(escapeAttr(null), '')
+  assert.equal(escapeHtml('undefined'), 'undefined')
 })
 
 test('extractLinks supports comma-separated config links', () => {

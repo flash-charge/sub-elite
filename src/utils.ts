@@ -58,7 +58,8 @@ export function clone<T>(value: T): T {
 }
 
 export function escapeHtml(value: unknown): string {
-  return String(value).replace(/[&<>"']/g, (char) => ({
+  const text = value === undefined || value === null ? '' : String(value)
+  return text.replace(/[&<>"']/g, (char) => ({
     '&': '&amp;',
     '<': '&lt;',
     '>': '&gt;',
