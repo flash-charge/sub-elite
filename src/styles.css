@@ -475,33 +475,6 @@ textarea:focus {
   grid-template-columns: 1fr;
 }
 
-.plugin-panel {
-  display: grid;
-  justify-items: center;
-  margin-top: 12px;
-  padding: 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: var(--shadow-soft);
-}
-
-.plugin-frame-shell {
-  width: min(320px, 100%);
-  aspect-ratio: 32 / 25;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface-soft);
-}
-
-.plugin-frame-shell iframe {
-  display: block;
-  width: 100%;
-  height: 100%;
-  border: 0;
-}
-
 .wide-field {
   grid-column: 1 / -1;
 }
