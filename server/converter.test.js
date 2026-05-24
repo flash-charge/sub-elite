@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { autoFixConfigModel, buildYamlFromModel, convertToClashMeta, extractLinks, parseLink, validateConfigModel } from '../lib/converter.ts'
-import { normalizeClientModel, normalizeSniffForText } from '../src/model.ts'
+import { modelFromYamlObject, normalizeClientModel, normalizeSniffForText } from '../src/model.ts'
 import { escapeAttr, escapeHtml } from '../src/utils.ts'
 
 test('extractLinks decodes base64 subscription text', () => {
@@ -543,6 +543,28 @@ test('buildYamlFromModel keeps service and rule sections in readable order', () 
   assert.ok(yaml.indexOf('\nntp:') < yaml.indexOf('\nsniffer:'))
   assert.ok(yaml.indexOf('\nrule-providers:') < yaml.indexOf('\nsub-rules:'))
   assert.ok(yaml.indexOf('\nsub-rules:') < yaml.indexOf('\nrules:'))
+})
+
+test('imported yaml is rebuilt with canonical top-level section order', () => {
+  const model = normalizeClientModel(modelFromYamlObject({
+    'mixed-port': 7890,
+    'geodata-loader': 'memconservative',
+    dns: { enable: true, nameserver: ['8.8.8.8'] },
+    sniffer: { enable: true },
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x' }],
+    'proxy-groups': [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
+    rules: ['RULE-SET,ads,REJECT', 'MATCH,PROXY'],
+    'rule-providers': { ads: { type: 'http', behavior: 'classical', path: './rules/ads.yaml', url: 'https://example.com/ads.yaml' } },
+    'geodata-mode': true,
+    'geo-auto-update': true,
+    'geo-update-interval': 24,
+  }))
+  const yaml = buildYamlFromModel(model)
+
+  assert.ok(yaml.indexOf('\ngeodata-mode: true') < yaml.indexOf('\ndns:'))
+  assert.ok(yaml.indexOf('\ndns:') < yaml.indexOf('\nsniffer:'))
+  assert.ok(yaml.indexOf('\nrule-providers:') < yaml.indexOf('\nrules:'))
+  assert.doesNotMatch(yaml.slice(yaml.indexOf('\nrule-providers:')), /\ngeodata-mode: true/)
 })
 
 test('dumpYaml correctly escapes keys with special characters', () => {

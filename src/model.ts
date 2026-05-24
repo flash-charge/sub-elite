@@ -40,6 +40,7 @@ export function modelFromYamlObject(raw, { template = '', rulesPreset = '' } = {
     'tls',
     'profile',
     'geodata-mode',
+    'geodata-loader',
     'geo-auto-update',
     'geo-update-interval',
     'geox-url',
@@ -266,8 +267,8 @@ export function pickGeneralTopLevel(raw) {
 
 export function yamlGeoToModel(raw) {
   return {
-    ...omitKeys(raw, geoFieldKeys),
     geodataMode: raw['geodata-mode'],
+    geodataLoader: raw['geodata-loader'],
     geoAutoUpdate: raw['geo-auto-update'],
     geoUpdateInterval: raw['geo-update-interval'],
     geoxUrl: raw['geox-url'],
@@ -450,6 +451,7 @@ export function normalizeClientGeo(geo = {}) {
   return {
     ...extra,
     geodataMode: normalizeBooleanValue(geo.geodataMode ?? geo['geodata-mode']),
+    geodataLoader: ['standard', 'memconservative'].includes(geo.geodataLoader || geo['geodata-loader']) ? (geo.geodataLoader || geo['geodata-loader']) : '',
     geoAutoUpdate: normalizeBooleanValue(geo.geoAutoUpdate ?? geo['geo-auto-update']),
     geoUpdateInterval: geo.geoUpdateInterval ?? geo['geo-update-interval'] ?? 24,
     geoxUrl: {
@@ -464,6 +466,8 @@ export function normalizeClientGeo(geo = {}) {
 export const geoFieldKeys = [
   'geodataMode',
   'geodata-mode',
+  'geodataLoader',
+  'geodata-loader',
   'geoAutoUpdate',
   'geo-auto-update',
   'geoUpdateInterval',

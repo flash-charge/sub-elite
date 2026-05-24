@@ -394,20 +394,26 @@ async function createSubscriptionUrl() {
   createSubscriptionButton.textContent = isUpdate ? 'Updating...' : 'Creating...'
 
   try {
+    const subscriptionPayload = {
+      yaml: state.yaml,
+      ...(state.model && !state.yamlManualEdit ? { model: state.model } : {}),
+    }
     if (isUpdate) {
       const response = await fetchWithTimeout(apiUrl(`/api/subscriptions/${savedSecret}`), {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ yaml: state.yaml }),
+        body: JSON.stringify(subscriptionPayload),
       })
       const payload = await readJsonResponse(response, 'Update failed.')
       if (!response.ok) throw new Error(payload.error || 'Update failed.')
+      state.subscriptionUrl = `${location.origin}/sub/${savedSecret}/${filenameInput.value || 'config.yaml'}`
+      renderSubscriptionUrl()
       showToast('Subscription URL updated.')
     } else {
       const response = await fetchWithTimeout(apiUrl('/api/subscriptions'), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ yaml: state.yaml, expiresIn: 'never', filename: filenameInput.value }),
+        body: JSON.stringify({ ...subscriptionPayload, expiresIn: 'never', filename: filenameInput.value }),
       })
       const payload = await readJsonResponse(response, 'Subscription URL failed.')
       if (!response.ok) throw new Error(payload.error || 'Subscription URL failed.')
