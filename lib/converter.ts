@@ -426,6 +426,9 @@ export function autoFixConfigModel(model) {
   }
   const fixedRuleTargets = fixRulePolicyTargets(fixed.rules, fixed)
   if (fixedRuleTargets > 0) fixes.push(`${fixedRuleTargets} missing rule target${fixedRuleTargets === 1 ? '' : 's'} were replaced with a safe fallback.`)
+  const fixedMatchRules = fixMatchRuleOrder(fixed.rules)
+  if (fixedMatchRules.moved) fixes.push('MATCH rule was moved to the end.')
+  if (fixedMatchRules.removed > 0) fixes.push(`${fixedMatchRules.removed} duplicate MATCH rule${fixedMatchRules.removed === 1 ? '' : 's'} were removed.`)
   let fixedSubRuleTargets = 0
   Object.values(fixed.subRules || {}).forEach((rules) => {
     fixedSubRuleTargets += fixRulePolicyTargets(rules, fixed)
@@ -1895,6 +1898,25 @@ function fixRulePolicyTargets(rules, model) {
   })
 
   return fixedCount
+}
+
+function fixMatchRuleOrder(rules) {
+  if (!Array.isArray(rules)) return { moved: false, removed: 0 }
+  const matchRules: string[] = []
+  const otherRules: string[] = []
+
+  rules.forEach((rule) => {
+    const [type] = splitRuleParts(rule)
+    if (type === 'MATCH') matchRules.push(rule)
+    else otherRules.push(rule)
+  })
+  if (!matchRules.length) return { moved: false, removed: 0 }
+
+  const nextRules = [...otherRules, matchRules[0]]
+  const changed = nextRules.length !== rules.length || nextRules.some((rule, index) => rule !== rules[index])
+  if (changed) rules.splice(0, rules.length, ...nextRules)
+
+  return { moved: changed && otherRules.length > 0, removed: Math.max(0, matchRules.length - 1) }
 }
 
 function policyTargetNames(model) {

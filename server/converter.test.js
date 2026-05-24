@@ -1096,6 +1096,19 @@ test('autoFixConfigModel applies safe fixes without removing user config', () =>
   assert.doesNotMatch(yaml, /MissingProvider/)
 })
 
+test('autoFixConfigModel moves MATCH rules after reachable rules', () => {
+  const result = autoFixConfigModel({
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
+    rules: ['MATCH,PROXY', 'DOMAIN,example.com,DIRECT', 'MATCH,DIRECT'],
+  })
+
+  assert.deepEqual(result.model.rules, ['DOMAIN,example.com,DIRECT', 'MATCH,PROXY'])
+  assert.equal(result.fixes.some((fix) => fix.includes('MATCH rule was moved')), true)
+  assert.equal(validateConfigModel(result.model).issues.some((issue) => issue.code === 'match-not-last'), false)
+})
+
 test('buildYamlFromModel omits missing proxy providers from group use', () => {
   const yaml = buildYamlFromModel({
     template: 'full',
