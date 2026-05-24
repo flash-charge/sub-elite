@@ -525,6 +525,26 @@ test('buildYamlFromModel adds readable spacing between top-level sections', () =
   assert.match(result.yaml, /- "Spacing"\n\nrules:/)
 })
 
+test('buildYamlFromModel keeps service and rule sections in readable order', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    general: { mixedPort: 7890 },
+    dns: { nameserver: ['8.8.8.8'] },
+    ntp: { enable: true, server: 'time.apple.com' },
+    sniffer: { enable: true },
+    ruleProviders: [{ name: 'ads', type: 'http', behavior: 'domain', path: './rules/ads.yaml', url: 'https://example.com/ads.yaml' }],
+    subRules: { directOnly: ['MATCH,DIRECT'] },
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'] }],
+    rules: ['SUB-RULE,(DOMAIN,example.com),directOnly', 'RULE-SET,ads,REJECT', 'MATCH,PROXY'],
+  })
+
+  assert.ok(yaml.indexOf('\ndns:') < yaml.indexOf('\nntp:'))
+  assert.ok(yaml.indexOf('\nntp:') < yaml.indexOf('\nsniffer:'))
+  assert.ok(yaml.indexOf('\nrule-providers:') < yaml.indexOf('\nsub-rules:'))
+  assert.ok(yaml.indexOf('\nsub-rules:') < yaml.indexOf('\nrules:'))
+})
+
 test('dumpYaml correctly escapes keys with special characters', () => {
   const model = {
     template: 'full',
