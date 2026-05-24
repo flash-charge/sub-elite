@@ -2393,6 +2393,10 @@ summary {
     background: linear-gradient(180deg, #121a22 0, var(--bg) 280px);
   }
 
+  .sticky-actions {
+    background: linear-gradient(180deg, rgba(15, 20, 25, 0), rgba(15, 20, 25, 0.96) 30%);
+  }
+
   .view-tabs {
     background: rgba(20, 28, 36, 0.94);
     box-shadow: 0 -18px 38px rgba(0, 0, 0, 0.4);
@@ -2439,14 +2443,38 @@ summary {
   }
 
   .option-panel,
-  .edit-stage {
+  .edit-stage,
+  .subscription-panel,
+  .section-preview,
+  .stats div,
+  .panel-title,
+  .node-row,
+  .group-row,
+  .advanced-inline,
+  .node-option-section,
+  .editor-field-section,
+  .empty-state {
     background: rgba(28, 37, 48, 0.96);
     box-shadow: var(--shadow);
+  }
+
+  .stats div:nth-child(2) {
+    border-color: rgba(20, 200, 168, 0.26);
+    background: linear-gradient(180deg, rgba(28, 37, 48, 0.96), var(--accent-soft));
+  }
+
+  .stats div:nth-child(3) {
+    border-color: rgba(232, 168, 48, 0.26);
   }
 
   .option-panel label,
   .subscription-head label {
     border-color: var(--line);
+    background: var(--surface-soft);
+  }
+
+  .editor-section-select select,
+  .node-filter-bar {
     background: var(--surface-soft);
   }
 
