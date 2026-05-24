@@ -2417,9 +2417,20 @@ summary {
     background: rgba(18, 26, 34, 0.94);
   }
 
+  .editor-section-select,
+  .edit-nav {
+    background: rgba(18, 26, 34, 0.94);
+  }
+
   .ghost-button {
     background: var(--surface);
     box-shadow: var(--shadow-soft);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .ghost-button:not(:disabled):hover {
+      background: var(--surface);
+    }
   }
 
   .primary-button {
@@ -2474,7 +2485,11 @@ summary {
   }
 
   .editor-section-select select,
-  .node-filter-bar {
+  .node-filter-bar,
+  .check-row,
+  .checkbox-row,
+  .checkbox-list,
+  .alpn-chip {
     background: var(--surface-soft);
   }
 
