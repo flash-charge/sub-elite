@@ -1576,6 +1576,53 @@ details[open] > .sheet-grid {
   grid-column: 1 / -1;
 }
 
+.provider-editor-stack {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+}
+
+.provider-option-section .nested-node-fields {
+  display: grid;
+  gap: 10px;
+}
+
+.health-check-fields {
+  display: grid;
+  gap: 10px;
+}
+
+.health-check-fields.is-disabled {
+  opacity: 0.62;
+}
+
+.proxy-type-chip-list {
+  max-height: 184px;
+  overflow: auto;
+}
+
+.proxy-name-rules,
+.proxy-name-rule-list {
+  display: grid;
+  gap: 8px;
+}
+
+.proxy-name-rule-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  align-items: end;
+}
+
+.proxy-name-rule-add,
+.proxy-name-rule-delete {
+  min-height: 38px;
+}
+
+.provider-payload-editor {
+  min-height: 180px;
+}
+
 .preset-actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2199,6 +2246,10 @@ summary {
   .provider-create-grid,
   .provider-edit-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .proxy-name-rule-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
   }
 
   .inline-form {

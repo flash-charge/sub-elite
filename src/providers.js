@@ -1,11 +1,140 @@
-import { state, ruleProviderName, ruleProviderUrl, ruleProviderBehavior, ruleProviderTarget, ruleProviderFormat, ruleProviderList, proxyProviderName, proxyProviderUrl, proxyProviderType, proxyProviderList } from './state.js'
-import { escapeHtml, escapeAttr, splitLines, valueOrEmpty } from './utils.ts'
-import { providerTypes } from './constants.ts'
+import { state, ruleProviderName, ruleProviderUrl, ruleProviderBehavior, ruleProviderTarget, ruleProviderFormat, ruleProviderList, proxyProviderName, proxyProviderUrl, proxyProviderPath, proxyProviderType, proxyProviderList } from './state.js'
+import { compactObject, escapeHtml, escapeAttr, isPlainObject, splitLines, valueOrEmpty } from './utils.ts'
+import { providerTypes, proxyTypeLabels, proxyTypeOptions } from './constants.ts'
 import { renderSelectOptions, textToPolicy, policyToText, parseJsonOrLines } from './proxy-fields.js'
 import { updateYamlFromModel } from './yaml-tools.js'
 import { showToast, showValidation, applyPlaceholders } from './app.js'
 import { validEditableName, hasDuplicateName, hasDuplicateNameExcept, rejectEmptyNameInput, rejectRuleSeparatorNameInput, generatedProviderPath, syncGeneratedProviderPath, removeGroupProviderName, replaceGroupProviderName, renderGroups } from './groups.js'
 import { validPolicyTarget, policyTargetOptions, syncProviderRule, replaceProviderRuleName, removeRuleProviderRules, presetRules } from './rules.js'
+
+const proxyProviderOverrideTextFields = [
+  ['additional-prefix', 'Additional Prefix', 'SG | '],
+  ['additional-suffix', 'Additional Suffix', ' | Auto'],
+  ['up', 'Upload', '50 Mbps'],
+  ['down', 'Download', '200 Mbps'],
+  ['dialer-proxy', 'Dialer Proxy', 'PROXY'],
+  ['interface-name', 'Interface Name', 'eth0'],
+  ['routing-mark', 'Routing Mark', '6666'],
+  ['ip-version', 'IP Version', 'ipv4'],
+]
+
+const proxyProviderOverrideBooleanFields = [
+  ['udp', 'UDP'],
+  ['tfo', 'TCP Fast Open'],
+  ['mptcp', 'MPTCP'],
+  ['skip-cert-verify', 'Skip Cert Verify'],
+  ['udp-over-tcp', 'UDP over TCP'],
+]
+
+const proxyProviderOverrideVisualKeys = new Set([
+  ...proxyProviderOverrideTextFields.map(([key]) => key),
+  ...proxyProviderOverrideBooleanFields.map(([key]) => key),
+  'proxy-name',
+])
+
+function providerSourceSummary(provider) {
+  if (provider.type === 'inline') return `${(provider.payload || []).length} inline nodes`
+  return provider.url || provider.path || 'No source configured'
+}
+
+function optionalPolicyTargetOptions(value = '') {
+  const options = policyTargetOptions()
+  const selected = value && options.includes(value) ? value : ''
+  return renderSelectOptions([
+    { value: '', label: 'default' },
+    ...options.map((option) => ({ value: option, label: option })),
+  ], selected)
+}
+
+function parseExcludeTypes(value) {
+  return new Set(String(value || '').split(/\||,|\s+/).map((item) => item.trim()).filter(Boolean))
+}
+
+function renderExcludeTypeChips(provider) {
+  const selected = parseExcludeTypes(provider.excludeType)
+  return `
+    <div class="checkbox-list proxy-type-chip-list" role="group" aria-label="Exclude Type">
+      ${proxyTypeOptions.map((type) => `
+        <label class="checkbox-chip">
+          <input type="checkbox" data-field="excludeTypeItem" value="${escapeAttr(type)}" ${selected.has(type) ? 'checked' : ''}>
+          <span>${escapeHtml(proxyTypeLabels[type] || type)}</span>
+        </label>
+      `).join('')}
+    </div>
+  `
+}
+
+function proxyProviderOverride(provider) {
+  if (!isPlainObject(provider.override)) provider.override = {}
+  return provider.override
+}
+
+function rawOverrideForDisplay(provider) {
+  const override = proxyProviderOverride(provider)
+  return policyToText(Object.fromEntries(
+    Object.entries(override).filter(([key]) => !proxyProviderOverrideVisualKeys.has(key)),
+  ))
+}
+
+function visualOverrideEntries(provider) {
+  const override = proxyProviderOverride(provider)
+  return Object.fromEntries(Object.entries(override).filter(([key]) => proxyProviderOverrideVisualKeys.has(key)))
+}
+
+function renderOverrideTextField(provider, [key, label, placeholder]) {
+  const value = proxyProviderOverride(provider)[key] ?? ''
+  return `<label><span>${escapeHtml(label)}</span><input type="text" data-field="overrideText" data-override-key="${escapeAttr(key)}" value="${escapeAttr(value)}" placeholder="${escapeAttr(placeholder)}"></label>`
+}
+
+function renderOverrideToggle(provider, [key, label]) {
+  return `<label class="checkbox-row"><input type="checkbox" data-field="overrideBoolean" data-override-key="${escapeAttr(key)}" ${proxyProviderOverride(provider)[key] ? 'checked' : ''}> ${escapeHtml(label)}</label>`
+}
+
+function proxyNameRules(provider) {
+  const value = proxyProviderOverride(provider)['proxy-name']
+  return Array.isArray(value) ? value.filter(isPlainObject) : []
+}
+
+function renderProxyNameRules(provider) {
+  const rules = proxyNameRules(provider)
+  return `
+    <div class="wide-field proxy-name-rules">
+      <span>Rename Rules</span>
+      <div class="proxy-name-rule-list">
+        ${rules.length ? rules.map((rule, ruleIndex) => `
+          <div class="proxy-name-rule-row">
+            <label><span>Pattern</span><input type="text" data-field="proxyNamePattern" data-rule-index="${ruleIndex}" value="${escapeAttr(rule.pattern || '')}" placeholder="IPLC-(.*?)x"></label>
+            <label><span>Target</span><input type="text" data-field="proxyNameTarget" data-rule-index="${ruleIndex}" value="${escapeAttr(rule.target || '')}" placeholder="iplc x $1"></label>
+            <button type="button" class="ghost-button proxy-name-rule-delete" data-action="delete-proxy-name-rule" data-rule-index="${ruleIndex}">Remove</button>
+          </div>
+        `).join('') : '<p class="field-hint">No rename rules yet.</p>'}
+      </div>
+      <button type="button" class="ghost-button proxy-name-rule-add" data-action="add-proxy-name-rule">Add Rename Rule</button>
+    </div>
+  `
+}
+
+function setOverrideValue(provider, key, value) {
+  const override = proxyProviderOverride(provider)
+  if (value === '' || value === undefined || value === null) delete override[key]
+  else override[key] = value
+}
+
+function setProxyNameRuleValue(provider, ruleIndex, key, value) {
+  const override = proxyProviderOverride(provider)
+  const rules = proxyNameRules(provider)
+  if (!rules[ruleIndex]) rules[ruleIndex] = {}
+  rules[ruleIndex] = { ...rules[ruleIndex], [key]: value }
+  override['proxy-name'] = rules
+}
+
+function mergeRawOverride(provider, value) {
+  const raw = textToPolicy(value, { typedValues: true })
+  provider.override = compactObject({
+    ...raw,
+    ...visualOverrideEntries(provider),
+  })
+}
 
 export function renderRuleProviders() {
   ruleProviderList.replaceChildren()
@@ -82,6 +211,11 @@ export function renderProxyProviders() {
 
   proxyProviderList.classList.remove('empty-state')
   state.model.proxyProviders.forEach((provider, index) => {
+    const providerType = provider.type || 'http'
+    const remoteProvider = providerType === 'http'
+    const localProvider = providerType === 'file'
+    const inlineProvider = providerType === 'inline'
+    const healthEnabled = provider.healthCheck?.enable
     const row = document.createElement('details')
     row.className = 'editor-field-section provider-row'
     row.open = index === 0
@@ -89,48 +223,94 @@ export function renderProxyProviders() {
       <summary>
         <span class="provider-summary">
           <strong>${escapeHtml(provider.name || 'Unnamed provider')}</strong>
-          <em>${escapeHtml(provider.type || 'http')}</em>
+          <em>${escapeHtml(providerType)}</em>
         </span>
-        <small>${escapeHtml(provider.url || provider.path || 'No source configured')}</small>
+        <small>${escapeHtml(providerSourceSummary(provider))}</small>
       </summary>
-      <div class="form-grid section-grid provider-edit-grid">
-        <label><span>Name</span><input type="text" data-field="name" value="${escapeAttr(valueOrEmpty(provider.name))}"></label>
-        <label><span>Type</span><select data-field="type">
-          ${providerTypes.map((type) => `<option value="${type}" ${type === provider.type ? 'selected' : ''}>${type}</option>`).join('')}
-        </select></label>
-        <label class="wide-field"><span>URL</span><input type="text" data-field="url" value="${escapeAttr(valueOrEmpty(provider.url))}"></label>
-        <label><span>Path</span><input type="text" data-field="path" value="${escapeAttr(valueOrEmpty(provider.path))}"></label>
-        <label><span>Interval</span><input type="text" data-field="interval" value="${escapeAttr(valueOrEmpty(provider.interval))}"></label>
-        <label><span>Proxy</span><input type="text" data-field="proxy" value="${escapeAttr(provider.proxy || '')}"></label>
-        <label><span>Size Limit</span><input type="text" data-field="sizeLimit" value="${escapeAttr(provider.sizeLimit || '')}"></label>
-      </div>
-      <div class="form-grid section-grid provider-edit-grid provider-subsection">
-        <label><span>Filter</span><input type="text" data-field="filter" value="${escapeAttr(provider.filter || '')}"></label>
-        <label><span>Exclude Filter</span><input type="text" data-field="excludeFilter" value="${escapeAttr(provider.excludeFilter || '')}"></label>
-        <label><span>Exclude Type</span><input type="text" data-field="excludeType" value="${escapeAttr(provider.excludeType || '')}"></label>
-      </div>
-      <div class="form-grid section-grid provider-edit-grid provider-subsection">
-        <label class="checkbox-row"><input type="checkbox" data-field="healthCheckEnable" ${provider.healthCheck?.enable ? 'checked' : ''}> Health Check</label>
-        <label class="checkbox-row"><input type="checkbox" data-field="healthCheckLazy" ${provider.healthCheck?.lazy !== false ? 'checked' : ''}> Lazy Health Check</label>
-        <label class="wide-field"><span>Health URL</span><input type="text" data-field="healthCheckUrl" value="${escapeAttr(provider.healthCheck?.url || 'https://www.gstatic.com/generate_204')}"></label>
-        <label><span>Health Interval</span><input type="text" data-field="healthCheckInterval" value="${escapeAttr(provider.healthCheck?.interval || 300)}"></label>
-        <label><span>Health Timeout</span><input type="text" data-field="healthCheckTimeout" value="${escapeAttr(provider.healthCheck?.timeout || 5000)}"></label>
-        <label><span>Expected Status</span><input type="text" data-field="healthCheckExpectedStatus" value="${escapeAttr(provider.healthCheck?.expectedStatus || '')}"></label>
-      </div>
-      <div class="form-grid section-grid provider-edit-grid provider-subsection">
-        <label><span>Header</span><textarea class="mini-editor" data-field="header">${escapeHtml(policyToText(provider.header))}</textarea></label>
-        <label><span>Override</span><textarea class="mini-editor" data-field="override">${escapeHtml(policyToText(provider.override))}</textarea></label>
-        <label class="wide-field"><span>Inline Payload</span><textarea class="mini-editor" data-field="payload">${escapeHtml(JSON.stringify(provider.payload || [], null, 2))}</textarea></label>
-        <button type="button" class="ghost-button provider-delete-button" data-action="delete">Delete Provider</button>
+      <div class="provider-editor-stack">
+        <details class="node-option-section provider-option-section" open>
+          <summary>Source</summary>
+          <div class="nested-node-fields form-grid provider-edit-grid">
+            <label><span>Name</span><input type="text" data-field="name" value="${escapeAttr(valueOrEmpty(provider.name))}"></label>
+            <label><span>Type</span><select data-field="type">
+              ${providerTypes.map((type) => `<option value="${type}" ${type === providerType ? 'selected' : ''}>${type}</option>`).join('')}
+            </select></label>
+            ${remoteProvider ? `<label class="wide-field"><span>URL</span><input type="text" data-field="url" value="${escapeAttr(valueOrEmpty(provider.url))}"></label>` : ''}
+            ${remoteProvider || localProvider ? `<label><span>Path</span><input type="text" data-field="path" value="${escapeAttr(valueOrEmpty(provider.path))}"></label>` : ''}
+            ${remoteProvider || localProvider ? `<label><span>Interval</span><input type="text" data-field="interval" value="${escapeAttr(valueOrEmpty(provider.interval))}"></label>` : ''}
+            ${remoteProvider ? `<label><span>Proxy</span><select data-field="proxy">${optionalPolicyTargetOptions(provider.proxy || '')}</select></label>` : ''}
+            ${remoteProvider ? `<label><span>Size Limit</span><input type="text" data-field="sizeLimit" value="${escapeAttr(provider.sizeLimit || '')}" placeholder="0"></label>` : ''}
+            ${remoteProvider ? `<label class="wide-field"><span>Header</span><textarea class="mini-editor" data-field="header">${escapeHtml(policyToText(provider.header))}</textarea></label>` : ''}
+            ${inlineProvider ? `<label class="wide-field"><span>Inline Payload</span><textarea class="mini-editor provider-payload-editor" data-field="payload">${escapeHtml(JSON.stringify(provider.payload || [], null, 2))}</textarea></label>` : ''}
+          </div>
+        </details>
+        <details class="node-option-section provider-option-section" open>
+          <summary>Health Check</summary>
+          <div class="nested-node-fields form-grid provider-edit-grid">
+            <label class="checkbox-row wide-field"><input type="checkbox" data-field="healthCheckEnable" ${healthEnabled ? 'checked' : ''}> Enable health check</label>
+            <div class="health-check-fields wide-field ${healthEnabled ? '' : 'is-disabled'}">
+              <div class="form-grid provider-edit-grid">
+                <label class="checkbox-row"><input type="checkbox" data-field="healthCheckLazy" ${provider.healthCheck?.lazy !== false ? 'checked' : ''} ${healthEnabled ? '' : 'disabled'}> Lazy Health Check</label>
+                <label class="wide-field"><span>Health URL</span><input type="text" data-field="healthCheckUrl" value="${escapeAttr(provider.healthCheck?.url || 'https://www.gstatic.com/generate_204')}" ${healthEnabled ? '' : 'disabled'}></label>
+                <label><span>Health Interval</span><input type="text" data-field="healthCheckInterval" value="${escapeAttr(provider.healthCheck?.interval || 300)}" ${healthEnabled ? '' : 'disabled'}></label>
+                <label><span>Health Timeout</span><input type="text" data-field="healthCheckTimeout" value="${escapeAttr(provider.healthCheck?.timeout || 5000)}" ${healthEnabled ? '' : 'disabled'}></label>
+                <label><span>Expected Status</span><input type="text" data-field="healthCheckExpectedStatus" value="${escapeAttr(provider.healthCheck?.expectedStatus || '')}" placeholder="204" ${healthEnabled ? '' : 'disabled'}></label>
+              </div>
+            </div>
+          </div>
+        </details>
+        <details class="node-option-section provider-option-section" open>
+          <summary>Filter</summary>
+          <div class="nested-node-fields form-grid provider-edit-grid">
+            <label><span>Filter</span><input type="text" data-field="filter" value="${escapeAttr(provider.filter || '')}" placeholder="(?i)singapore|sg"></label>
+            <label><span>Exclude Filter</span><input type="text" data-field="excludeFilter" value="${escapeAttr(provider.excludeFilter || '')}" placeholder="(?i)expired|test"></label>
+            <div class="wide-field">
+              <span>Exclude Type</span>
+              ${renderExcludeTypeChips(provider)}
+            </div>
+          </div>
+        </details>
+        <details class="node-option-section provider-option-section" open>
+          <summary>Override</summary>
+          <div class="nested-node-fields form-grid provider-edit-grid">
+            ${proxyProviderOverrideTextFields.map((field) => renderOverrideTextField(provider, field)).join('')}
+            <div class="wide-field compact-check-grid">
+              ${proxyProviderOverrideBooleanFields.map((field) => renderOverrideToggle(provider, field)).join('')}
+            </div>
+            ${renderProxyNameRules(provider)}
+          </div>
+        </details>
+        <details class="node-option-section provider-option-section">
+          <summary>Raw Override</summary>
+          <div class="nested-node-fields form-grid provider-edit-grid">
+            <label class="wide-field"><span>Custom override keys</span><textarea class="mini-editor" data-field="rawOverride">${escapeHtml(rawOverrideForDisplay(provider))}</textarea></label>
+          </div>
+        </details>
+        <div class="form-grid section-grid provider-edit-grid provider-subsection">
+          <button type="button" class="ghost-button provider-delete-button" data-action="delete">Delete Provider</button>
+        </div>
       </div>
     `
     row.addEventListener('input', (event) => handleProxyProviderInput(event, index))
     row.addEventListener('change', (event) => handleProxyProviderInput(event, index))
     row.addEventListener('click', (event) => {
-      if (event.target.closest('[data-action]')?.dataset.action === 'delete') {
+      const action = event.target.closest('[data-action]')?.dataset.action
+      if (action === 'delete') {
         const previousName = state.model.proxyProviders[index]?.name
         state.model.proxyProviders.splice(index, 1)
         if (previousName) removeGroupProviderName(previousName)
+        updateYamlFromModel()
+      }
+      if (action === 'add-proxy-name-rule') {
+        const provider = state.model.proxyProviders[index]
+        proxyProviderOverride(provider)['proxy-name'] = [...proxyNameRules(provider), { pattern: '', target: '' }]
+        updateYamlFromModel()
+      }
+      if (action === 'delete-proxy-name-rule') {
+        const provider = state.model.proxyProviders[index]
+        const ruleIndex = Number(event.target.closest('[data-action]')?.dataset.ruleIndex)
+        proxyProviderOverride(provider)['proxy-name'] = proxyNameRules(provider).filter((_, currentIndex) => currentIndex !== ruleIndex)
+        if (!proxyProviderOverride(provider)['proxy-name'].length) delete proxyProviderOverride(provider)['proxy-name']
         updateYamlFromModel()
       }
     })
@@ -194,9 +374,32 @@ export function handleProxyProviderInput(event, index) {
   if (field === 'interval') provider.interval = Number(event.target.value) || 3600
   else if (field === 'sizeLimit') provider.sizeLimit = Number(event.target.value) || 0
   else if (field === 'header') provider.header = textToPolicy(event.target.value)
-  else if (field === 'override') provider.override = textToPolicy(event.target.value, { typedValues: true })
+  else if (field === 'rawOverride') mergeRawOverride(provider, event.target.value)
+  else if (field === 'overrideText') {
+    const key = event.target.dataset.overrideKey
+    setOverrideValue(provider, key, event.target.value.trim())
+  }
+  else if (field === 'overrideBoolean') {
+    const key = event.target.dataset.overrideKey
+    setOverrideValue(provider, key, event.target.checked ? true : '')
+  }
+  else if (field === 'proxyNamePattern') {
+    setProxyNameRuleValue(provider, Number(event.target.dataset.ruleIndex), 'pattern', event.target.value)
+  }
+  else if (field === 'proxyNameTarget') {
+    setProxyNameRuleValue(provider, Number(event.target.dataset.ruleIndex), 'target', event.target.value)
+  }
+  else if (field === 'excludeTypeItem') {
+    const row = event.target.closest('.provider-row')
+    const values = [...row.querySelectorAll('[data-field="excludeTypeItem"]:checked')].map((item) => item.value)
+    provider.excludeType = values.join('|')
+  }
   else if (field === 'payload') provider.payload = parseJsonOrLines(event.target.value)
-  else if (field === 'healthCheckEnable') provider.healthCheck.enable = event.target.checked
+  else if (field === 'healthCheckEnable') {
+    provider.healthCheck.enable = event.target.checked
+    updateYamlFromModel()
+    return
+  }
   else if (field === 'healthCheckUrl') provider.healthCheck.url = event.target.value
   else if (field === 'healthCheckInterval') provider.healthCheck.interval = Number(event.target.value) || 300
   else if (field === 'healthCheckTimeout') provider.healthCheck.timeout = Number(event.target.value) || 5000
@@ -206,6 +409,9 @@ export function handleProxyProviderInput(event, index) {
     provider.type = providerTypes.includes(event.target.value) ? event.target.value : 'http'
     updateYamlFromModel()
     return
+  }
+  else if (field === 'proxy') {
+    provider.proxy = policyTargetOptions().includes(event.target.value) ? event.target.value : ''
   }
   else provider[field] = event.target.value
   if (field === 'name') {
@@ -279,6 +485,8 @@ export function addProxyProvider() {
   if (!state.model) return
   const name = proxyProviderName.value.trim()
   const type = proxyProviderType.value
+  const url = proxyProviderUrl.value.trim()
+  const path = proxyProviderPath.value.trim()
   const nameIssue = validEditableName(name, 'Proxy provider')
   if (nameIssue) {
     showValidation(nameIssue, 'error')
@@ -288,15 +496,19 @@ export function addProxyProvider() {
     showValidation(`Proxy provider "${name}" already exists.`, 'error')
     return
   }
-  if (type !== 'inline' && !proxyProviderUrl.value.trim()) {
-    showValidation('URL is required for http/file proxy providers.', 'error')
+  if (type === 'http' && !url) {
+    showValidation('HTTP proxy provider requires URL.', 'error')
+    return
+  }
+  if (type === 'file' && !path) {
+    showValidation('File proxy provider requires path.', 'error')
     return
   }
   state.model.proxyProviders.push({
     name,
     type,
-    url: proxyProviderUrl.value.trim(),
-    path: generatedProviderPath('./proxy_providers', name),
+    url: type === 'http' ? url : '',
+    path: type === 'inline' ? '' : (path || generatedProviderPath('./proxy_providers', name)),
     interval: 3600,
     healthCheck: {
       enable: true,
@@ -309,6 +521,7 @@ export function addProxyProvider() {
   })
   proxyProviderName.value = ''
   proxyProviderUrl.value = ''
+  proxyProviderPath.value = ''
   updateYamlFromModel()
 }
 

@@ -343,6 +343,28 @@ export function normalizeProxyProviderPayload(value) {
   return []
 }
 
+function normalizeProxyProviderProxyNameRules(value) {
+  const rules = Array.isArray(value) ? value : (isPlainObject(value) ? [value] : [])
+  return rules
+    .filter(isPlainObject)
+    .map((rule) => ({
+      pattern: String(rule.pattern || '').trim(),
+      target: String(rule.target || '').trim(),
+    }))
+    .filter((rule) => rule.pattern && rule.target)
+}
+
+export function normalizeProxyProviderOverride(value) {
+  if (!isPlainObject(value)) return {}
+  const override = { ...value }
+  if ('proxy-name' in override) {
+    const proxyNameRules = normalizeProxyProviderProxyNameRules(override['proxy-name'])
+    if (proxyNameRules.length) override['proxy-name'] = proxyNameRules
+    else delete override['proxy-name']
+  }
+  return override
+}
+
 export function omitKeys(value = {}, keys = []) {
   const omitted = new Set(keys)
   return Object.fromEntries(Object.entries(value || {}).filter(([key]) => !omitted.has(key)))
@@ -405,7 +427,7 @@ export function normalizeClientProxyProvider(provider) {
       lazy: normalizeBooleanValue(healthCheck.lazy ?? rawHealthCheck.lazy, true),
       expectedStatus: String(healthCheck.expectedStatus || rawHealthCheck['expected-status'] || '').trim(),
     },
-    override: isPlainObject(provider.override) ? provider.override : {},
+    override: normalizeProxyProviderOverride(provider.override),
     filter: String(provider.filter || '').trim(),
     excludeFilter: String(provider.excludeFilter || provider['exclude-filter'] || '').trim(),
     excludeType: String(provider.excludeType || provider['exclude-type'] || '').trim(),

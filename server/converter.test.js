@@ -1297,6 +1297,92 @@ test('proxy provider payload is emitted only for inline providers', () => {
   assert.doesNotMatch(yaml, /Inline A/)
 })
 
+test('proxy provider source fields follow provider type before export', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    proxyProviders: [
+      {
+        name: 'local-nodes',
+        type: 'file',
+        url: 'https://example.com/stale.yaml',
+        path: './proxy_providers/local.yaml',
+        interval: 600,
+        proxy: 'PROXY',
+        sizeLimit: 1024,
+        header: { authorization: 'Bearer x' },
+      },
+      {
+        name: 'inline-nodes',
+        type: 'inline',
+        url: 'https://example.com/stale.yaml',
+        path: './proxy_providers/stale.yaml',
+        interval: 600,
+        payload: [{ name: 'Inline A', type: 'trojan', server: 'inline.example', port: 443, password: 'secret' }],
+      },
+    ],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'], use: ['local-nodes', 'inline-nodes'] }],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.match(yaml, /local-nodes:\n\s+type: "file"\n\s+path: "\.\/proxy_providers\/local\.yaml"\n\s+interval: 600/)
+  assert.doesNotMatch(yaml, /stale\.yaml/)
+  assert.doesNotMatch(yaml, /size-limit: 1024/)
+  assert.doesNotMatch(yaml, /authorization:/)
+  assert.match(yaml, /inline-nodes:\n\s+type: "inline"\n\s+payload:/)
+})
+
+test('proxy provider override supports visual rename rules and custom keys', () => {
+  const yaml = buildYamlFromModel({
+    template: 'full',
+    proxies: [{ name: 'A', type: 'trojan', server: 'a.example', port: 443, password: 'x', enabled: true }],
+    proxyProviders: [{
+      name: 'remote-nodes',
+      type: 'http',
+      url: 'https://example.com/sub.yaml',
+      path: './proxy_providers/remote.yaml',
+      override: {
+        'additional-prefix': 'SG | ',
+        udp: true,
+        'skip-cert-verify': true,
+        'custom-key': 'custom-value',
+        'proxy-name': [
+          { pattern: 'IPLC-(.*?)x', target: 'iplc x $1' },
+          { pattern: '', target: '' },
+        ],
+      },
+    }],
+    groups: [{ name: 'PROXY', type: 'select', proxies: ['A'], use: ['remote-nodes'] }],
+    rules: ['MATCH,PROXY'],
+  })
+
+  assert.match(yaml, /override:/)
+  assert.match(yaml, /additional-prefix: "SG \| "/)
+  assert.match(yaml, /udp: true/)
+  assert.match(yaml, /skip-cert-verify: true/)
+  assert.match(yaml, /custom-key: "custom-value"/)
+  assert.match(yaml, /proxy-name:\n\s+-\n\s+pattern: "IPLC-\(\.\*\?\)x"\n\s+target: "iplc x \$1"/)
+  assert.doesNotMatch(yaml, /pattern: ""/)
+})
+
+test('normalizeClientModel trims incomplete proxy provider rename override rules', () => {
+  const model = normalizeClientModel({
+    template: 'full',
+    proxyProviders: [{
+      name: 'remote-nodes',
+      type: 'http',
+      override: {
+        'proxy-name': [
+          { pattern: ' IPLC-(.*?)x ', target: ' iplc x $1 ' },
+          { pattern: 'missing-target', target: '' },
+        ],
+      },
+    }],
+  })
+
+  assert.deepEqual(model.proxyProviders[0].override['proxy-name'], [{ pattern: 'IPLC-(.*?)x', target: 'iplc x $1' }])
+})
+
 test('proxy provider inline payload omits malformed string entries', () => {
   const yaml = buildYamlFromModel({
     template: 'full',

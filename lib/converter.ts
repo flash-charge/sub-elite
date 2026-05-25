@@ -915,12 +915,12 @@ function buildProxyProviders(proxyProviders) {
           compact({
             ...extra,
             type: provider.type,
-            url: provider.url,
-            path: provider.path,
-            interval: provider.interval,
-            proxy: provider.proxy || undefined,
-            'size-limit': provider.sizeLimit || undefined,
-            header: provider.header,
+            url: provider.type === 'http' ? provider.url : undefined,
+            path: provider.type !== 'inline' ? provider.path : undefined,
+            interval: provider.type !== 'inline' ? provider.interval : undefined,
+            proxy: provider.type === 'http' ? provider.proxy || undefined : undefined,
+            'size-limit': provider.type === 'http' ? provider.sizeLimit || undefined : undefined,
+            header: provider.type === 'http' ? provider.header : undefined,
             'health-check': provider.healthCheck.enable ? compact({
               enable: true,
               url: provider.healthCheck.url,
@@ -1676,6 +1676,27 @@ function normalizeRuleProviderPayload(payload, behavior = 'classical') {
     : normalizeLineList(payload, [])
 }
 
+function normalizeProxyProviderProxyNameRules(value) {
+  const rules = Array.isArray(value) ? value : (isPlainObject(value) ? [value] : [])
+  return rules
+    .filter(isPlainObject)
+    .map((rule) => ({
+      pattern: String(rule.pattern || '').trim(),
+      target: String(rule.target || '').trim(),
+    }))
+    .filter((rule) => rule.pattern && rule.target)
+}
+
+function normalizeProxyProviderOverride(value) {
+  const override = normalizePolicy(value, { typedValues: true })
+  if ('proxy-name' in override) {
+    const proxyNameRules = normalizeProxyProviderProxyNameRules(override['proxy-name'])
+    if (proxyNameRules.length) override['proxy-name'] = proxyNameRules
+    else delete override['proxy-name']
+  }
+  return override
+}
+
 function normalizeProxyProvider(provider: ProxyNode = {}) {
   const providerType = String(provider.type || '').trim()
   const extra = omitKeys(provider, [
@@ -1716,7 +1737,7 @@ function normalizeProxyProvider(provider: ProxyNode = {}) {
       lazy: normalizeBooleanValue(provider.healthCheck?.lazy ?? provider['health-check']?.lazy, true),
       expectedStatus: String(provider.healthCheck?.expectedStatus || provider['health-check']?.['expected-status'] || '').trim(),
     },
-    override: normalizePolicy(provider.override, { typedValues: true }),
+    override: normalizeProxyProviderOverride(provider.override),
     filter: String(provider.filter || '').trim(),
     excludeFilter: String(provider.excludeFilter || provider['exclude-filter'] || '').trim(),
     excludeType: String(provider.excludeType || provider['exclude-type'] || '').trim(),
